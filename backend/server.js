@@ -28,9 +28,13 @@ app.use(express.urlencoded({ extended: true }));
 const authRoutes = require('./src/routes/auth');
 const restaurantRoutes = require('./src/routes/restaurant');
 const menuRoutes = require('./src/routes/menu');
+const orderRoutes = require('./src/routes/orders');
+const customerRoutes = require('./src/routes/customer');
 app.use('/api/auth', authRoutes);
 app.use('/api/restaurant', restaurantRoutes);
 app.use('/api/menu', menuRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/customer', customerRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

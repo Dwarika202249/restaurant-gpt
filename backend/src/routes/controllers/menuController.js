@@ -301,12 +301,12 @@ const createItem = async (req, res) => {
 /**
  * Update menu item
  * PUT /api/menu/item/:itemId
- * Body: { restaurantId, name, description, price, imageUrl, tags, allergens }
+ * Body: { restaurantId, name, description, price, imageUrl, tags, allergens, isAvailable }
  */
 const updateItem = async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { restaurantId, name, description, price, imageUrl, tags, allergens } = req.body;
+    const { restaurantId, name, description, price, imageUrl, tags, allergens, isAvailable } = req.body;
 
     // Validation
     if (!itemId || !restaurantId) {
@@ -340,6 +340,7 @@ const updateItem = async (req, res) => {
     if (imageUrl !== undefined) item.imageUrl = imageUrl;
     if (tags !== undefined) item.tags = Array.isArray(tags) ? tags.filter((t) => t.trim()) : [];
     if (allergens !== undefined) item.allergens = Array.isArray(allergens) ? allergens.filter((a) => a.trim()) : [];
+    if (isAvailable !== undefined) item.isAvailable = Boolean(isAvailable);
 
     await menu.save();
 

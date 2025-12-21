@@ -4,6 +4,9 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { MenuPage } from './pages/MenuPage';
+import { CustomerLandingPage } from './pages/CustomerLandingPage';
+import { CustomerMenuPage } from './pages/CustomerMenuPage';
+import { QRManagementPage } from './pages/QRManagementPage';
 
 /**
  * Application Routes Configuration
@@ -42,6 +45,26 @@ const routes: RouteObject[] = [
         <MenuPage />
       </ProtectedRoute>
     )
+  },
+
+  {
+    path: '/qr-management',
+    element: (
+      <ProtectedRoute requiredRole="admin">
+        <QRManagementPage />
+      </ProtectedRoute>
+    )
+  },
+
+  // Customer Routes (QR Code Entry Point)
+  {
+    path: '/r/:restaurantSlug/table/:tableNo',
+    element: <CustomerLandingPage />
+  },
+
+  {
+    path: '/customer/:restaurantSlug/table/:tableNo',
+    element: <CustomerMenuPage />
   },
 
   // Root redirect to dashboard or login

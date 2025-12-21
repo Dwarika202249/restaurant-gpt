@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, X, Home, UtensilsCrossed, ShoppingCart, BarChart3, LogOut } from 'lucide-react';
+import { Menu, X, Home, UtensilsCrossed, ShoppingCart, BarChart3, LogOut, QrCode } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
 import { logout } from '@/store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +18,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (op
     { icon: Home, label: 'Dashboard', href: '/dashboard' },
     { icon: UtensilsCrossed, label: 'Menu', href: '/menu' },
     { icon: ShoppingCart, label: 'Orders', href: '/orders' },
+    { icon: QrCode, label: 'QR Codes', href: '/qr-management' },
     { icon: BarChart3, label: 'Analytics', href: '/analytics' },
   ];
 

@@ -1,224 +1,713 @@
-import { useState } from 'react';
-import { useCart } from '@/hooks/useCart';
-import { CartSummary } from '@/components';
-import { Plus, Star } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useAppSelector, useAppDispatch } from '@/hooks/useRedux'; // Corrected Import
+import { useAPIError } from '@/hooks/useAPIError';
+import { Plus, Edit2, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
+import axios from 'axios';
+import toast from 'react-hot-toast'; // Added Toast for notifications
 
-// Mock menu items data
-const MOCK_MENU_ITEMS = [
-  {
-    itemId: 'item-001',
-    name: 'Margherita Pizza',
-    price: 299,
-    category: 'Pizza',
-    imageUrl: 'https://via.placeholder.com/300x200?text=Margherita+Pizza',
-    description: 'Fresh mozzarella, basil, and tomato sauce',
-    rating: 4.5,
-    reviews: 120,
-  },
-  {
-    itemId: 'item-002',
-    name: 'Pepperoni Pizza',
-    price: 349,
-    category: 'Pizza',
-    imageUrl: 'https://via.placeholder.com/300x200?text=Pepperoni+Pizza',
-    description: 'Crispy pepperoni with cheese and tomato sauce',
-    rating: 4.7,
-    reviews: 85,
-  },
-  {
-    itemId: 'item-003',
-    name: 'Garlic Bread',
-    price: 149,
-    category: 'Starters',
-    imageUrl: 'https://via.placeholder.com/300x200?text=Garlic+Bread',
-    description: 'Toasted bread with garlic butter and herbs',
-    rating: 4.3,
-    reviews: 45,
-  },
-  {
-    itemId: 'item-004',
-    name: 'Caesar Salad',
-    price: 249,
-    category: 'Salads',
-    imageUrl: 'https://via.placeholder.com/300x200?text=Caesar+Salad',
-    description: 'Fresh greens with caesar dressing and croutons',
-    rating: 4.4,
-    reviews: 62,
-  },
-  {
-    itemId: 'item-005',
-    name: 'Coca Cola',
-    price: 99,
-    category: 'Beverages',
-    imageUrl: 'https://via.placeholder.com/300x200?text=Coca+Cola',
-    description: 'Chilled Coca Cola 250ml',
-    rating: 4.0,
-    reviews: 200,
-  },
-  {
-    itemId: 'item-006',
-    name: 'Chocolate Cake',
-    price: 199,
-    category: 'Desserts',
-    imageUrl: 'https://via.placeholder.com/300x200?text=Chocolate+Cake',
-    description: 'Rich chocolate cake with whipped cream',
-    rating: 4.6,
-    reviews: 90,
-  },
-];
+interface Category {
+  _id: string;
+  name: string;
+  displayOrder: number;
+  icon?: string;
+  createdAt?: string;
+}
 
+interface MenuItem {
+  _id: string;
+  categoryId: string;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl?: string;
+  tags: string[];
+  allergens: string[];
+  isAvailable: boolean;
+  ordersCount: number;
+  createdAt?: string;
+}
+
+interface Menu {
+  categories: Category[];
+  items: MenuItem[];
+}
+
+/**
+ * Admin Menu Management Page
+ * Route: /menu
+ * Manage restaurant menu: categories and items with full CRUD
+ */
 export const MenuPage = () => {
-  const cart = useCart();
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  // Correct Redux Usage
+  const auth = useAppSelector((state) => state.auth);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const dispatch = useAppDispatch(); 
 
-  const categories = ['All', ...new Set(MOCK_MENU_ITEMS.map((item) => item.category))];
+  // Custom Error Hook
+  const { getErrorMessage } = useAPIError();
 
-  const filteredItems = MOCK_MENU_ITEMS.filter((item) => {
-    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
-    const matchesSearch =
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+  // State
+  const [menu, setMenu] = useState<Menu | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'categories' | 'items'>('items');
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+
+  // Category management
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryForm, setCategoryForm] = useState({ name: '', icon: '' });
+
+  // Item management
+  const [showItemModal, setShowItemModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [itemForm, setItemForm] = useState({
+    categoryId: '',
+    name: '',
+    description: '',
+    price: '',
+    imageUrl: '',
+    tags: '',
+    allergens: ''
   });
 
-  const handleAddToCart = (item: (typeof MOCK_MENU_ITEMS)[0]) => {
-    cart.addItem({
-      itemId: item.itemId,
-      name: item.name,
-      price: item.price,
-      quantity: 1,
-      category: item.category,
-      imageUrl: item.imageUrl,
-    });
+  // Fetch menu
+  useEffect(() => {
+    // Race Condition Guard: Only fetch if we have User ID and Token
+    if (auth.user?.restaurantId && auth.accessToken) {
+      fetchMenu();
+    }
+  }, [auth.user?.restaurantId, auth.accessToken]);
+  // useEffect(() => {
+  //     fetchMenu();
+  // }, []);
+
+  const fetchMenu = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/menu/${auth.user?.restaurantId}`, {
+        headers: { Authorization: `Bearer ${auth.accessToken}` }
+      });
+
+      if (response.data.data) {
+        setMenu(response.data.data);
+      }
+    } catch (error: any) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // ===== CATEGORY OPERATIONS =====
+
+  const openCategoryModal = (category?: Category) => {
+    if (category) {
+      setEditingCategory(category);
+      setCategoryForm({ name: category.name, icon: category.icon || '' });
+    } else {
+      setEditingCategory(null);
+      setCategoryForm({ name: '', icon: '' });
+    }
+    setShowCategoryModal(true);
+  };
+
+  const saveCategoryModal = async () => {
+    if (!categoryForm.name.trim()) {
+      toast.error('Category name is required');
+      return;
+    }
+
+    try {
+      if (editingCategory) {
+        // Update category
+        await axios.put(`${API_URL}/menu/category/${editingCategory._id}`, {
+          restaurantId: auth.user?.restaurantId,
+          ...categoryForm
+        }, {
+          headers: { Authorization: `Bearer ${auth.accessToken}` }
+        });
+        toast.success('Category updated successfully');
+      } else {
+        // Create category
+        await axios.post(`${API_URL}/menu/category`, {
+          restaurantId: auth.user?.restaurantId,
+          ...categoryForm
+        }, {
+          headers: { Authorization: `Bearer ${auth.accessToken}` }
+        });
+        toast.success('Category created successfully');
+      }
+
+      setShowCategoryModal(false);
+      await fetchMenu();
+    } catch (error: any) {
+      toast.error(getErrorMessage(error) || 'Failed to save category');
+    }
+  };
+
+  const deleteCategory = async (categoryId: string) => {
+    if (!confirm('Are you sure? Items in this category cannot be deleted with category.')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API_URL}/menu/category/${categoryId}`, {
+        params: { restaurantId: auth.user?.restaurantId },
+        headers: { Authorization: `Bearer ${auth.accessToken}` }
+      });
+      toast.success('Category deleted successfully');
+      await fetchMenu();
+    } catch (error: any) {
+      toast.error(getErrorMessage(error) || 'Failed to delete category');
+    }
+  };
+
+  // ===== ITEM OPERATIONS =====
+
+  const openItemModal = (item?: MenuItem) => {
+    if (item) {
+      setEditingItem(item);
+      setItemForm({
+        categoryId: item.categoryId,
+        name: item.name,
+        description: item.description,
+        price: item.price.toString(),
+        imageUrl: item.imageUrl || '',
+        tags: item.tags.join(', '),
+        allergens: item.allergens.join(', ')
+      });
+    } else {
+      setEditingItem(null);
+      setItemForm({
+        categoryId: menu?.categories[0]?._id || '',
+        name: '',
+        description: '',
+        price: '',
+        imageUrl: '',
+        tags: '',
+        allergens: ''
+      });
+    }
+    setShowItemModal(true);
+  };
+
+  const saveItemModal = async () => {
+    if (!itemForm.categoryId || !itemForm.name.trim() || !itemForm.price) {
+      toast.error('Category, name, and price are required');
+      return;
+    }
+
+    try {
+      const payload = {
+        restaurantId: auth.user?.restaurantId,
+        categoryId: itemForm.categoryId,
+        name: itemForm.name,
+        description: itemForm.description,
+        price: parseFloat(itemForm.price),
+        imageUrl: itemForm.imageUrl || undefined,
+        tags: itemForm.tags.split(',').map(t => t.trim()).filter(t => t),
+        allergens: itemForm.allergens.split(',').map(a => a.trim()).filter(a => a)
+      };
+
+      if (editingItem) {
+        // Update item
+        await axios.put(`${API_URL}/menu/item/${editingItem._id}`, payload, {
+          headers: { Authorization: `Bearer ${auth.accessToken}` }
+        });
+        toast.success('Item updated successfully');
+      } else {
+        // Create item
+        await axios.post(`${API_URL}/menu/item`, payload, {
+          headers: { Authorization: `Bearer ${auth.accessToken}` }
+        });
+        toast.success('Item created successfully');
+      }
+
+      setShowItemModal(false);
+      await fetchMenu();
+    } catch (error: any) {
+      toast.error(getErrorMessage(error) || 'Failed to save item');
+    }
+  };
+
+  const deleteItem = async (itemId: string) => {
+    if (!confirm('Delete this item?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API_URL}/menu/item/${itemId}`, {
+        params: { restaurantId: auth.user?.restaurantId },
+        headers: { Authorization: `Bearer ${auth.accessToken}` }
+      });
+      toast.success('Item deleted successfully');
+      await fetchMenu();
+    } catch (error: any) {
+      toast.error(getErrorMessage(error) || 'Failed to delete item');
+    }
+  };
+
+  const toggleItemAvailability = async (item: MenuItem) => {
+    try {
+      await axios.put(`${API_URL}/menu/item/${item._id}`, {
+        restaurantId: auth.user?.restaurantId,
+        isAvailable: !item.isAvailable
+      }, {
+        headers: { Authorization: `Bearer ${auth.accessToken}` }
+      });
+      // We don't necessarily need a toast here for every toggle, but we can add one if desired
+      // toast.success(`Item marked as ${!item.isAvailable ? 'Available' : 'Unavailable'}`);
+      await fetchMenu();
+    } catch (error: any) {
+      toast.error('Failed to update availability');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-12 h-12 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const itemsByCategory = menu?.items.reduce((acc, item) => {
+    if (!acc[item.categoryId]) acc[item.categoryId] = [];
+    acc[item.categoryId].push(item);
+    return acc;
+  }, {} as Record<string, MenuItem[]>) || {};
+
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <h1 className="text-3xl font-bold text-slate-900 mb-4">Menu</h1>
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-3xl font-bold text-slate-900">Menu Management</h1>
+            <button
+              onClick={() => {
+                setActiveTab('items');
+                openItemModal();
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+            >
+              <Plus size={18} />
+              Add Item
+            </button>
+          </div>
 
-          {/* Search Bar */}
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search menu items..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
+          {/* Tabs */}
+          <div className="flex gap-4">
+            <button
+              onClick={() => setActiveTab('items')}
+              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                activeTab === 'items'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Items ({menu?.items.length || 0})
+            </button>
+            <button
+              onClick={() => setActiveTab('categories')}
+              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                activeTab === 'categories'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Categories ({menu?.categories.length || 0})
+            </button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Left Sidebar - Categories & Cart */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Categories */}
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Categories</h2>
-            <div className="space-y-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                    selectedCategory === cat
-                      ? 'bg-orange-500 text-white font-medium'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  {cat}
-                </button>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Categories Tab */}
+        {activeTab === 'categories' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => openCategoryModal()}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+            >
+              <Plus size={18} />
+              Add Category
+            </button>
+
+            <div className="space-y-3">
+              {(menu?.categories || []).map((category) => (
+                <div key={category._id} className="bg-white rounded-lg border border-slate-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-slate-900">{category.name}</h3>
+                      {category.icon && <p className="text-sm text-slate-500">Icon: {category.icon}</p>}
+                      <p className="text-xs text-slate-400 mt-1">
+                        Items: {itemsByCategory[category._id]?.length || 0}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => openCategoryModal(category)}
+                        className="p-2 hover:bg-slate-100 rounded transition-colors"
+                      >
+                        <Edit2 size={18} className="text-slate-600" />
+                      </button>
+                      <button
+                        onClick={() => deleteCategory(category._id)}
+                        className="p-2 hover:bg-red-100 rounded transition-colors"
+                      >
+                        <Trash2 size={18} className="text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
+        )}
 
-          {/* Cart Summary */}
-          <CartSummary />
-        </div>
+        {/* Items Tab */}
+        {activeTab === 'items' && (
+          <div>
+            {(menu?.categories || []).map((category) => {
+              const items = itemsByCategory[category._id] || [];
+              if (items.length === 0) return null;
 
-        {/* Right Content - Menu Items */}
-        <div className="lg:col-span-3">
-          {filteredItems.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-slate-600 text-lg">No items found</p>
-              <p className="text-slate-500 text-sm mt-2">Try adjusting your search or filters</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredItems.map((item) => {
-                const cartItem = cart.getItem(item.itemId);
-                return (
-                  <div key={item.itemId} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
-                    {/* Image */}
-                    <div className="relative h-48 bg-slate-200 overflow-hidden">
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-2 right-2 bg-white rounded-full px-2 py-1 flex items-center space-x-1 shadow-md">
-                        <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs font-semibold text-slate-900">{item.rating}</span>
-                      </div>
+              return (
+                <div key={category._id} className="mb-8">
+                  <button
+                    onClick={() =>
+                      setExpandedCategory(expandedCategory === category._id ? null : category._id)
+                    }
+                    className="w-full flex items-center justify-between px-4 py-3 bg-slate-200 rounded-lg hover:bg-slate-300 transition-colors mb-4"
+                  >
+                    <h2 className="text-lg font-semibold text-slate-900">{category.name}</h2>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-sm font-medium">
+                        {items.length}
+                      </span>
+                      {expandedCategory === category._id ? (
+                        <ChevronUp size={20} />
+                      ) : (
+                        <ChevronDown size={20} />
+                      )}
                     </div>
+                  </button>
 
-                    {/* Content */}
-                    <div className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="text-lg font-semibold text-slate-900">{item.name}</h3>
-                          <p className="text-xs text-slate-500 mt-1">{item.category}</p>
-                        </div>
-                      </div>
+                  {expandedCategory === category._id && (
+                    <div className="space-y-3">
+                      {items.map((item) => (
+                        <div
+                          key={item._id}
+                          className="bg-white rounded-lg border border-slate-200 p-4 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex gap-4">
+                            {/* Item Image */}
+                            {item.imageUrl && (
+                              <img
+                                src={item.imageUrl}
+                                alt={item.name}
+                                className="w-24 h-24 object-cover rounded"
+                              />
+                            )}
 
-                      <p className="text-sm text-slate-600 mb-4">{item.description}</p>
+                            {/* Item Details */}
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <h3 className="font-semibold text-slate-900">{item.name}</h3>
+                                  <p className="text-sm text-slate-600 mt-1">{item.description}</p>
+                                </div>
+                                <span className="text-lg font-bold text-orange-600">₹{item.price}</span>
+                              </div>
 
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <p className="text-2xl font-bold text-orange-600">₹{item.price}</p>
-                          <p className="text-xs text-slate-500 mt-1">({item.reviews} reviews)</p>
-                        </div>
+                              {/* Tags */}
+                              {item.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mb-2">
+                                  {item.tags.map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
 
-                        {/* Add to Cart / Quantity Control */}
-                        {!cartItem ? (
-                          <button
-                            onClick={() => handleAddToCart(item)}
-                            className="flex items-center space-x-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-                          >
-                            <Plus size={18} />
-                            <span>Add</span>
-                          </button>
-                        ) : (
-                          <div className="flex items-center space-x-2 bg-slate-100 rounded-lg">
-                            <button
-                              onClick={() => cart.decrementItem(item.itemId)}
-                              className="px-3 py-2 hover:bg-slate-200 transition-colors"
-                            >
-                              −
-                            </button>
-                            <span className="w-8 text-center font-semibold text-slate-900">{cartItem.quantity}</span>
-                            <button
-                              onClick={() => cart.incrementItem(item.itemId)}
-                              className="px-3 py-2 hover:bg-slate-200 transition-colors"
-                            >
-                              +
-                            </button>
+                              {/* Allergens */}
+                              {item.allergens.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mb-2">
+                                  {item.allergens.map((allergen) => (
+                                    <span
+                                      key={allergen}
+                                      className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded"
+                                    >
+                                      Allergen: {allergen}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Stats */}
+                              <p className="text-xs text-slate-500">
+                                Orders: {item.ordersCount} | Status:{' '}
+                                <span
+                                  className={
+                                    item.isAvailable
+                                      ? 'text-green-600 font-semibold'
+                                      : 'text-red-600 font-semibold'
+                                  }
+                                >
+                                  {item.isAvailable ? 'Available' : 'Unavailable'}
+                                </span>
+                              </p>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex flex-col gap-2">
+                              <button
+                                onClick={() => openItemModal(item)}
+                                className="p-2 hover:bg-slate-100 rounded transition-colors"
+                              >
+                                <Edit2 size={18} className="text-slate-600" />
+                              </button>
+                              <button
+                                onClick={() => toggleItemAvailability(item)}
+                                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                                  item.isAvailable
+                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                }`}
+                              >
+                                {item.isAvailable ? 'Available' : 'Unavailable'}
+                              </button>
+                              <button
+                                onClick={() => deleteItem(item._id)}
+                                className="p-2 hover:bg-red-100 rounded transition-colors"
+                              >
+                                <Trash2 size={18} className="text-red-600" />
+                              </button>
+                            </div>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {(!menu?.items || menu.items.length === 0) && (
+              <div className="text-center py-12">
+                <p className="text-slate-600 text-lg">No items yet</p>
+                <p className="text-slate-500">Create a category first, then add items</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Category Modal */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-900">
+                {editingCategory ? 'Edit Category' : 'Add Category'}
+              </h2>
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="p-1 hover:bg-slate-100 rounded"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-1">
+                  Category Name *
+                </label>
+                <input
+                  type="text"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                  placeholder="e.g., Pizza, Starters, Desserts"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-1">
+                  Icon (optional)
+                </label>
+                <input
+                  type="text"
+                  value={categoryForm.icon}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                  placeholder="e.g., 🍕, 🥗, 🍰"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="flex-1 px-4 py-2 border border-slate-300 text-slate-900 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveCategoryModal}
+                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Item Modal */}
+      {showItemModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-900">
+                {editingItem ? 'Edit Item' : 'Add Item'}
+              </h2>
+              <button
+                onClick={() => setShowItemModal(false)}
+                className="p-1 hover:bg-slate-100 rounded"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-900 mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={itemForm.categoryId}
+                    onChange={(e) => setItemForm({ ...itemForm, categoryId: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    {(menu?.categories || []).map((cat) => (
+                      <option key={cat._id} value={cat._id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-900 mb-1">
+                    Price (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    value={itemForm.price}
+                    onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
+                    placeholder="299"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-1">
+                  Item Name *
+                </label>
+                <input
+                  type="text"
+                  value={itemForm.name}
+                  onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
+                  placeholder="e.g., Margherita Pizza"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={itemForm.description}
+                  onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
+                  placeholder="Item description..."
+                  rows={2}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-1">
+                  Image URL
+                </label>
+                <input
+                  type="text"
+                  value={itemForm.imageUrl}
+                  onChange={(e) => setItemForm({ ...itemForm, imageUrl: e.target.value })}
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-1">
+                  Tags (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={itemForm.tags}
+                  onChange={(e) => setItemForm({ ...itemForm, tags: e.target.value })}
+                  placeholder="veg, spicy, gluten-free"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-1">
+                  Allergens (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={itemForm.allergens}
+                  onChange={(e) => setItemForm({ ...itemForm, allergens: e.target.value })}
+                  placeholder="peanuts, dairy, shellfish"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowItemModal(false)}
+                className="flex-1 px-4 py-2 border border-slate-300 text-slate-900 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveItemModal}
+                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+export default MenuPage;
