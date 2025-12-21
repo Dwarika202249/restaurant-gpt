@@ -3,7 +3,7 @@ import { useAppSelector, useAppDispatch } from '@/hooks/useRedux'; // Corrected 
 import { useAPIError } from '@/hooks/useAPIError';
 import { Plus, Edit2, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import axios from 'axios';
-import toast from 'react-hot-toast'; // Added Toast for notifications
+import toast from 'react-hot-toast';
 
 interface Category {
   _id: string;
@@ -74,31 +74,43 @@ export const MenuPage = () => {
 
   // Fetch menu
   useEffect(() => {
-    // Race Condition Guard: Only fetch if we have User ID and Token
-    if (auth.user?.restaurantId && auth.accessToken) {
-      fetchMenu();
+  if (auth.user?.restaurantId && auth.accessToken) {
+    fetchMenu();
+  } else {
+    setLoading(false);
+    // Optional: Show message ki user login nahi hai
+    if (!auth.user) {
+      toast.error('Please login to view menu');
     }
-  }, [auth.user?.restaurantId, auth.accessToken]);
-  // useEffect(() => {
-  //     fetchMenu();
-  // }, []);
+  }
+}, [auth.user?.restaurantId, auth.accessToken]);
 
   const fetchMenu = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${API_URL}/menu/${auth.user?.restaurantId}`, {
-        headers: { Authorization: `Bearer ${auth.accessToken}` }
-      });
+  // Double-check before API call
+  if (!auth.user?.restaurantId) {
+    toast.error('Restaurant ID not found');
+    setLoading(false);
+    return;
+  }
 
-      if (response.data.data) {
-        setMenu(response.data.data);
+  try {
+    setLoading(true);
+    const response = await axios.get(
+      `${API_URL}/menu/${auth.user.restaurantId}`,
+      {
+        headers: { Authorization: `Bearer ${auth.accessToken}` }
       }
-    } catch (error: any) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setLoading(false);
+    );
+
+    if (response.data.data) {
+      setMenu(response.data.data);
     }
-  };
+  } catch (error: any) {
+    toast.error(getErrorMessage(error));
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ===== CATEGORY OPERATIONS =====
 
@@ -353,12 +365,15 @@ export const MenuPage = () => {
                       <button
                         onClick={() => openCategoryModal(category)}
                         className="p-2 hover:bg-slate-100 rounded transition-colors"
+                        title="Edit category"
                       >
                         <Edit2 size={18} className="text-slate-600" />
                       </button>
                       <button
                         onClick={() => deleteCategory(category._id)}
                         className="p-2 hover:bg-red-100 rounded transition-colors"
+                        title="Delete category"
+                        aria-label="Delete category"
                       >
                         <Trash2 size={18} className="text-red-600" />
                       </button>
@@ -473,6 +488,7 @@ export const MenuPage = () => {
                               <button
                                 onClick={() => openItemModal(item)}
                                 className="p-2 hover:bg-slate-100 rounded transition-colors"
+                                title="Edit item"
                               >
                                 <Edit2 size={18} className="text-slate-600" />
                               </button>
@@ -489,6 +505,8 @@ export const MenuPage = () => {
                               <button
                                 onClick={() => deleteItem(item._id)}
                                 className="p-2 hover:bg-red-100 rounded transition-colors"
+                                title="Delete item"
+                                aria-label="Delete item"
                               >
                                 <Trash2 size={18} className="text-red-600" />
                               </button>
@@ -523,6 +541,8 @@ export const MenuPage = () => {
               <button
                 onClick={() => setShowCategoryModal(false)}
                 className="p-1 hover:bg-slate-100 rounded"
+                title="Close"
+                aria-label="Close"
               >
                 <X size={20} />
               </button>
@@ -585,6 +605,8 @@ export const MenuPage = () => {
               <button
                 onClick={() => setShowItemModal(false)}
                 className="p-1 hover:bg-slate-100 rounded"
+                title="Close"
+                aria-label="Close"
               >
                 <X size={20} />
               </button>
@@ -600,6 +622,7 @@ export const MenuPage = () => {
                     value={itemForm.categoryId}
                     onChange={(e) => setItemForm({ ...itemForm, categoryId: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    aria-label="Category"
                   >
                     {(menu?.categories || []).map((cat) => (
                       <option key={cat._id} value={cat._id}>

@@ -1,8 +1,10 @@
+import AdminPage from './pages/AdminPage';
+import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import { createBrowserRouter, RouteObject } from 'react-router-dom';
 import { ProtectedRoute } from './components';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
-import { ProfilePage } from './pages/ProfilePage';
+import { RestaurantProfilePage } from './pages/RestaurantProfilePage';
 import { MenuPage } from './pages/MenuPage';
 import { CustomerLandingPage } from './pages/CustomerLandingPage';
 import { CustomerMenuPage } from './pages/CustomerMenuPage';
@@ -30,10 +32,28 @@ const routes: RouteObject[] = [
   },
 
   {
+    path: '/admin-profile',
+    element: (
+      <ProtectedRoute requiredRole="admin">
+        <CreateAdminProfilePage />
+      </ProtectedRoute>
+    )
+  },
+
+  {
+    path: '/admin',
+    element: (
+      <ProtectedRoute requiredRole="admin">
+        <AdminPage />
+      </ProtectedRoute>
+    )
+  },
+
+  {
     path: '/profile',
     element: (
       <ProtectedRoute requiredRole="admin">
-        <ProfilePage />
+        <RestaurantProfilePage />
       </ProtectedRoute>
     )
   },

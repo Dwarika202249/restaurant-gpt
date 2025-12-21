@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Search, Bell, User, LogOut, Settings } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
+import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { logout } from '@/store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,6 +12,13 @@ export const Navbar = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+    // Rehydrate user if missing but authenticated
+    useEffect(() => {
+      if (!user && isAuthenticated) {
+        dispatch(fetchAdminUser());
+      }
+    }, [user, isAuthenticated, dispatch]);
   const restaurant = useAppSelector((state) => state.restaurant.currentRestaurant);
 
   // Close profile menu when clicking outside
@@ -88,12 +96,22 @@ export const Navbar = () => {
                   <p className="text-xs text-slate-500 mt-1">{user?.role === 'admin' ? 'Admin User' : 'Customer'}</p>
                 </div>
 
+                {user?.role === 'admin' && (
+                  <a
+                    href="/admin"
+                    className="flex items-center space-x-2 px-4 py-3 hover:bg-slate-50 transition-colors text-sm text-slate-700"
+                  >
+                    <User size={16} />
+                    <span>Admin Profile</span>
+                  </a>
+                )}
+
                 <a
                   href="/profile"
                   className="flex items-center space-x-2 px-4 py-3 hover:bg-slate-50 transition-colors text-sm text-slate-700"
                 >
                   <Settings size={16} />
-                  <span>Settings</span>
+                  <span>Restaurant Profile</span>
                 </a>
 
                 <button

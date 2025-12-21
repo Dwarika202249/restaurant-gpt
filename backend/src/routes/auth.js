@@ -1,5 +1,7 @@
+const { getAdminMe } = require('./controllers/getAdminMe');
 const express = require('express');
 const router = express.Router();
+const { updateAdminProfile } = require('./controllers/updateAdminProfile');
 const {
   sendOTP,
   verifyOTP,
@@ -8,6 +10,20 @@ const {
   generateGuestSession
 } = require('./controllers/authController');
 const { authenticateAdmin, verifyRefresh } = require('../middleware/auth');
+
+/**
+ * @route   GET /api/auth/admin/me
+ * @desc    Get current admin user profile
+ * @access  Private (admin only)
+ */
+router.get('/admin/me', authenticateAdmin, getAdminMe);
+
+/**
+ * @route   PUT /api/auth/admin/profile
+ * @desc    Update admin profile (name, email)
+ * @access  Private (admin only)
+ */
+router.put('/admin/profile', authenticateAdmin, updateAdminProfile);
 
 /**
  * @route   POST /api/auth/admin/send-otp

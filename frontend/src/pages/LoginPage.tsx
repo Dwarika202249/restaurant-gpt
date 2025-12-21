@@ -4,6 +4,7 @@ import { Phone, Lock, Copy, Check } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { sendOTP, verifyOTP, clearError } from '@/store/slices/authSlice';
 import { Error, Success } from '@/components';
+import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 
 type AuthStep = 'phone' | 'otp';
 
@@ -34,10 +35,20 @@ export const LoginPage = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
+    const fetchAndRedirect = async () => {
+      if (isAuthenticated) {
+        // Fetch latest user profile
+        const res = await dispatch(fetchAdminUser() as any);
+        const user = res?.payload?.user;
+        if (user?.profileComplete === false) {
+          navigate('/admin-profile');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    };
+    fetchAndRedirect();
+  }, [isAuthenticated, dispatch, navigate]);
 
   // Handle OTP sent
   useEffect(() => {

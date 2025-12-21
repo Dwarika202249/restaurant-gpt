@@ -370,6 +370,8 @@ export const CustomerMenuPage = () => {
             <button
               onClick={() => setShowCartPreview(false)}
               className="p-1 hover:bg-gray-100 rounded"
+              aria-label="Close cart"
+              title="Close cart"
             >
               <X size={20} />
             </button>
@@ -395,6 +397,8 @@ export const CustomerMenuPage = () => {
                     <button
                       onClick={() => updateQuantity(item.itemId, item.quantity - 1)}
                       className="p-1 hover:bg-gray-100 rounded"
+                      aria-label="Decrease quantity"
+                      title="Decrease quantity"
                     >
                       <Minus size={16} />
                     </button>
@@ -402,6 +406,8 @@ export const CustomerMenuPage = () => {
                     <button
                       onClick={() => updateQuantity(item.itemId, item.quantity + 1)}
                       className="p-1 hover:bg-gray-100 rounded"
+                      aria-label="Increase quantity"
+                      title="Increase quantity"
                     >
                       <Plus size={16} />
                     </button>

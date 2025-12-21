@@ -114,8 +114,7 @@ const verifyOTP = async (req, res) => {
       // New user - create account
       user = new User({
         phone,
-        role: 'admin',
-        passwordHash: null // OTP-based auth, no password
+        role: 'admin'
       });
       await user.save();
     }

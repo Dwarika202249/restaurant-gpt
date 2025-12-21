@@ -15,7 +15,7 @@ type PageMode = 'view' | 'edit' | 'setup';
  * Allows CRUD operations on restaurant details
  * Will be enhanced with better UI in next iteration
  */
-export const ProfilePage = () => {
+export const RestaurantProfilePage = () => {
   const dispatch = useAppDispatch();
   const { currentRestaurant: restaurant, loading, error } = useAppSelector(
     (state) => state.restaurant
@@ -323,4 +323,4 @@ export const ProfilePage = () => {
   );
 };
 
-export default ProfilePage;
+export default RestaurantProfilePage;

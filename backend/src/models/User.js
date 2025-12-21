@@ -1,7 +1,11 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   email: {
     type: String,
     sparse: true,
@@ -12,10 +16,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     sparse: true,
     trim: true
-  },
-  passwordHash: {
-    type: String,
-    default: null
   },
   role: {
     type: String,
@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema({
     token: String,
     expiresAt: Date
   }],
+  profileComplete: {
+    type: Boolean,
+    default: false
+  },
   lastLoginAt: {
     type: Date,
     default: null
@@ -59,22 +63,5 @@ const userSchema = new mongoose.Schema({
 userSchema.index({ restaurantId: 1 });
 userSchema.index({ role: 1 });
 
-// Password hashing middleware
-userSchema.pre('save', async function() {
-  // Skip hashing if passwordHash is not modified or is null (OTP login)
-  if (!this.isModified('passwordHash') || !this.passwordHash) return;
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
-  } catch (error) {
-    throw error;
-  }
-});
-
-// Method to compare passwords
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.passwordHash);
-};
 
 module.exports = mongoose.model('User', userSchema);

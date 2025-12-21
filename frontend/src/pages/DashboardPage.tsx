@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react';
+import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
 import { Sidebar, Navbar } from '@/components';
 import { TrendingUp, Users, ShoppingCart, Clock } from 'lucide-react';
 import { fetchRestaurantProfile } from '@/store/slices/restaurantSlice';
+import { useNavigate } from 'react-router-dom';
 
 export const DashboardPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+    // Rehydrate user if missing but authenticated
+    useEffect(() => {
+      if (!user && isAuthenticated) {
+        dispatch(fetchAdminUser());
+      }
+    }, [user, isAuthenticated, dispatch]);
   const restaurant = useAppSelector((state) => state.restaurant.currentRestaurant);
   const loading = useAppSelector((state) => state.restaurant.loading);
 
@@ -17,6 +26,17 @@ export const DashboardPage = () => {
       dispatch(fetchRestaurantProfile());
     }
   }, [user?.restaurantId, restaurant, dispatch]);
+
+  const navigate = useNavigate();
+    // Redirect to admin profile setup ONLY if profileComplete is false
+    useEffect(() => {
+      if (
+        user?.role === 'admin' &&
+        user.profileComplete === false
+      ) {
+        navigate('/admin-profile');
+      }
+    }, [user, navigate]);
 
   // Mock dashboard stats
   const stats = [

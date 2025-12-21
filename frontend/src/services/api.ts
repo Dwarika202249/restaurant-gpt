@@ -38,14 +38,16 @@ apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
+
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-    const state = store.getState();
+    // Always get the latest refresh token from localStorage
+    const refreshToken = localStorage.getItem('refreshToken');
 
     // If 401 and we have a refresh token, try to refresh
     if (
       error.response?.status === 401 &&
-      state.auth.refreshToken &&
+      refreshToken &&
       !originalRequest._retry
     ) {
       originalRequest._retry = true;
@@ -53,7 +55,7 @@ apiClient.interceptors.response.use(
       try {
         // Dispatch refresh token action
         const result = await store.dispatch(
-          refreshAccessToken(state.auth.refreshToken)
+          refreshAccessToken(refreshToken)
         );
 
         if (result.payload && 'accessToken' in result.payload) {
