@@ -11,12 +11,15 @@ const attachRestaurantContext = async (req, res, next) => {
   try {
     // Case 1: Admin user - use their assigned restaurantId
     if (req.user && req.user.role === 'admin') {
+      console.log('[attachRestaurantContext] ADMIN req.user:', req.user);
       if (!req.user.restaurantId) {
+        console.error('[attachRestaurantContext] Admin user has no associated restaurant', req.user);
         return res.status(400).json({
           message: 'Admin user has no associated restaurant'
         });
       }
       req.restaurantId = req.user.restaurantId;
+      console.log('[attachRestaurantContext] ADMIN req.restaurantId set:', req.restaurantId);
       return next();
     }
 

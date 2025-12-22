@@ -1,5 +1,38 @@
-const { Menu, Restaurant } = require('../../models');
-const mongoose = require('mongoose');
+const { Menu, Restaurant, Category } = require("../../models");
+const mongoose = require("mongoose");
+
+/**
+ * Get all categories for the authenticated restaurant
+ * GET /api/menu/category
+ */
+const getCategories = async (req, res) => {
+  try {
+    console.log("[getCategories] req.user:", req.user);
+    console.log("[getCategories] req.restaurantId:", req.restaurantId);
+    const restaurantId = req.restaurantId;
+    if (!restaurantId) {
+      console.error(
+        "[getCategories] 400: Missing restaurantId. req.user:",
+        req.user
+      );
+      return res.status(400).json({ message: "Restaurant ID is required" });
+    }
+    const categories = await Category.find({ restaurantId }).sort({
+      displayOrder: 1,
+      name: 1,
+    });
+    return res.status(200).json({
+      message: "Categories retrieved successfully",
+      data: categories,
+    });
+  } catch (error) {
+    console.error("Get categories error:", error);
+    return res.status(500).json({
+      message: "Failed to retrieve categories",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
 
 /**
  * Get menu for admin (full menu with all items and categories)
@@ -11,13 +44,13 @@ const getAdminMenu = async (req, res) => {
 
     // Validate restaurantId
     if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
-      return res.status(400).json({ message: 'Invalid restaurant ID' });
+      return res.status(400).json({ message: "Invalid restaurant ID" });
     }
 
     // Verify restaurant exists
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
+      return res.status(404).json({ message: "Restaurant not found" });
     }
 
     // Find menu
@@ -28,87 +61,80 @@ const getAdminMenu = async (req, res) => {
       menu = new Menu({
         restaurantId,
         categories: [],
-        items: []
+        items: [],
       });
       await menu.save();
     }
 
     return res.status(200).json({
-      message: 'Menu retrieved successfully',
-      data: menu
+      message: "Menu retrieved successfully",
+      data: menu,
     });
   } catch (error) {
-    console.error('Get menu error:', error);
+    console.error("Get menu error:", error);
     return res.status(500).json({
-      message: 'Failed to retrieve menu',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Failed to retrieve menu",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
 
 /**
- * Create category
+ * Create category (normalized)
  * POST /api/menu/category
  * Body: { restaurantId, name, icon }
  */
 const createCategory = async (req, res) => {
   try {
-    const { restaurantId, name, icon } = req.body;
+    const { name, icon } = req.body;
+    const restaurantId = req.restaurantId;
 
     // Validation
     if (!restaurantId || !name || !name.trim()) {
-      return res.status(400).json({ message: 'Restaurant ID and category name are required' });
+      return res
+        .status(400)
+        .json({ message: "Restaurant ID and category name are required" });
     }
-
     if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
-      return res.status(400).json({ message: 'Invalid restaurant ID' });
+      return res.status(400).json({ message: "Invalid restaurant ID" });
     }
 
     // Verify restaurant exists
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
+      return res.status(404).json({ message: "Restaurant not found" });
     }
 
-    // Find or create menu
-    let menu = await Menu.findOne({ restaurantId });
-    if (!menu) {
-      menu = new Menu({
-        restaurantId,
-        categories: [],
-        items: []
-      });
+    // Check for duplicate category name for this restaurant
+    const existing = await Category.findOne({
+      restaurantId,
+      name: { $regex: `^${name.trim()}$`, $options: "i" },
+    });
+    if (existing) {
+      return res.status(400).json({ message: "Category already exists" });
     }
 
-    // Check if category already exists
-    const existingCategory = menu.categories.find(
-      (cat) => cat.name.toLowerCase() === name.toLowerCase()
-    );
-    if (existingCategory) {
-      return res.status(400).json({ message: 'Category already exists' });
-    }
+    // Determine displayOrder (count existing categories)
+    const count = await Category.countDocuments({ restaurantId });
 
     // Create new category
-    const newCategory = {
-      _id: new mongoose.Types.ObjectId(),
+    const category = new Category({
+      restaurantId,
       name: name.trim(),
-      displayOrder: menu.categories.length,
       icon: icon || null,
-      createdAt: new Date()
-    };
-
-    menu.categories.push(newCategory);
-    await menu.save();
+      displayOrder: count || 0,
+    });
+    await category.save();
 
     return res.status(201).json({
-      message: 'Category created successfully',
-      data: { category: newCategory }
+      message: "Category created successfully",
+      data: { category },
     });
   } catch (error) {
-    console.error('Create category error:', error);
+    console.error("Create category error:", error);
     return res.status(500).json({
-      message: 'Failed to create category',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Failed to create category",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -121,54 +147,50 @@ const createCategory = async (req, res) => {
 const updateCategory = async (req, res) => {
   try {
     const { categoryId } = req.params;
-    const { restaurantId, name, icon, displayOrder } = req.body;
+    const { name, icon, displayOrder } = req.body;
+    const restaurantId = req.restaurantId;
 
-    // Validation
-    if (!categoryId || !restaurantId || !name || !name.trim()) {
-      return res.status(400).json({ message: 'Category ID, restaurant ID, and name are required' });
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({ message: "Invalid Category ID format" });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(categoryId) || !mongoose.Types.ObjectId.isValid(restaurantId)) {
-      return res.status(400).json({ message: 'Invalid ID format' });
+    // Check if another category with the same name exists for this restaurant
+    if (name) {
+      const existing = await Category.findOne({
+        restaurantId,
+        name: { $regex: `^${name.trim()}$`, $options: "i" },
+        _id: { $ne: categoryId }, // Not this one
+      });
+      if (existing) {
+        return res
+          .status(400)
+          .json({ message: "Another category with this name already exists" });
+      }
     }
 
-    // Find menu
-    const menu = await Menu.findOne({ restaurantId });
-    if (!menu) {
-      return res.status(404).json({ message: 'Menu not found' });
-    }
-
-    // Find category
-    const category = menu.categories.find((cat) => cat._id.toString() === categoryId);
-    if (!category) {
-      return res.status(404).json({ message: 'Category not found' });
-    }
-
-    // Check for duplicate name (excluding current category)
-    const duplicateName = menu.categories.find(
-      (cat) => cat.name.toLowerCase() === name.toLowerCase() && cat._id.toString() !== categoryId
+    const updatedCategory = await Category.findOneAndUpdate(
+      { _id: categoryId, restaurantId }, // Ensure admin owns this category
+      {
+        $set: {
+          name: name?.trim(),
+          icon,
+          displayOrder,
+        },
+      },
+      { new: true }
     );
-    if (duplicateName) {
-      return res.status(400).json({ message: 'Category name already exists' });
+
+    if (!updatedCategory) {
+      return res.status(404).json({ message: "Category not found" });
     }
-
-    // Update category
-    category.name = name.trim();
-    if (icon !== undefined) category.icon = icon;
-    if (displayOrder !== undefined) category.displayOrder = displayOrder;
-
-    await menu.save();
 
     return res.status(200).json({
-      message: 'Category updated successfully',
-      data: { category }
+      message: "Category updated successfully",
+      data: updatedCategory,
     });
   } catch (error) {
-    console.error('Update category error:', error);
-    return res.status(500).json({
-      message: 'Failed to update category',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error("Update category error:", error);
+    return res.status(500).json({ message: "Failed to update category" });
   }
 };
 
@@ -180,54 +202,40 @@ const updateCategory = async (req, res) => {
 const deleteCategory = async (req, res) => {
   try {
     const { categoryId } = req.params;
-    const { restaurantId } = req.query;
+    const restaurantId = req.restaurantId;
 
-    // Validation
-    if (!categoryId || !restaurantId) {
-      return res.status(400).json({ message: 'Category ID and restaurant ID are required' });
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({ message: "Invalid Category ID format" });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(categoryId) || !mongoose.Types.ObjectId.isValid(restaurantId)) {
-      return res.status(400).json({ message: 'Invalid ID format' });
-    }
-
-    // Find menu
+    // 1. Check if any items in the Menu are using this category
     const menu = await Menu.findOne({ restaurantId });
-    if (!menu) {
-      return res.status(404).json({ message: 'Menu not found' });
+    if (menu) {
+      const hasItems = menu.items.some(
+        (item) => item.categoryId.toString() === categoryId
+      );
+      if (hasItems) {
+        return res.status(400).json({
+          message:
+            "Cannot delete category while it contains menu items. Please delete or move the items first.",
+        });
+      }
     }
 
-    // Find category index
-    const categoryIndex = menu.categories.findIndex((cat) => cat._id.toString() === categoryId);
-    if (categoryIndex === -1) {
-      return res.status(404).json({ message: 'Category not found' });
-    }
-
-    // Check if category has items
-    const categoryHasItems = menu.items.some((item) => item.categoryId.toString() === categoryId);
-    if (categoryHasItems) {
-      return res.status(400).json({ message: 'Cannot delete category with items. Delete items first.' });
-    }
-
-    // Delete category
-    menu.categories.splice(categoryIndex, 1);
-
-    // Update displayOrder for remaining categories
-    menu.categories.forEach((cat, index) => {
-      cat.displayOrder = index;
+    // 2. Delete the category
+    const result = await Category.findOneAndDelete({
+      _id: categoryId,
+      restaurantId,
     });
 
-    await menu.save();
+    if (!result) {
+      return res.status(404).json({ message: "Category not found" });
+    }
 
-    return res.status(200).json({
-      message: 'Category deleted successfully'
-    });
+    return res.status(200).json({ message: "Category deleted successfully" });
   } catch (error) {
-    console.error('Delete category error:', error);
-    return res.status(500).json({
-      message: 'Failed to delete category',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error("Delete category error:", error);
+    return res.status(500).json({ message: "Failed to delete category" });
   }
 };
 
@@ -238,33 +246,58 @@ const deleteCategory = async (req, res) => {
  */
 const createItem = async (req, res) => {
   try {
-    const { restaurantId, categoryId, name, description, price, imageUrl, tags = [], allergens = [] } = req.body;
+    const restaurantId = req.restaurantId;
+    const {
+      categoryId,
+      name,
+      description,
+      price,
+      imageUrl,
+      tags = [],
+      allergens = [],
+    } = req.body;
 
     // Validation
-    if (!restaurantId || !categoryId || !name || !name.trim() || price === undefined) {
+    if (
+      !restaurantId ||
+      !categoryId ||
+      !name ||
+      !name.trim() ||
+      price === undefined
+    ) {
       return res.status(400).json({
-        message: 'Restaurant ID, category ID, name, and price are required'
+        message: "Restaurant ID, category ID, name, and price are required",
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(restaurantId) || !mongoose.Types.ObjectId.isValid(categoryId)) {
-      return res.status(400).json({ message: 'Invalid ID format' });
+    if (
+      !mongoose.Types.ObjectId.isValid(restaurantId) ||
+      !mongoose.Types.ObjectId.isValid(categoryId)
+    ) {
+      return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    if (typeof price !== 'number' || price < 0) {
-      return res.status(400).json({ message: 'Price must be a non-negative number' });
+    if (typeof price !== "number" || price < 0) {
+      return res
+        .status(400)
+        .json({ message: "Price must be a non-negative number" });
     }
 
     // Find menu
     const menu = await Menu.findOne({ restaurantId });
     if (!menu) {
-      return res.status(404).json({ message: 'Menu not found' });
+      return res.status(404).json({ message: "Menu not found" });
     }
 
     // Verify category exists
-    const categoryExists = menu.categories.some((cat) => cat._id.toString() === categoryId);
+    const categoryExists = await Category.findOne({
+      _id: categoryId,
+      restaurantId,
+    });
     if (!categoryExists) {
-      return res.status(404).json({ message: 'Category not found' });
+      return res
+        .status(404)
+        .json({ message: "Selected category does not exist" });
     }
 
     // Create new item
@@ -272,28 +305,30 @@ const createItem = async (req, res) => {
       _id: new mongoose.Types.ObjectId(),
       categoryId: new mongoose.Types.ObjectId(categoryId),
       name: name.trim(),
-      description: description ? description.trim() : '',
+      description: description ? description.trim() : "",
       price,
       imageUrl: imageUrl || null,
       tags: Array.isArray(tags) ? tags.filter((t) => t.trim()) : [],
-      allergens: Array.isArray(allergens) ? allergens.filter((a) => a.trim()) : [],
+      allergens: Array.isArray(allergens)
+        ? allergens.filter((a) => a.trim())
+        : [],
       isAvailable: true,
       ordersCount: 0,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     menu.items.push(newItem);
+
     await menu.save();
 
     return res.status(201).json({
-      message: 'Item created successfully',
-      data: { item: newItem }
+      message: "Item created successfully",
+      data: { item: newItem },
     });
   } catch (error) {
-    console.error('Create item error:', error);
     return res.status(500).json({
-      message: 'Failed to create item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Failed to create item",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -306,53 +341,74 @@ const createItem = async (req, res) => {
 const updateItem = async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { restaurantId, name, description, price, imageUrl, tags, allergens, isAvailable } = req.body;
+    const {
+      restaurantId,
+      name,
+      description,
+      price,
+      imageUrl,
+      tags,
+      allergens,
+      isAvailable,
+    } = req.body;
 
     // Validation
     if (!itemId || !restaurantId) {
-      return res.status(400).json({ message: 'Item ID and restaurant ID are required' });
+      return res
+        .status(400)
+        .json({ message: "Item ID and restaurant ID are required" });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(itemId) || !mongoose.Types.ObjectId.isValid(restaurantId)) {
-      return res.status(400).json({ message: 'Invalid ID format' });
+    if (
+      !mongoose.Types.ObjectId.isValid(itemId) ||
+      !mongoose.Types.ObjectId.isValid(restaurantId)
+    ) {
+      return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    if (price !== undefined && (typeof price !== 'number' || price < 0)) {
-      return res.status(400).json({ message: 'Price must be a non-negative number' });
+    if (price !== undefined && (typeof price !== "number" || price < 0)) {
+      return res
+        .status(400)
+        .json({ message: "Price must be a non-negative number" });
     }
 
     // Find menu
     const menu = await Menu.findOne({ restaurantId });
     if (!menu) {
-      return res.status(404).json({ message: 'Menu not found' });
+      return res.status(404).json({ message: "Menu not found" });
     }
 
     // Find item
     const item = menu.items.find((i) => i._id.toString() === itemId);
     if (!item) {
-      return res.status(404).json({ message: 'Item not found' });
+      return res.status(404).json({ message: "Item not found" });
     }
 
     // Update fields
     if (name && name.trim()) item.name = name.trim();
-    if (description !== undefined) item.description = description ? description.trim() : '';
+    if (description !== undefined)
+      item.description = description ? description.trim() : "";
     if (price !== undefined) item.price = price;
     if (imageUrl !== undefined) item.imageUrl = imageUrl;
-    if (tags !== undefined) item.tags = Array.isArray(tags) ? tags.filter((t) => t.trim()) : [];
-    if (allergens !== undefined) item.allergens = Array.isArray(allergens) ? allergens.filter((a) => a.trim()) : [];
+    if (tags !== undefined)
+      item.tags = Array.isArray(tags) ? tags.filter((t) => t.trim()) : [];
+    if (allergens !== undefined)
+      item.allergens = Array.isArray(allergens)
+        ? allergens.filter((a) => a.trim())
+        : [];
     if (isAvailable !== undefined) item.isAvailable = Boolean(isAvailable);
 
     await menu.save();
 
     return res.status(200).json({
-      message: 'Item updated successfully',
-      data: { item }
+      message: "Item updated successfully",
+      data: { item },
     });
   } catch (error) {
-    console.error('Update item error:', error);
+    console.error("Update item error:", error);
     return res.status(500).json({
-      message: 'Failed to update item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Failed to update item",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -369,23 +425,28 @@ const deleteItem = async (req, res) => {
 
     // Validation
     if (!itemId || !restaurantId) {
-      return res.status(400).json({ message: 'Item ID and restaurant ID are required' });
+      return res
+        .status(400)
+        .json({ message: "Item ID and restaurant ID are required" });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(itemId) || !mongoose.Types.ObjectId.isValid(restaurantId)) {
-      return res.status(400).json({ message: 'Invalid ID format' });
+    if (
+      !mongoose.Types.ObjectId.isValid(itemId) ||
+      !mongoose.Types.ObjectId.isValid(restaurantId)
+    ) {
+      return res.status(400).json({ message: "Invalid ID format" });
     }
 
     // Find menu
     const menu = await Menu.findOne({ restaurantId });
     if (!menu) {
-      return res.status(404).json({ message: 'Menu not found' });
+      return res.status(404).json({ message: "Menu not found" });
     }
 
     // Find item index
     const itemIndex = menu.items.findIndex((i) => i._id.toString() === itemId);
     if (itemIndex === -1) {
-      return res.status(404).json({ message: 'Item not found' });
+      return res.status(404).json({ message: "Item not found" });
     }
 
     // Delete item
@@ -393,13 +454,13 @@ const deleteItem = async (req, res) => {
     await menu.save();
 
     return res.status(200).json({
-      message: 'Item deleted successfully'
+      message: "Item deleted successfully",
     });
   } catch (error) {
-    console.error('Delete item error:', error);
+    console.error("Delete item error:", error);
     return res.status(500).json({
-      message: 'Failed to delete item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Failed to delete item",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -416,23 +477,31 @@ const updateItemAvailability = async (req, res) => {
 
     // Validation
     if (!itemId || !restaurantId || isAvailable === undefined) {
-      return res.status(400).json({ message: 'Item ID, restaurant ID, and availability status are required' });
+      return res
+        .status(400)
+        .json({
+          message:
+            "Item ID, restaurant ID, and availability status are required",
+        });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(itemId) || !mongoose.Types.ObjectId.isValid(restaurantId)) {
-      return res.status(400).json({ message: 'Invalid ID format' });
+    if (
+      !mongoose.Types.ObjectId.isValid(itemId) ||
+      !mongoose.Types.ObjectId.isValid(restaurantId)
+    ) {
+      return res.status(400).json({ message: "Invalid ID format" });
     }
 
     // Find menu
     const menu = await Menu.findOne({ restaurantId });
     if (!menu) {
-      return res.status(404).json({ message: 'Menu not found' });
+      return res.status(404).json({ message: "Menu not found" });
     }
 
     // Find item
     const item = menu.items.find((i) => i._id.toString() === itemId);
     if (!item) {
-      return res.status(404).json({ message: 'Item not found' });
+      return res.status(404).json({ message: "Item not found" });
     }
 
     // Update availability
@@ -440,14 +509,14 @@ const updateItemAvailability = async (req, res) => {
     await menu.save();
 
     return res.status(200).json({
-      message: 'Item availability updated successfully',
-      data: { item }
+      message: "Item availability updated successfully",
+      data: { item },
     });
   } catch (error) {
-    console.error('Update item availability error:', error);
+    console.error("Update item availability error:", error);
     return res.status(500).json({
-      message: 'Failed to update item availability',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Failed to update item availability",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -461,24 +530,26 @@ const getPublicMenu = async (req, res) => {
     const { restaurantSlug } = req.params;
 
     if (!restaurantSlug || !restaurantSlug.trim()) {
-      return res.status(400).json({ message: 'Restaurant slug is required' });
+      return res.status(400).json({ message: "Restaurant slug is required" });
     }
 
     // Find restaurant by slug
-    const restaurant = await Restaurant.findOne({ slug: restaurantSlug.toLowerCase() });
+    const restaurant = await Restaurant.findOne({
+      slug: restaurantSlug.toLowerCase(),
+    });
     if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
+      return res.status(404).json({ message: "Restaurant not found" });
     }
 
     // Find menu
     let menu = await Menu.findOne({ restaurantId: restaurant._id });
     if (!menu) {
-      return res.status(404).json({ message: 'Menu not found' });
+      return res.status(404).json({ message: "Menu not found" });
     }
 
     // Return menu with restaurant info
     return res.status(200).json({
-      message: 'Menu retrieved successfully',
+      message: "Menu retrieved successfully",
       data: {
         restaurant: {
           _id: restaurant._id,
@@ -486,19 +557,21 @@ const getPublicMenu = async (req, res) => {
           slug: restaurant.slug,
           themeColor: restaurant.themeColor,
           logoUrl: restaurant.logoUrl,
-          currency: restaurant.currency
+          currency: restaurant.currency,
         },
         menu: {
-          categories: menu.categories.sort((a, b) => a.displayOrder - b.displayOrder),
-          items: menu.items.filter((item) => item.isAvailable) // Only show available items
-        }
-      }
+          categories: menu.categories.sort(
+            (a, b) => a.displayOrder - b.displayOrder
+          ),
+          items: menu.items.filter((item) => item.isAvailable), // Only show available items
+        },
+      },
     });
   } catch (error) {
-    console.error('Get public menu error:', error);
+    console.error("Get public menu error:", error);
     return res.status(500).json({
-      message: 'Failed to retrieve menu',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Failed to retrieve menu",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -512,5 +585,6 @@ module.exports = {
   updateItem,
   deleteItem,
   updateItemAvailability,
-  getPublicMenu
+  getPublicMenu,
+  getCategories,
 };

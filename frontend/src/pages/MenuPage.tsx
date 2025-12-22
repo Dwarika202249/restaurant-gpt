@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useAppSelector, useAppDispatch } from '@/hooks/useRedux'; // Corrected Import
+import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
+import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { useAPIError } from '@/hooks/useAPIError';
 import { Plus, Edit2, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import axios from 'axios';
@@ -28,7 +29,6 @@ interface MenuItem {
 }
 
 interface Menu {
-  categories: Category[];
   items: MenuItem[];
 }
 
@@ -50,6 +50,7 @@ export const MenuPage = () => {
 
   // State
   const [menu, setMenu] = useState<Menu | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'categories' | 'items'>('items');
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -72,45 +73,63 @@ export const MenuPage = () => {
     allergens: ''
   });
 
-  // Fetch menu
+
+  // Hydrate user if accessToken exists but user is null
   useEffect(() => {
-  if (auth.user?.restaurantId && auth.accessToken) {
-    fetchMenu();
-  } else {
-    setLoading(false);
-    // Optional: Show message ki user login nahi hai
-    if (!auth.user) {
-      toast.error('Please login to view menu');
+    if (!auth.user && auth.accessToken) {
+      dispatch(fetchAdminUser());
     }
-  }
-}, [auth.user?.restaurantId, auth.accessToken]);
+  }, [auth.user, auth.accessToken, dispatch]);
+
+  // Fetch menu and categories when user is loaded
+  useEffect(() => {
+    if (auth.user?.restaurantId && auth.accessToken) {
+      fetchMenu();
+      fetchCategories();
+    }
+  }, [auth.user?.restaurantId, auth.accessToken]);
 
   const fetchMenu = async () => {
-  // Double-check before API call
-  if (!auth.user?.restaurantId) {
-    toast.error('Restaurant ID not found');
-    setLoading(false);
-    return;
-  }
-
-  try {
-    setLoading(true);
-    const response = await axios.get(
-      `${API_URL}/menu/${auth.user.restaurantId}`,
-      {
-        headers: { Authorization: `Bearer ${auth.accessToken}` }
-      }
-    );
-
-    if (response.data.data) {
-      setMenu(response.data.data);
+    if (!auth.user?.restaurantId) {
+      toast.error('Restaurant ID not found');
+      setLoading(false);
+      return;
     }
-  } catch (error: any) {
-    toast.error(getErrorMessage(error));
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${API_URL}/menu/${auth.user.restaurantId}`,
+        {
+          headers: { Authorization: `Bearer ${auth.accessToken}` }
+        }
+      );
+      if (response.data.data) {
+        setMenu(response.data.data);
+      }
+    } catch (error: any) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/menu/category`,
+        {
+          headers: { Authorization: `Bearer ${auth.accessToken}` }
+        }
+      );
+      if (response.data && response.data.data) {
+        setCategories(response.data.data);
+      } else {
+        console.log("[fetchCategories] no data in response:", response.data);
+      }
+    } catch (error: any) {
+      toast.error(getErrorMessage(error));
+    }
+  };
 
   // ===== CATEGORY OPERATIONS =====
 
@@ -126,16 +145,18 @@ export const MenuPage = () => {
   };
 
   const saveCategoryModal = async () => {
+    
     if (!categoryForm.name.trim()) {
       toast.error('Category name is required');
       return;
     }
 
+
+
     try {
       if (editingCategory) {
         // Update category
         await axios.put(`${API_URL}/menu/category/${editingCategory._id}`, {
-          restaurantId: auth.user?.restaurantId,
           ...categoryForm
         }, {
           headers: { Authorization: `Bearer ${auth.accessToken}` }
@@ -144,7 +165,6 @@ export const MenuPage = () => {
       } else {
         // Create category
         await axios.post(`${API_URL}/menu/category`, {
-          restaurantId: auth.user?.restaurantId,
           ...categoryForm
         }, {
           headers: { Authorization: `Bearer ${auth.accessToken}` }
@@ -153,7 +173,7 @@ export const MenuPage = () => {
       }
 
       setShowCategoryModal(false);
-      await fetchMenu();
+      await fetchCategories();
     } catch (error: any) {
       toast.error(getErrorMessage(error) || 'Failed to save category');
     }
@@ -166,7 +186,6 @@ export const MenuPage = () => {
 
     try {
       await axios.delete(`${API_URL}/menu/category/${categoryId}`, {
-        params: { restaurantId: auth.user?.restaurantId },
         headers: { Authorization: `Bearer ${auth.accessToken}` }
       });
       toast.success('Category deleted successfully');
@@ -193,7 +212,7 @@ export const MenuPage = () => {
     } else {
       setEditingItem(null);
       setItemForm({
-        categoryId: menu?.categories[0]?._id || '',
+        categoryId: categories[0]?._id || '',
         name: '',
         description: '',
         price: '',
@@ -213,7 +232,6 @@ export const MenuPage = () => {
 
     try {
       const payload = {
-        restaurantId: auth.user?.restaurantId,
         categoryId: itemForm.categoryId,
         name: itemForm.name,
         description: itemForm.description,
@@ -251,7 +269,6 @@ export const MenuPage = () => {
 
     try {
       await axios.delete(`${API_URL}/menu/item/${itemId}`, {
-        params: { restaurantId: auth.user?.restaurantId },
         headers: { Authorization: `Bearer ${auth.accessToken}` }
       });
       toast.success('Item deleted successfully');
@@ -264,7 +281,6 @@ export const MenuPage = () => {
   const toggleItemAvailability = async (item: MenuItem) => {
     try {
       await axios.put(`${API_URL}/menu/item/${item._id}`, {
-        restaurantId: auth.user?.restaurantId,
         isAvailable: !item.isAvailable
       }, {
         headers: { Authorization: `Bearer ${auth.accessToken}` }
@@ -277,10 +293,21 @@ export const MenuPage = () => {
     }
   };
 
+
+  if (!auth.user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-12 h-12 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin" />
+        <span className="ml-4 text-slate-600">Loading user...</span>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-12 h-12 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin" />
+        <span className="ml-4 text-slate-600">Loading menu...</span>
       </div>
     );
   }
@@ -331,7 +358,7 @@ export const MenuPage = () => {
                   : 'border-transparent text-slate-600 hover:text-slate-900'
               }`}
             >
-              Categories ({menu?.categories.length || 0})
+              Categories ({categories.length || 0})
             </button>
           </div>
         </div>
@@ -351,7 +378,7 @@ export const MenuPage = () => {
             </button>
 
             <div className="space-y-3">
-              {(menu?.categories || []).map((category) => (
+              {categories.map((category) => (
                 <div key={category._id} className="bg-white rounded-lg border border-slate-200 p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -388,7 +415,7 @@ export const MenuPage = () => {
         {/* Items Tab */}
         {activeTab === 'items' && (
           <div>
-            {(menu?.categories || []).map((category) => {
+            {categories.map((category) => {
               const items = itemsByCategory[category._id] || [];
               if (items.length === 0) return null;
 
@@ -624,7 +651,7 @@ export const MenuPage = () => {
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     aria-label="Category"
                   >
-                    {(menu?.categories || []).map((cat) => (
+                    {categories.map((cat) => (
                       <option key={cat._id} value={cat._id}>
                         {cat.name}
                       </option>
