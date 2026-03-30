@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Menu, X, Home, UtensilsCrossed, ShoppingCart, BarChart3, LogOut, QrCode, Settings } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
 import { logout } from '@/store/slices/authSlice';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (open: boolean) => void }) => {
@@ -54,7 +54,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (op
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Restaurant Header */}
-        <div className="p-8 relative overflow-hidden group">
+        <Link to="/dashboard" className="p-8 relative overflow-hidden group block">
           <div className="absolute top-0 left-0 w-full h-full bg-brand-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           <div className="relative z-10">
             <div className="w-12 h-12 rounded-2xl orange-gradient flex items-center justify-center mb-4 shadow-glow-orange animate-pulse-slow">
@@ -66,46 +66,47 @@ export const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (op
               <p className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] leading-none">Admin Hub</p>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <a
-                key={item.label}
-                href={item.href}
-                className={`relative flex items-center space-x-3 px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden ${
-                  isActive 
-                    ? 'bg-brand-500/10 text-brand-500 font-bold shadow-sm border-l-4 border-brand-500' 
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {isActive && (
-                  <motion.div 
-                    layoutId="sidebar-active"
-                    className="absolute inset-0 bg-brand-500/5 z-0"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <item.icon size={20} className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-brand-500' : 'group-hover:text-white'}`} />
-                <span className="relative z-10 flex-1">{item.label}</span>
-                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-brand-500 shadow-glow-orange" />}
-              </a>
-            );
-          })}
+          {navItems.map((item) => (
+            <NavLink
+              key={item.label}
+              to={item.href}
+              className={({ isActive }) => `relative flex items-center space-x-3 px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden ${
+                isActive 
+                  ? 'bg-brand-500/10 text-brand-500 font-bold shadow-sm border-l-4 border-brand-500' 
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <motion.div 
+                      layoutId="sidebar-active"
+                      className="absolute inset-0 bg-brand-500/5 z-0"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                  <item.icon size={20} className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-brand-500' : 'group-hover:text-white'}`} />
+                  <span className="relative z-10 flex-1">{item.label}</span>
+                  {isActive && <div className="w-1.5 h-1.5 rounded-full bg-brand-500 shadow-glow-orange" />}
+                </>
+              )}
+            </NavLink>
+          ))}
         </nav>
 
         {/* Settings & Logout */}
         <div className="p-4 space-y-1.5 border-t border-white/5 bg-slate-900/30 backdrop-blur-xl">
-          <a
-            href="/profile"
+          <Link
+            to="/profile"
             className="flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-slate-400 hover:text-white group"
           >
             <Settings size={20} className="group-hover:rotate-45 transition-transform duration-500" />
             <span className="font-medium">Settings</span>
-          </a>
+          </Link>
           <button
             onClick={handleLogout}
             className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-red-500/10 transition-all text-slate-400 hover:text-red-500 group"

@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
+import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
+import { fetchRestaurantProfile } from '@/store/slices/restaurantSlice';
+import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 
 /**
  * DashboardLayout
@@ -10,6 +13,21 @@ import { Navbar } from './Navbar';
  */
 export const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const dispatch = useAppDispatch();
+  const { currentRestaurant: restaurant } = useAppSelector((state) => state.restaurant);
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+
+  // Centralized Data Fetching
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (!user) {
+        dispatch(fetchAdminUser());
+      }
+      if (!restaurant) {
+        dispatch(fetchRestaurantProfile());
+      }
+    }
+  }, [dispatch, isAuthenticated, user, restaurant]);
 
   return (
     <div className="flex h-screen bg-white dark:bg-slate-950 transition-colors duration-300 overflow-x-hidden">

@@ -3,7 +3,7 @@ import { Search, Bell, User, LogOut, Settings, Sun, Moon } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { logout } from '@/store/slices/authSlice';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export const Navbar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -121,21 +121,21 @@ export const Navbar = () => {
                 </div>
 
                 <div className="p-2">
-                  <a
-                    href="/admin"
+                  <Link
+                    to="/admin"
                     className="flex items-center space-x-3 px-3 py-2.5 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-xl transition-colors text-sm text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400"
                   >
                     <User size={18} className="text-slate-400 group-hover:text-inherit" />
                     <span>Admin Profile</span>
-                  </a>
+                  </Link>
 
-                  <a
-                    href="/profile"
+                  <Link
+                    to="/profile"
                     className="flex items-center space-x-3 px-3 py-2.5 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-xl transition-colors text-sm text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400"
                   >
                     <Settings size={18} className="text-slate-400 group-hover:text-inherit" />
                     <span>Restaurant Profile</span>
-                  </a>
+                  </Link>
                 </div>
 
                 <div className="p-2 border-t border-slate-100 dark:border-slate-800">
