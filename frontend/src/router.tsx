@@ -1,7 +1,5 @@
-import AdminPage from './pages/AdminPage';
-import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
-import { createBrowserRouter, RouteObject } from 'react-router-dom';
-import { ProtectedRoute } from './components';
+import { createBrowserRouter, RouteObject, Navigate } from 'react-router-dom';
+import { ProtectedRoute, DashboardLayout } from './components';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { RestaurantProfilePage } from './pages/RestaurantProfilePage';
@@ -9,11 +7,9 @@ import { MenuPage } from './pages/MenuPage';
 import { CustomerLandingPage } from './pages/CustomerLandingPage';
 import { CustomerMenuPage } from './pages/CustomerMenuPage';
 import { QRManagementPage } from './pages/QRManagementPage';
+import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
+import AdminPage from './pages/AdminPage';
 
-/**
- * Application Routes Configuration
- * Defines all routes with their components and protection levels
- */
 const routes: RouteObject[] = [
   // Public route - Login
   {
@@ -21,59 +17,45 @@ const routes: RouteObject[] = [
     element: <LoginPage />
   },
 
-  // Protected Admin Routes
+  // Protected Admin Routes (Grouped under DashboardLayout)
   {
-    path: '/dashboard',
+    path: '/',
     element: (
       <ProtectedRoute requiredRole="admin">
-        <DashboardPage />
+        <DashboardLayout />
       </ProtectedRoute>
-    )
-  },
-
-  {
-    path: '/admin-profile',
-    element: (
-      <ProtectedRoute requiredRole="admin">
-        <CreateAdminProfilePage />
-      </ProtectedRoute>
-    )
-  },
-
-  {
-    path: '/admin',
-    element: (
-      <ProtectedRoute requiredRole="admin">
-        <AdminPage />
-      </ProtectedRoute>
-    )
-  },
-
-  {
-    path: '/profile',
-    element: (
-      <ProtectedRoute requiredRole="admin">
-        <RestaurantProfilePage />
-      </ProtectedRoute>
-    )
-  },
-
-  {
-    path: '/menu',
-    element: (
-      <ProtectedRoute requiredRole="admin">
-        <MenuPage />
-      </ProtectedRoute>
-    )
-  },
-
-  {
-    path: '/qr-management',
-    element: (
-      <ProtectedRoute requiredRole="admin">
-        <QRManagementPage />
-      </ProtectedRoute>
-    )
+    ),
+    children: [
+      {
+        path: 'dashboard',
+        element: <DashboardPage />
+      },
+      {
+        path: 'admin-profile',
+        element: <CreateAdminProfilePage />
+      },
+      {
+        path: 'admin',
+        element: <AdminPage />
+      },
+      {
+        path: 'profile',
+        element: <RestaurantProfilePage />
+      },
+      {
+        path: 'menu',
+        element: <MenuPage />
+      },
+      {
+        path: 'qr-management',
+        element: <QRManagementPage />
+      },
+      // Root redirect to dashboard
+      {
+        index: true,
+        element: <Navigate to="/dashboard" replace />
+      }
+    ]
   },
 
   // Customer Routes (QR Code Entry Point)
@@ -87,12 +69,6 @@ const routes: RouteObject[] = [
     element: <CustomerMenuPage />
   },
 
-  // Root redirect to dashboard or login
-  {
-    path: '/',
-    element: <LoginPage />
-  },
-
   // 404 - Not found
   {
     path: '*',
@@ -103,7 +79,7 @@ const routes: RouteObject[] = [
           <p className="text-gray-600 mb-6">Page not found</p>
           <a
             href="/"
-            className="text-indigo-600 hover:text-indigo-700 font-medium"
+            className="text-brand-500 hover:text-brand-600 font-medium"
           >
             Back to Home
           </a>
@@ -113,9 +89,5 @@ const routes: RouteObject[] = [
   }
 ];
 
-/**
- * Create and export the router
- */
 export const router = createBrowserRouter(routes);
-
 export default router;

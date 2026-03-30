@@ -2,9 +2,26 @@ import { useEffect, useState } from 'react';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { useAPIError } from '@/hooks/useAPIError';
-import { Plus, Edit2, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  X, 
+  ChevronDown, 
+  ChevronUp, 
+  Utensils, 
+  Tag, 
+  AlertCircle, 
+  Layers, 
+  Settings2,
+  Trash,
+  Check,
+  Package,
+  Image as ImageIcon
+} from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Category {
   _id: string;
@@ -33,17 +50,12 @@ interface Menu {
 }
 
 /**
- * Admin Menu Management Page
- * Route: /menu
- * Manage restaurant menu: categories and items with full CRUD
+ * MenuPage
+ * High-performance management interface for Restaurant Menus.
  */
 export const MenuPage = () => {
-  // Correct Redux Usage
   const auth = useAppSelector((state) => state.auth);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const dispatch = useAppDispatch(); 
-
-  // Custom Error Hook
   const { getErrorMessage } = useAPIError();
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -73,15 +85,14 @@ export const MenuPage = () => {
     allergens: ''
   });
 
-
-  // Hydrate user if accessToken exists but user is null
+  // Rehydrate user
   useEffect(() => {
     if (!auth.user && auth.accessToken) {
       dispatch(fetchAdminUser());
     }
   }, [auth.user, auth.accessToken, dispatch]);
 
-  // Fetch menu and categories when user is loaded
+  // Fetch data
   useEffect(() => {
     if (auth.user?.restaurantId && auth.accessToken) {
       fetchMenu();
@@ -90,22 +101,13 @@ export const MenuPage = () => {
   }, [auth.user?.restaurantId, auth.accessToken]);
 
   const fetchMenu = async () => {
-    if (!auth.user?.restaurantId) {
-      toast.error('Restaurant ID not found');
-      setLoading(false);
-      return;
-    }
+    if (!auth.user?.restaurantId) return;
     try {
       setLoading(true);
-      const response = await axios.get(
-        `${API_URL}/menu/${auth.user.restaurantId}`,
-        {
-          headers: { Authorization: `Bearer ${auth.accessToken}` }
-        }
-      );
-      if (response.data.data) {
-        setMenu(response.data.data);
-      }
+      const response = await axios.get(`${API_URL}/menu/${auth.user.restaurantId}`, {
+        headers: { Authorization: `Bearer ${auth.accessToken}` }
+      });
+      if (response.data.data) setMenu(response.data.data);
     } catch (error: any) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -115,24 +117,16 @@ export const MenuPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get(
-        `${API_URL}/menu/category`,
-        {
-          headers: { Authorization: `Bearer ${auth.accessToken}` }
-        }
-      );
-      if (response.data && response.data.data) {
-        setCategories(response.data.data);
-      } else {
-        console.log("[fetchCategories] no data in response:", response.data);
-      }
+      const response = await axios.get(`${API_URL}/menu/category`, {
+        headers: { Authorization: `Bearer ${auth.accessToken}` }
+      });
+      if (response.data?.data) setCategories(response.data.data);
     } catch (error: any) {
       toast.error(getErrorMessage(error));
     }
   };
 
-  // ===== CATEGORY OPERATIONS =====
-
+  // CATEGORY OPS
   const openCategoryModal = (category?: Category) => {
     if (category) {
       setEditingCategory(category);
@@ -145,58 +139,43 @@ export const MenuPage = () => {
   };
 
   const saveCategoryModal = async () => {
-    
     if (!categoryForm.name.trim()) {
       toast.error('Category name is required');
       return;
     }
-
-
-
     try {
       if (editingCategory) {
-        // Update category
-        await axios.put(`${API_URL}/menu/category/${editingCategory._id}`, {
-          ...categoryForm
-        }, {
+        await axios.put(`${API_URL}/menu/category/${editingCategory._id}`, categoryForm, {
           headers: { Authorization: `Bearer ${auth.accessToken}` }
         });
-        toast.success('Category updated successfully');
+        toast.success('Category updated');
       } else {
-        // Create category
-        await axios.post(`${API_URL}/menu/category`, {
-          ...categoryForm
-        }, {
+        await axios.post(`${API_URL}/menu/category`, categoryForm, {
           headers: { Authorization: `Bearer ${auth.accessToken}` }
         });
-        toast.success('Category created successfully');
+        toast.success('Category created');
       }
-
       setShowCategoryModal(false);
-      await fetchCategories();
+      fetchCategories();
     } catch (error: any) {
       toast.error(getErrorMessage(error) || 'Failed to save category');
     }
   };
 
   const deleteCategory = async (categoryId: string) => {
-    if (!confirm('Are you sure? Items in this category cannot be deleted with category.')) {
-      return;
-    }
-
+    if (!confirm('Are you sure? Items in this category will remain but become uncategorized.')) return;
     try {
       await axios.delete(`${API_URL}/menu/category/${categoryId}`, {
         headers: { Authorization: `Bearer ${auth.accessToken}` }
       });
-      toast.success('Category deleted successfully');
-      await fetchMenu();
+      toast.success('Category deleted');
+      fetchCategories();
     } catch (error: any) {
       toast.error(getErrorMessage(error) || 'Failed to delete category');
     }
   };
 
-  // ===== ITEM OPERATIONS =====
-
+  // ITEM OPS
   const openItemModal = (item?: MenuItem) => {
     if (item) {
       setEditingItem(item);
@@ -226,10 +205,9 @@ export const MenuPage = () => {
 
   const saveItemModal = async () => {
     if (!itemForm.categoryId || !itemForm.name.trim() || !itemForm.price) {
-      toast.error('Category, name, and price are required');
+      toast.error('Required fields missing');
       return;
     }
-
     try {
       const payload = {
         categoryId: itemForm.categoryId,
@@ -240,74 +218,52 @@ export const MenuPage = () => {
         tags: itemForm.tags.split(',').map(t => t.trim()).filter(t => t),
         allergens: itemForm.allergens.split(',').map(a => a.trim()).filter(a => a)
       };
-
       if (editingItem) {
-        // Update item
         await axios.put(`${API_URL}/menu/item/${editingItem._id}`, payload, {
           headers: { Authorization: `Bearer ${auth.accessToken}` }
         });
-        toast.success('Item updated successfully');
+        toast.success('Item updated');
       } else {
-        // Create item
         await axios.post(`${API_URL}/menu/item`, payload, {
           headers: { Authorization: `Bearer ${auth.accessToken}` }
         });
-        toast.success('Item created successfully');
+        toast.success('Item created');
       }
-
       setShowItemModal(false);
-      await fetchMenu();
+      fetchMenu();
     } catch (error: any) {
       toast.error(getErrorMessage(error) || 'Failed to save item');
     }
   };
 
-  const deleteItem = async (itemId: string) => {
-    if (!confirm('Delete this item?')) {
-      return;
+  const toggleItemAvailability = async (item: MenuItem) => {
+    try {
+      await axios.put(`${API_URL}/menu/item/${item._id}`, { isAvailable: !item.isAvailable }, {
+        headers: { Authorization: `Bearer ${auth.accessToken}` }
+      });
+      fetchMenu();
+    } catch (error: any) {
+      toast.error('Failed to update status');
     }
+  };
 
+  const deleteItem = async (itemId: string) => {
+    if (!confirm('Delete this item?')) return;
     try {
       await axios.delete(`${API_URL}/menu/item/${itemId}`, {
         headers: { Authorization: `Bearer ${auth.accessToken}` }
       });
-      toast.success('Item deleted successfully');
-      await fetchMenu();
+      toast.success('Item removed');
+      fetchMenu();
     } catch (error: any) {
       toast.error(getErrorMessage(error) || 'Failed to delete item');
     }
   };
 
-  const toggleItemAvailability = async (item: MenuItem) => {
-    try {
-      await axios.put(`${API_URL}/menu/item/${item._id}`, {
-        isAvailable: !item.isAvailable
-      }, {
-        headers: { Authorization: `Bearer ${auth.accessToken}` }
-      });
-      // We don't necessarily need a toast here for every toggle, but we can add one if desired
-      // toast.success(`Item marked as ${!item.isAvailable ? 'Available' : 'Unavailable'}`);
-      await fetchMenu();
-    } catch (error: any) {
-      toast.error('Failed to update availability');
-    }
-  };
-
-
-  if (!auth.user) {
+  if (!auth.user || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin" />
-        <span className="ml-4 text-slate-600">Loading user...</span>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin" />
-        <span className="ml-4 text-slate-600">Loading menu...</span>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-10 h-10 border-4 border-brand-500/20 border-t-brand-500 rounded-full animate-spin" />
       </div>
     );
   }
@@ -318,444 +274,363 @@ export const MenuPage = () => {
     return acc;
   }, {} as Record<string, MenuItem[]>) || {};
 
-
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="p-6 md:p-10 max-w-7xl mx-auto scrollbar-hide">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-slate-900">Menu Management</h1>
-            <button
-              onClick={() => {
-                setActiveTab('items');
-                openItemModal();
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-            >
-              <Plus size={18} />
-              Add Item
-            </button>
+      <motion.div 
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6"
+      >
+        <div>
+          <div className="flex items-center space-x-2 text-brand-500 font-bold text-sm tracking-widest uppercase mb-2">
+            <span className="w-8 h-[2px] bg-brand-500" />
+            <span>Catalogue</span>
           </div>
-
-          {/* Tabs */}
-          <div className="flex gap-4">
-            <button
-              onClick={() => setActiveTab('items')}
-              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                activeTab === 'items'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Items ({menu?.items.length || 0})
-            </button>
-            <button
-              onClick={() => setActiveTab('categories')}
-              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                activeTab === 'categories'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Categories ({categories.length || 0})
-            </button>
-          </div>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+            Menu Intelligence
+            <Utensils className="text-brand-500" size={32} />
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
+            Manage your categories, items, and inventory availability.
+          </p>
         </div>
+
+        <button
+          onClick={() => (activeTab === 'items' ? openItemModal() : openCategoryModal())}
+          className="flex items-center space-x-2 px-6 py-3 bg-brand-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-brand-500/20 hover:scale-105 transition-all"
+        >
+          <Plus size={16} />
+          <span>Add {activeTab === 'items' ? 'New Item' : 'Category'}</span>
+        </button>
+      </motion.div>
+
+      {/* Tabs */}
+      <div className="flex gap-4 mb-8 bg-slate-50/50 dark:bg-slate-900/50 p-1.5 rounded-[1.5rem] w-fit border border-slate-100 dark:border-slate-800">
+        <button
+          onClick={() => setActiveTab('items')}
+          className={`px-8 py-3 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] flex items-center gap-2 ${
+            activeTab === 'items'
+              ? 'bg-white dark:bg-slate-800 text-brand-500 shadow-sm'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+          }`}
+        >
+          <Package size={14} />
+          Items ({menu?.items.length || 0})
+        </button>
+        <button
+          onClick={() => setActiveTab('categories')}
+          className={`px-8 py-3 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] flex items-center gap-2 ${
+            activeTab === 'categories'
+              ? 'bg-white dark:bg-slate-800 text-brand-500 shadow-sm'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+          }`}
+        >
+          <Layers size={14} />
+          Categories ({categories.length || 0})
+        </button>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Categories Tab */}
-        {activeTab === 'categories' && (
-          <div className="space-y-4">
-            <button
-              onClick={() => openCategoryModal()}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-            >
-              <Plus size={18} />
-              Add Category
-            </button>
-
-            <div className="space-y-3">
-              {categories.map((category) => (
-                <div key={category._id} className="bg-white rounded-lg border border-slate-200 p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-slate-900">{category.name}</h3>
-                      {category.icon && <p className="text-sm text-slate-500">Icon: {category.icon}</p>}
-                      <p className="text-xs text-slate-400 mt-1">
-                        Items: {itemsByCategory[category._id]?.length || 0}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => openCategoryModal(category)}
-                        className="p-2 hover:bg-slate-100 rounded transition-colors"
-                        title="Edit category"
-                      >
-                        <Edit2 size={18} className="text-slate-600" />
-                      </button>
-                      <button
-                        onClick={() => deleteCategory(category._id)}
-                        className="p-2 hover:bg-red-100 rounded transition-colors"
-                        title="Delete category"
-                        aria-label="Delete category"
-                      >
-                        <Trash2 size={18} className="text-red-600" />
-                      </button>
-                    </div>
+      <AnimatePresence mode="wait">
+        {activeTab === 'categories' ? (
+          <motion.div
+            key="categories-tab"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {categories.map((category) => (
+              <motion.div 
+                key={category._id}
+                whileHover={{ y: -4 }}
+                className="glass dark:glass-dark p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 group"
+              >
+                <div className="flex items-start justify-between mb-6">
+                  <div className="w-14 h-14 bg-brand-500/10 rounded-2xl flex items-center justify-center text-2xl">
+                    {category.icon || '🍴'}
+                  </div>
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => openCategoryModal(category)} 
+                      title="Edit Category"
+                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                    >
+                      <Edit2 size={16} className="text-slate-400" />
+                    </button>
+                    <button 
+                      onClick={() => deleteCategory(category._id)} 
+                      title="Delete Category"
+                      className="p-2 hover:bg-rose-500/10 rounded-xl transition-colors"
+                    >
+                      <Trash size={16} className="text-rose-400" />
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Items Tab */}
-        {activeTab === 'items' && (
-          <div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">{category.name}</h3>
+                  <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <Package size={12} className="text-brand-500" />
+                    {itemsByCategory[category._id]?.length || 0} Registered Items
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="items-tab"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-10"
+          >
             {categories.map((category) => {
               const items = itemsByCategory[category._id] || [];
               if (items.length === 0) return null;
 
               return (
-                <div key={category._id} className="mb-8">
-                  <button
-                    onClick={() =>
-                      setExpandedCategory(expandedCategory === category._id ? null : category._id)
-                    }
-                    className="w-full flex items-center justify-between px-4 py-3 bg-slate-200 rounded-lg hover:bg-slate-300 transition-colors mb-4"
-                  >
-                    <h2 className="text-lg font-semibold text-slate-900">{category.name}</h2>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-sm font-medium">
-                        {items.length}
-                      </span>
-                      {expandedCategory === category._id ? (
-                        <ChevronUp size={20} />
-                      ) : (
-                        <ChevronDown size={20} />
-                      )}
-                    </div>
-                  </button>
+                <div key={category._id}>
+                  <div className="flex items-center gap-4 mb-6">
+                    <h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">{category.name}</h2>
+                    <div className="h-[1px] flex-1 bg-slate-100 dark:bg-slate-800" />
+                    <span className="px-3 py-1 bg-brand-500/10 text-brand-500 text-[10px] font-black rounded-full uppercase tracking-widest">{items.length} Items</span>
+                  </div>
 
-                  {expandedCategory === category._id && (
-                    <div className="space-y-3">
-                      {items.map((item) => (
-                        <div
-                          key={item._id}
-                          className="bg-white rounded-lg border border-slate-200 p-4 hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex gap-4">
-                            {/* Item Image */}
-                            {item.imageUrl && (
-                              <img
-                                src={item.imageUrl}
-                                alt={item.name}
-                                className="w-24 h-24 object-cover rounded"
-                              />
-                            )}
-
-                            {/* Item Details */}
-                            <div className="flex-1">
-                              <div className="flex items-start justify-between mb-2">
-                                <div>
-                                  <h3 className="font-semibold text-slate-900">{item.name}</h3>
-                                  <p className="text-sm text-slate-600 mt-1">{item.description}</p>
-                                </div>
-                                <span className="text-lg font-bold text-orange-600">₹{item.price}</span>
-                              </div>
-
-                              {/* Tags */}
-                              {item.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-2">
-                                  {item.tags.map((tag) => (
-                                    <span
-                                      key={tag}
-                                      className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Allergens */}
-                              {item.allergens.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-2">
-                                  {item.allergens.map((allergen) => (
-                                    <span
-                                      key={allergen}
-                                      className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded"
-                                    >
-                                      Allergen: {allergen}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Stats */}
-                              <p className="text-xs text-slate-500">
-                                Orders: {item.ordersCount} | Status:{' '}
-                                <span
-                                  className={
-                                    item.isAvailable
-                                      ? 'text-green-600 font-semibold'
-                                      : 'text-red-600 font-semibold'
-                                  }
-                                >
-                                  {item.isAvailable ? 'Available' : 'Unavailable'}
-                                </span>
-                              </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {items.map((item) => (
+                      <motion.div
+                        key={item._id}
+                        whileHover={{ y: -2 }}
+                        className="glass dark:glass-dark p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex gap-6"
+                      >
+                        <div className="relative w-32 h-32 rounded-3xl bg-slate-50 dark:bg-slate-900 overflow-hidden flex-shrink-0 group">
+                          {item.imageUrl ? (
+                            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-200 dark:text-slate-800">
+                              <Utensils size={40} />
                             </div>
+                          )}
+                          <div className={`absolute top-2 right-2 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800 ${item.isAvailable ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                        </div>
 
-                            {/* Actions */}
-                            <div className="flex flex-col gap-2">
-                              <button
-                                onClick={() => openItemModal(item)}
-                                className="p-2 hover:bg-slate-100 rounded transition-colors"
-                                title="Edit item"
-                              >
-                                <Edit2 size={18} className="text-slate-600" />
-                              </button>
-                              <button
-                                onClick={() => toggleItemAvailability(item)}
-                                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                                  item.isAvailable
-                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
-                                }`}
-                              >
-                                {item.isAvailable ? 'Available' : 'Unavailable'}
-                              </button>
-                              <button
-                                onClick={() => deleteItem(item._id)}
-                                className="p-2 hover:bg-red-100 rounded transition-colors"
-                                title="Delete item"
-                                aria-label="Delete item"
-                              >
-                                <Trash2 size={18} className="text-red-600" />
-                              </button>
+                        <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                          <div>
+                            <div className="flex items-start justify-between mb-1">
+                              <h3 className="font-black text-slate-900 dark:text-white truncate pr-2 uppercase tracking-tight">{item.name}</h3>
+                              <span className="text-brand-500 font-black tracking-tight">₹{item.price}</span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mb-3">{item.description}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {item.tags.map(t => (
+                                <span key={t} className="px-2 py-0.5 bg-brand-500/5 text-brand-500 text-[9px] font-bold uppercase rounded-lg border border-brand-500/10">#{t}</span>
+                              ))}
                             </div>
                           </div>
+
+                          <div className="flex items-center justify-between pt-4">
+                             <div className="flex gap-1">
+                               <button 
+                                 onClick={() => openItemModal(item)} 
+                                 title="Edit Item"
+                                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                               >
+                                 <Edit2 size={16} className="text-slate-400" />
+                               </button>
+                               <button 
+                                 onClick={() => toggleItemAvailability(item)} 
+                                 title={item.isAvailable ? "Set Unavailable" : "Set Available"}
+                                 className={`p-2 rounded-xl transition-colors ${item.isAvailable ? 'hover:bg-rose-500/10 text-emerald-500' : 'hover:bg-emerald-500/10 text-rose-500'}`}
+                               >
+                                 <AlertCircle size={16} />
+                               </button>
+                               <button 
+                                 onClick={() => deleteItem(item._id)} 
+                                 title="Delete Item"
+                                 className="p-2 hover:bg-rose-500/10 rounded-xl transition-colors"
+                               >
+                                 <Trash2 size={16} className="text-rose-400" />
+                               </button>
+                             </div>
+                             <span className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">{item.ordersCount} Orders</span>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
               );
             })}
-
-            {(!menu?.items || menu.items.length === 0) && (
-              <div className="text-center py-12">
-                <p className="text-slate-600 text-lg">No items yet</p>
-                <p className="text-slate-500">Create a category first, then add items</p>
-              </div>
-            )}
-          </div>
+          </motion.div>
         )}
-      </div>
-
-      {/* Category Modal */}
-      {showCategoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-900">
-                {editingCategory ? 'Edit Category' : 'Add Category'}
-              </h2>
-              <button
-                onClick={() => setShowCategoryModal(false)}
-                className="p-1 hover:bg-slate-100 rounded"
-                title="Close"
-                aria-label="Close"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-1">
-                  Category Name *
-                </label>
-                <input
-                  type="text"
-                  value={categoryForm.name}
-                  onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                  placeholder="e.g., Pizza, Starters, Desserts"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-1">
-                  Icon (optional)
-                </label>
-                <input
-                  type="text"
-                  value={categoryForm.icon}
-                  onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
-                  placeholder="e.g., 🍕, 🥗, 🍰"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowCategoryModal(false)}
-                className="flex-1 px-4 py-2 border border-slate-300 text-slate-900 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveCategoryModal}
-                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </AnimatePresence>
 
       {/* Item Modal */}
-      {showItemModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-900">
-                {editingItem ? 'Edit Item' : 'Add Item'}
-              </h2>
-              <button
-                onClick={() => setShowItemModal(false)}
-                className="p-1 hover:bg-slate-100 rounded"
-                title="Close"
-                aria-label="Close"
-              >
-                <X size={20} />
-              </button>
-            </div>
+      <AnimatePresence>
+        {showItemModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowItemModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl">
+              <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{editingItem ? 'Edit Item' : 'New Dish Entry'}</h2>
+                <button 
+                  onClick={() => setShowItemModal(false)} 
+                  title="Close Modal"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl"
+                >
+                  <X />
+                </button>
+              </div>
 
-            <div className="space-y-4 mb-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-1">
-                    Category *
-                  </label>
-                  <select
-                    value={itemForm.categoryId}
-                    onChange={(e) => setItemForm({ ...itemForm, categoryId: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    aria-label="Category"
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat._id} value={cat._id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
+              <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Catalogue Category *</label>
+                    <select
+                      value={itemForm.categoryId}
+                      title="Select Category"
+                      onChange={(e) => setItemForm({ ...itemForm, categoryId: e.target.value })}
+                      className="w-full px-5 py-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none dark:text-white appearance-none"
+                    >
+                      {categories.map((cat) => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Market Price (₹) *</label>
+                    <input
+                      type="number"
+                      value={itemForm.price}
+                      onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
+                      className="w-full px-5 py-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none dark:text-white"
+                      placeholder="Pricing value"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-1">
-                    Price (₹) *
-                  </label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Dish Name *</label>
                   <input
-                    type="number"
-                    value={itemForm.price}
-                    onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
-                    placeholder="299"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    type="text"
+                    value={itemForm.name}
+                    onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
+                    className="w-full px-5 py-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none dark:text-white"
+                    placeholder="e.g. Signature Truffle Pizza"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Experience Description</label>
+                  <textarea
+                    value={itemForm.description}
+                    onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-5 py-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none dark:text-white"
+                    placeholder="Whet their appetites..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Visual URL</label>
+                  <div className="relative">
+                    <ImageIcon className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                      type="text"
+                      value={itemForm.imageUrl}
+                      onChange={(e) => setItemForm({ ...itemForm, imageUrl: e.target.value })}
+                      className="w-full pl-14 pr-5 py-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none dark:text-white"
+                      placeholder="https://cloud.storage/dish.png"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Metadata Tags</label>
+                    <div className="relative">
+                      <Tag className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input
+                        type="text"
+                        value={itemForm.tags}
+                        onChange={(e) => setItemForm({ ...itemForm, tags: e.target.value })}
+                        className="w-full pl-14 pr-5 py-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none dark:text-white"
+                        placeholder="spicy, vegan"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Allergens</label>
+                    <div className="relative">
+                      <Settings2 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input
+                        type="text"
+                        value={itemForm.allergens}
+                        onChange={(e) => setItemForm({ ...itemForm, allergens: e.target.value })}
+                        className="w-full pl-14 pr-5 py-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none dark:text-white"
+                        placeholder="nuts, dairy"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex gap-4">
+                <button onClick={saveItemModal} className="flex-1 py-4 bg-brand-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-brand-500/20 hover:scale-[1.02] active:scale-95 transition-all">Save Asset</button>
+                <button onClick={() => setShowItemModal(false)} className="px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black uppercase tracking-widest text-xs">Discard</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Category Modal (Simplified for design consistency) */}
+      <AnimatePresence>
+        {showCategoryModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowCategoryModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl">
+              <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{editingCategory ? 'Edit Node' : 'New Category'}</h2>
+                <button 
+                  onClick={() => setShowCategoryModal(false)} 
+                  title="Close Modal"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl text-slate-400"
+                >
+                  <X />
+                </button>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Module Name *</label>
+                  <input
+                    type="text"
+                    value={categoryForm.name}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                    className="w-full px-5 py-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none dark:text-white"
+                    placeholder="e.g. Starters"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Icon Multiplier</label>
+                  <input
+                    type="text"
+                    value={categoryForm.icon}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                    className="w-full px-5 py-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none dark:text-white"
+                    placeholder="e.g. 🥗"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-1">
-                  Item Name *
-                </label>
-                <input
-                  type="text"
-                  value={itemForm.name}
-                  onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
-                  placeholder="e.g., Margherita Pizza"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
+              <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex gap-4">
+                <button onClick={saveCategoryModal} className="flex-1 py-4 bg-brand-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-brand-500/20 hover:scale-[1.02] transition-all">Persist</button>
+                <button onClick={() => setShowCategoryModal(false)} className="px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black uppercase tracking-widest text-xs">Close</button>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={itemForm.description}
-                  onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
-                  placeholder="Item description..."
-                  rows={2}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-1">
-                  Image URL
-                </label>
-                <input
-                  type="text"
-                  value={itemForm.imageUrl}
-                  onChange={(e) => setItemForm({ ...itemForm, imageUrl: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-1">
-                  Tags (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={itemForm.tags}
-                  onChange={(e) => setItemForm({ ...itemForm, tags: e.target.value })}
-                  placeholder="veg, spicy, gluten-free"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-1">
-                  Allergens (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={itemForm.allergens}
-                  onChange={(e) => setItemForm({ ...itemForm, allergens: e.target.value })}
-                  placeholder="peanuts, dairy, shellfish"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowItemModal(false)}
-                className="flex-1 px-4 py-2 border border-slate-300 text-slate-900 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveItemModal}
-                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-              >
-                Save
-              </button>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -267,7 +267,7 @@ export const LoginPage = () => {
                       {otpArray.map((digit, i) => (
                         <input
                           key={i}
-                          ref={el => otpInputRefs.current[i] = el}
+                          ref={(el) => { otpInputRefs.current[i] = el; }}
                           type="text"
                           maxLength={1}
                           value={digit}
