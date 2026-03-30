@@ -173,25 +173,32 @@ export const AnalyticsPage = () => {
               <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Revenue Analytics</h3>
             </div>
           </div>
-          <div className="flex-1 w-full min-h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueTrends}>
-                <defs>
-                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F97316" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
-                <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#64748B' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#64748B' }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ color: '#F97316', fontWeight: 900 }}
-                />
-                <Area type="monotone" dataKey="amount" stroke="#F97316" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="flex-1 w-full min-h-[300px] flex items-center justify-center">
+            {revenueTrends && revenueTrends.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueTrends}>
+                  <defs>
+                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#F97316" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
+                  <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#64748B' }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#64748B' }} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    itemStyle={{ color: '#F97316', fontWeight: 900 }}
+                  />
+                  <Area type="monotone" dataKey="amount" stroke="#F97316" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-slate-300">
+                <BarChart3 size={48} className="mb-4 opacity-50" />
+                <p className="text-xs font-black uppercase tracking-widest">No revenue data for this period</p>
+              </div>
+            )}
           </div>
         </motion.div>
 
@@ -205,23 +212,30 @@ export const AnalyticsPage = () => {
               <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Top Performance</h3>
             </div>
           </div>
-          <div className="flex-1 w-full min-h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topItemsData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" opacity={0.5} />
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 800, fill: '#64748B' }} width={100} />
-                <Tooltip
-                  cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' }}
-                />
-                <Bar dataKey="revenue" fill="#3B82F6" radius={[0, 12, 12, 0]} barSize={24}>
-                  {topItemsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="flex-1 w-full min-h-[300px] flex items-center justify-center">
+            {topItemsData && topItemsData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topItemsData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" opacity={0.5} />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 800, fill: '#64748B' }} width={100} />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
+                    contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Bar dataKey="revenue" fill="#3B82F6" radius={[0, 12, 12, 0]} barSize={24}>
+                    {topItemsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-slate-300">
+                <ShoppingBag size={48} className="mb-4 opacity-50" />
+                <p className="text-xs font-black uppercase tracking-widest">No item stats captured yet</p>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
@@ -235,28 +249,35 @@ export const AnalyticsPage = () => {
             </div>
             <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Order Status</h3>
           </div>
-          <div className="h-[250px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={statusDistribution}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {statusDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="h-[250px] w-full flex items-center justify-center">
+            {statusDistribution && statusDistribution.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusDistribution}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {statusDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-slate-300">
+                <PieChartIcon size={48} className="mb-4 opacity-50" />
+                <p className="text-xs font-black uppercase tracking-widest text-center px-6">No order status metrics</p>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
-            {statusDistribution.map((item, idx) => (
+            {statusDistribution && statusDistribution.length > 0 && statusDistribution.map((item, idx) => (
               <div key={idx} className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                 <span className="text-[10px] font-black text-slate-500 uppercase">{item.name} ({item.value})</span>

@@ -264,41 +264,53 @@ export const DashboardPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                {recentOrders.map((order, i) => (
-                  <tr key={i} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-8 py-6">
-                      <span className="text-sm font-black text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors uppercase tracking-tight">{order.orderNumber}</span>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{formatDistanceToNow(new Date(order.orderedAt))} ago</p>
-                    </td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 rounded-full bg-brand-500" />
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Table {order.tableNo}</span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">₹{order.total}</span>
-                    </td>
-                    <td className="px-8 py-6">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${order.status === 'completed' ? 'bg-emerald-500/5 text-emerald-500 border-emerald-500/20' :
-                          order.status === 'preparing' ? 'bg-amber-500/5 text-amber-600 border-amber-500/20' :
-                            'bg-blue-500/5 text-blue-500 border-blue-500/20'
-                        }`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <button
-                        onClick={() => setSelectedOrder(order)}
-                        title="Order Options"
-                        aria-label="Order Options"
-                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
-                      >
-                        <MoreVertical size={18} className="text-slate-400" />
-                      </button>
+                {recentOrders.length > 0 ? (
+                  recentOrders.map((order, i) => (
+                    <tr key={i} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="px-8 py-6">
+                        <span className="text-sm font-black text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors uppercase tracking-tight">{order.orderNumber}</span>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{formatDistanceToNow(new Date(order.orderedAt))} ago</p>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 rounded-full bg-brand-500" />
+                          <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Table {order.tableNo}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">₹{order.total}</span>
+                      </td>
+                      <td className="px-8 py-6">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${order.status === 'completed' ? 'bg-emerald-500/5 text-emerald-500 border-emerald-500/20' :
+                            order.status === 'preparing' ? 'bg-amber-500/5 text-amber-600 border-amber-500/20' :
+                              'bg-blue-500/5 text-blue-500 border-blue-500/20'
+                          }`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          title="Order Options"
+                          aria-label="Order Options"
+                          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                        >
+                          <MoreVertical size={18} className="text-slate-400" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-20 text-center">
+                       <div className="flex flex-col items-center justify-center text-slate-300">
+                          <ShoppingBag size={48} className="mb-4 opacity-50" />
+                          <p className="text-xs font-black uppercase tracking-widest">Waiting for your first order...</p>
+                          <p className="text-[11px] font-bold text-slate-400 mt-2">Active tables will appear here in real-time.</p>
+                       </div>
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
