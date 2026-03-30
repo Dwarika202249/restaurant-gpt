@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { CustomerLayout } from '@/components';
-import { Search, ShoppingCart, Plus, Minus, X, Info, Zap } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, X, Info, Zap, CheckCircle2, ChefHat, ShieldCheck, Wallet, Clock, ChevronRight, History } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -62,7 +62,11 @@ export const CustomerMenuPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
-
+  const [isOrdering, setIsOrdering] = useState(false);
+  const [orderStep, setOrderStep] = useState<'validating' | 'submitting' | 'processing' | 'success'>('validating');
+  const [finalOrder, setFinalOrder] = useState<{ id: string; number: string } | null>(null);
+  const [activeOrders, setActiveOrders] = useState<any[]>([]);
+  const [showStatusDetails, setShowStatusDetails] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
@@ -139,10 +143,126 @@ export const CustomerMenuPage = () => {
     }
   };
 
+  useEffect(() => {
+    const initSession = async () => {
+      // If we have URL params but no local session state, initialize it
+      if (!guestSession && restaurantSlug && tableNo) {
+        try {
+          console.log('Auto-initializing guest session...');
+          
+          // Try to get existing sessionId from localStorage to resume
+          const savedSession = localStorage.getItem('guestSession');
+          const localSession = savedSession ? JSON.parse(savedSession) : null;
+          
+          // 1. Get restaurant info (needed for theme color/currency)
+          const resResponse = await axios.get(`${API_URL}/customer/restaurant/${restaurantSlug}`);
+          const restaurant = resResponse.data.data;
+          
+          // 2. Create/Get session from backend
+          const sessionResponse = await axios.post(`${API_URL}/customer/session`, {
+            restaurantSlug,
+            tableNo: parseInt(tableNo, 10),
+            sessionId: localSession?.sessionId || localSession?.id // Use existing ID if available
+          });
+          const sessionData = sessionResponse.data.data;
+          
+          const fullSession = {
+            ...sessionData,
+            restaurantSlug,
+            restaurantName: restaurant.name,
+            restaurantLogo: restaurant.logoUrl,
+            themeColor: restaurant.themeColor,
+            currency: restaurant.currency
+          };
+          
+          localStorage.setItem('guestSession', JSON.stringify(fullSession));
+          setGuestSession(fullSession);
+          console.log('Session initialized successfully:', fullSession.sessionId);
+        } catch (err) {
+          console.error("Failed to auto-init session:", err);
+          setError("Session initialization failed. Try scanning the QR code again.");
+        }
+      }
+    };
+    initSession();
+  }, [guestSession, restaurantSlug, tableNo, API_URL]);
+
+  useEffect(() => {
+    const fetchActiveOrders = async () => {
+      if (!guestSession) return;
+      try {
+        const response = await axios.get(`${API_URL}/orders/my-orders`, {
+          headers: { Authorization: `Bearer ${guestSession.sessionToken}` }
+        });
+        setActiveOrders(response.data.data);
+      } catch (err) {
+        console.error('Failed to fetch active orders:', err);
+      }
+    };
+
+    fetchActiveOrders();
+    const interval = setInterval(fetchActiveOrders, 10000); // Poll every 10s
+    return () => clearInterval(interval);
+  }, [guestSession, API_URL]);
+
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const getItemQuantity = (itemId: string) => {
     return cart.find(i => i.itemId === itemId)?.quantity || 0;
+  };
+
+  const handlePlaceOrder = async () => {
+    if (cart.length === 0 || !guestSession) return;
+
+    try {
+      setIsOrdering(true);
+      setOrderStep('validating');
+      await new Promise(r => setTimeout(r, 1500));
+
+      setOrderStep('submitting');
+      const orderPayload = {
+        restaurantId: guestSession.restaurantId,
+        guestSessionId: guestSession.sessionId,
+        items: cart.map(item => ({
+          itemId: item.itemId,
+          quantity: item.quantity,
+          customizations: []
+        })),
+        tableNo: guestSession.tableNo || parseInt(tableNo || '0'),
+        paymentMethod: 'card'
+      };
+
+      console.log('Placing Order with payload:', orderPayload);
+
+      const createResponse = await axios.post(`${API_URL}/orders`, orderPayload);
+      const orderData = createResponse.data.data;
+      
+      setOrderStep('processing');
+      // Simulate "Dummy" Payment Success
+      await new Promise(r => setTimeout(r, 2000));
+      
+      await axios.patch(`${API_URL}/orders/${orderData.order._id}/payment`, {
+        paymentStatus: 'completed'
+      }, {
+        headers: { Authorization: `Bearer ${guestSession.sessionToken}` }
+      });
+
+      setFinalOrder({
+        id: orderData.order._id,
+        number: orderData.orderNumber
+      });
+      setOrderStep('success');
+      setCart([]);
+    } catch (err: any) {
+      console.error('--- ORDER PLACEMENT FAILED ---');
+      console.error('Error Object:', err);
+      if (err.response) {
+        console.error('Backend Message:', err.response.data.message);
+        console.error('Full Backend Response:', err.response.data);
+      }
+      setError(err.response?.data?.message || 'Failed to place order. Please check your table connection.');
+      setIsOrdering(false);
+    }
   };
 
   if (loading) {
@@ -461,14 +581,157 @@ export const CustomerMenuPage = () => {
                     <span className="text-2xl font-black text-slate-900 dark:text-white">{guestSession.currency}{cartTotal.toFixed(2)}</span>
                  </div>
                  <button 
+                  onClick={handlePlaceOrder}
                   style={{ backgroundColor: themeColor }}
-                  className="w-full py-6 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-xl transition-all"
+                  className="w-full py-6 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
                  >
                    Confirm & Place Order
                  </button>
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isOrdering && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1000] bg-slate-900 flex items-center justify-center p-6 text-center"
+          >
+            <div className="max-w-xs w-full">
+               <AnimatePresence mode="wait">
+                  {orderStep === 'validating' && (
+                    <motion.div key="v" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
+                       <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-8 relative">
+                          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 3, ease: "linear" }} className="absolute inset-0 border-2 border-dashed border-white/20 rounded-full" />
+                          <ShoppingCart className="text-white" size={32} />
+                       </div>
+                       <h3 className="text-white text-xl font-black uppercase tracking-tighter mb-2">Preparing Flavors</h3>
+                       <p className="text-slate-400 text-sm font-medium">Gathering your selected items...</p>
+                    </motion.div>
+                  )}
+                  {orderStep === 'submitting' && (
+                    <motion.div key="s" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
+                       <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-8 relative">
+                          <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5 }} className="absolute inset-0 bg-white/10 rounded-full blur-xl" />
+                          <ChefHat className="text-white" size={32} />
+                       </div>
+                       <h3 className="text-white text-xl font-black uppercase tracking-tighter mb-2">Sending to Kitchen</h3>
+                       <p className="text-slate-400 text-sm font-medium">Notifying the chefs your order is coming...</p>
+                    </motion.div>
+                  )}
+                  {orderStep === 'processing' && (
+                    <motion.div key="p" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
+                       <div className="w-24 h-24 bg-white/5  rounded-full flex items-center justify-center mx-auto mb-8 relative">
+                          <motion.div animate={{ strokeDashoffset: [0, 100] }} className="absolute inset-0 border-4 border-white/20 rounded-full border-t-white" />
+                          <ShieldCheck className="text-white" size={32} />
+                       </div>
+                       <h3 className="text-white text-xl font-black uppercase tracking-tighter mb-2">Securing Order</h3>
+                       <p className="text-slate-400 text-sm font-medium">Verifying payment details securely...</p>
+                    </motion.div>
+                  )}
+                  {orderStep === 'success' && finalOrder && (
+                    <motion.div key="su" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                       <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-emerald-500/20">
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", damping: 12 }} >
+                            <CheckCircle2 className="text-white" size={48} />
+                          </motion.div>
+                       </div>
+                       <h3 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Order Confirmed!</h3>
+                       <p className="text-slate-400 text-sm font-medium mb-8">Grab a seat, your meal is being prepared.</p>
+                       
+                       <div className="bg-white/5 border border-white/10 rounded-3xl p-6 mb-8">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Receipt Number</p>
+                          <p className="text-xl font-black text-white tracking-widest">{finalOrder.number}</p>
+                       </div>
+
+                       <button 
+                        onClick={() => { setIsOrdering(false); setShowCartPreview(false); }}
+                        className="w-full py-5 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:scale-105 transition-all"
+                       >
+                         Enjoy your meal
+                       </button>
+                    </motion.div>
+                  )}
+               </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Order Status Widget */}
+      <AnimatePresence>
+        {activeOrders.length > 0 && !isOrdering && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-6 left-6 right-6 z-[60] flex justify-center"
+          >
+            <motion.div 
+              layout
+              className="bg-slate-900 border border-white/10 shadow-2xl rounded-[2rem] overflow-hidden w-full max-w-sm"
+            >
+              <button 
+                onClick={() => setShowStatusDetails(!showStatusDetails)}
+                className="w-full p-5 flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center">
+                    <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
+                      <ChefHat className="text-white" size={20} />
+                    </motion.div>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 line-clamp-1">
+                      {activeOrders.length} Order{activeOrders.length > 1 ? 's' : ''} in progress
+                    </p>
+                    <h4 className="text-white text-xs font-black uppercase tracking-widest">
+                       {activeOrders[0].status === 'new' && 'Order Received'}
+                       {activeOrders[0].status === 'preparing' && 'In the Kitchen'}
+                       {activeOrders[0].status === 'ready' && 'Ready for Service'}
+                       {activeOrders[0].status === 'completed' && 'Deliciously Done'}
+                    </h4>
+                  </div>
+                </div>
+                <div className={`p-2 rounded-xl bg-white/5 transition-transform duration-300 ${showStatusDetails ? 'rotate-90' : ''}`}>
+                  <ChevronRight className="text-white" size={16} />
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {showStatusDetails && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="border-t border-white/10 px-5 pb-5"
+                  >
+                    <div className="space-y-4 pt-4 text-left">
+                       {activeOrders.map((order) => (
+                         <div key={order._id} className="flex items-start justify-between">
+                            <div>
+                               <p className="text-white text-[10px] font-black uppercase tracking-widest mb-1">Order #{order.orderNumber.split('-').pop()}</p>
+                               <div className="flex items-center gap-2">
+                                  <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${order.status === 'ready' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{order.status}</span>
+                               </div>
+                            </div>
+                            <div className="text-right">
+                               <p className="text-white text-[10px] font-black">{guestSession?.currency}{order.total.toFixed(2)}</p>
+                               <p className="text-slate-500 text-[8px] font-bold">{new Date(order.orderedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 

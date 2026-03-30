@@ -10,7 +10,7 @@ const mongoose = require('mongoose');
  */
 const createGuestSession = async (req, res) => {
   try {
-    const { restaurantSlug, tableNo } = req.body;
+    const { restaurantSlug, tableNo, sessionId: providedSessionId } = req.body;
 
     // Validation
     if (!restaurantSlug || !tableNo) {
@@ -42,35 +42,48 @@ const createGuestSession = async (req, res) => {
       });
     }
 
-    // Check if session already exists for this table (optional - for resuming orders)
-    let existingSession = await Session.findOne({
-      restaurantId,
-      tableNo,
-      expiresAt: { $gt: new Date() }
-    });
-
-    if (existingSession) {
-      // Session still valid, return it
-      const guestToken = generateGuestToken({
-        sessionId: existingSession._id.toString(),
-        restaurantId: restaurantId.toString(),
-        tableNo
-      });
-
-      return res.status(200).json({
-        message: 'Guest session retrieved successfully',
-        data: {
-          sessionId: existingSession._id,
+    // 1. If a sessionId was provided, try to resume it
+    if (providedSessionId) {
+      // Find session by its unique sessionId field OR _id
+      let session = null;
+      if (mongoose.Types.ObjectId.isValid(providedSessionId)) {
+        session = await Session.findOne({
+          $or: [{ _id: providedSessionId }, { sessionId: providedSessionId }],
           restaurantId,
           tableNo,
-          sessionToken: guestToken,
-          expiresAt: existingSession.expiresAt,
-          resumed: true
-        }
-      });
+          expiresAt: { $gt: new Date() }
+        });
+      } else {
+        session = await Session.findOne({
+          sessionId: providedSessionId,
+          restaurantId,
+          tableNo,
+          expiresAt: { $gt: new Date() }
+        });
+      }
+
+      if (session) {
+        const guestToken = generateGuestToken(
+          session._id.toString(),
+          restaurantId.toString(),
+          tableNo
+        );
+
+        return res.status(200).json({
+          message: 'Guest session resumed successfully',
+          data: {
+            sessionId: session._id,
+            restaurantId,
+            tableNo,
+            sessionToken: guestToken,
+            expiresAt: session.expiresAt,
+            resumed: true
+          }
+        });
+      }
     }
 
-    // Create new guest session (4 hour expiry)
+    // 2. No valid sessionId provided or found, ALWAYS Create NEW session for this device
     const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000);
 
     const newSession = new Session({
@@ -84,14 +97,14 @@ const createGuestSession = async (req, res) => {
     await newSession.save();
 
     // Generate guest JWT token
-    const guestToken = generateGuestToken({
-      sessionId: newSession._id.toString(),
-      restaurantId: restaurantId.toString(),
+    const guestToken = generateGuestToken(
+      newSession._id.toString(),
+      restaurantId.toString(),
       tableNo
-    });
+    );
 
     return res.status(201).json({
-      message: 'Guest session created successfully',
+      message: 'New guest session created successfully',
       data: {
         sessionId: newSession._id,
         restaurantId,

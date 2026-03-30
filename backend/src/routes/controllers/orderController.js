@@ -506,8 +506,15 @@ const updatePaymentStatus = async (req, res) => {
       updateData.status = 'preparing';
     }
 
+    const filter = { _id: orderId, restaurantId };
+    
+    // Safety: If it's a guest, they can only update their own order
+    if (req.guestSession) {
+      filter.guestSessionId = req.guestSession.sessionId;
+    }
+
     const order = await Order.findOneAndUpdate(
-      { _id: orderId, restaurantId },
+      filter,
       updateData,
       { new: true }
     );
@@ -531,10 +538,73 @@ const updatePaymentStatus = async (req, res) => {
   }
 };
 
+/**
+ * Get active orders for the current guest/customer session
+ * GET /api/orders/my-orders
+ */
+const getMyOrders = async (req, res) => {
+  try {
+    const { restaurantId } = req;
+    const guestSessionId = req.guestSession?.sessionId;
+    const customerId = req.user?._id;
+
+    if (!restaurantId) {
+      return res.status(400).json({ message: 'Restaurant context not found' });
+    }
+
+    // Build filter based on user identity (Guest or Logged-in Customer)
+    const identityFilter = [];
+    
+    if (customerId) {
+      identityFilter.push({ customerId: new mongoose.Types.ObjectId(customerId) });
+    }
+    
+    if (guestSessionId && mongoose.Types.ObjectId.isValid(guestSessionId)) {
+      identityFilter.push({ guestSessionId: new mongoose.Types.ObjectId(guestSessionId) });
+    }
+
+    if (identityFilter.length === 0) {
+      return res.status(200).json({ data: [] });
+    }
+
+    // Filter to show active orders OR recently completed ones (last 30 mins)
+    const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const statusFilter = [
+      { status: { $ne: 'completed' } },
+      { status: 'completed', completedAt: { $gte: thirtyMinsAgo } }
+    ];
+
+    // Combine identity and status filters using $and to ensure strict isolation
+    const filter = {
+      restaurantId: new mongoose.Types.ObjectId(restaurantId),
+      $and: [
+        { $or: identityFilter },
+        { $or: statusFilter }
+      ]
+    };
+
+    const orders = await Order.find(filter)
+      .sort({ orderedAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      message: 'Active orders retrieved successfully',
+      data: orders
+    });
+  } catch (error) {
+    console.error('Get my orders error:', error);
+    return res.status(500).json({
+      message: 'Failed to retrieve orders',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getOrders,
   getOrderById,
+  getMyOrders,
   updateOrderStatus,
   updatePaymentStatus,
   getOrderStats

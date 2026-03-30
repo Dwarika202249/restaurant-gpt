@@ -4,11 +4,12 @@ const {
   createOrder,
   getOrders,
   getOrderById,
+  getMyOrders,
   updateOrderStatus,
   updatePaymentStatus,
   getOrderStats
 } = require('./controllers/orderController');
-const { authenticateAdmin } = require('../middleware/auth');
+const { authenticateAdmin, authenticateAny } = require('../middleware/auth');
 const { attachRestaurantContext } = require('../middleware/tenantContext');
 
 /**
@@ -27,17 +28,23 @@ router.post('/', createOrder);
  * Admin Routes (Protected)
  */
 
-/**
- * @route   GET /api/orders/stats
- * @desc    Get order analytics and statistics
- * @access  Private (Admin)
- * @query   dateRange: 'today' | 'week' | 'month'
- */
 router.get(
   '/stats',
   authenticateAdmin,
   attachRestaurantContext,
   getOrderStats
+);
+
+/**
+ * @route   GET /api/orders/my-orders
+ * @desc    Get active orders for customer/guest tracking
+ * @access  Public (Guest/Customer)
+ */
+router.get(
+  '/my-orders',
+  authenticateAny,
+  attachRestaurantContext,
+  getMyOrders
 );
 
 /**
@@ -83,13 +90,13 @@ router.patch(
 
 /**
  * @route   PATCH /api/orders/:orderId/payment
- * @desc    Update payment status (used by Razorpay webhook)
- * @access  Private (Admin or webhook)
+ * @desc    Update payment status (used by Razorpay webhook or simulated success)
+ * @access  Public (Guest/Admin) - Restricted to own order for guests
  * @body    { paymentStatus: 'pending' | 'completed' | 'failed', razorpayOrderId (optional) }
  */
 router.patch(
   '/:orderId/payment',
-  authenticateAdmin,
+  authenticateAny,
   attachRestaurantContext,
   updatePaymentStatus
 );

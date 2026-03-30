@@ -120,6 +120,9 @@ const authenticateGuest = async (req, res, next) => {
       tableNo: decoded.tableNo
     };
     
+    // Explicitly set restaurantId for compatibility with context middlewares
+    req.restaurantId = decoded.restaurantId;
+    
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -171,6 +174,10 @@ const authenticateAny = async (req, res, next) => {
         restaurantId: decoded.restaurantId,
         tableNo: decoded.tableNo
       };
+      
+      // Explicitly set restaurantId for compatibility with context middlewares
+      req.restaurantId = decoded.restaurantId;
+      
       return next();
     } catch (error) {
       // Not a guest token either
