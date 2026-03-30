@@ -12,10 +12,10 @@ import {
   ChevronRight,
   Sparkles,
   Calendar,
-  Store,
   Plus,
   ExternalLink,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { fetchRestaurantProfile } from '@/store/slices/restaurantSlice';
@@ -36,15 +36,34 @@ export const DashboardPage = () => {
   const navigate = useNavigate();
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [customStartDate, setCustomStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [customEndDate, setCustomEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
-    dispatch(fetchOrderStats({ range: 'today' }));
-    dispatch(fetchOrders({ limit: 5 }));
+    const params: { dateRange?: string; startDate?: string; endDate?: string } = { dateRange: dateFilter };
+    const orderParams: { limit?: number; date?: string; startDate?: string; endDate?: string; status?: string } = { limit: 5, date: dateFilter };
+    
+    if (statusFilter !== 'all') {
+      orderParams.status = statusFilter;
+    }
+    
+    if (dateFilter === 'custom') {
+      if (!customStartDate || !customEndDate) return;
+      params.startDate = customStartDate;
+      params.endDate = customEndDate;
+      orderParams.startDate = customStartDate;
+      orderParams.endDate = customEndDate;
+    }
+
+    dispatch(fetchOrderStats(params));
+    dispatch(fetchOrders(orderParams));
 
     if (!restaurant) {
       dispatch(fetchRestaurantProfile());
     }
-  }, [dispatch, restaurant]);
+  }, [dispatch, restaurant, dateFilter, customStartDate, customEndDate, statusFilter]);
 
   const stats = [
     {
@@ -107,14 +126,57 @@ export const DashboardPage = () => {
             <Sparkles className="inline-block ml-3 text-brand-500 animate-pulse" size={32} />
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            Here's what's happening with your restaurant today.
+            Here's what's happening with your restaurant {
+              dateFilter === 'today' ? 'today' : 
+              dateFilter === 'week' ? 'this week' : 
+              dateFilter === 'month' ? 'this month' :
+              dateFilter === 'year' ? 'this year' :
+              `from ${new Date(customStartDate).toLocaleDateString()} to ${new Date(customEndDate).toLocaleDateString()}`
+            }.
           </p>
         </div>
-        <div className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
-          <Calendar size={18} className="text-brand-500 ml-2" />
-          <span className="text-sm font-bold text-slate-700 dark:text-slate-300 pr-4">
-            {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-          </span>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-1.5 pl-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 transition-all focus-within:ring-2 focus-within:ring-brand-500/50">
+            <Calendar size={18} className="text-brand-500 shrink-0" />
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value as 'today' | 'week' | 'month' | 'year' | 'custom')}
+              className="bg-transparent text-sm font-bold text-slate-900 dark:text-white py-1.5 pr-2 outline-none cursor-pointer appearance-none w-full min-w-[110px]"
+              aria-label="Filter Date Range"
+            >
+              <option value="today" className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">Today</option>
+              <option value="week" className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">This Week</option>
+              <option value="month" className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">This Month</option>
+              <option value="year" className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">This Year</option>
+              <option value="custom" className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">Custom Range</option>
+            </select>
+            <ChevronDown size={14} className="text-slate-400 shrink-0 pointer-events-none mr-2" />
+          </div>
+          {dateFilter === 'custom' && (
+            <motion.div 
+               initial={{ opacity: 0, y: -10 }} 
+               animate={{ opacity: 1, y: 0 }} 
+               className="flex items-center space-x-2 bg-white dark:bg-slate-900 p-2 px-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800"
+            >
+              <input 
+                type="date" 
+                value={customStartDate} 
+                onChange={e => setCustomStartDate(e.target.value)}
+                aria-label="Custom Start Date"
+                title="Custom Start Date"
+                className="bg-slate-50 dark:bg-slate-800 rounded-md px-2 py-1 text-xs font-bold text-slate-900 dark:text-white outline-none cursor-pointer border border-transparent focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
+              />
+              <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">to</span>
+              <input 
+                type="date" 
+                value={customEndDate} 
+                onChange={e => setCustomEndDate(e.target.value)}
+                aria-label="Custom End Date"
+                title="Custom End Date"
+                className="bg-slate-50 dark:bg-slate-800 rounded-md px-2 py-1 text-xs font-bold text-slate-900 dark:text-white outline-none cursor-pointer border border-transparent focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
+              />
+            </motion.div>
+          )}
         </div>
       </motion.div>
 
@@ -166,13 +228,25 @@ export const DashboardPage = () => {
               <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Recent Live Orders</h3>
               <p className="text-sm text-slate-500 mt-1">Real-time update from tables</p>
             </div>
-            <button
-              title="Filter Orders"
-              aria-label="Filter Orders"
-              className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors"
-            >
-              <Filter size={20} className="text-brand-500" />
-            </button>
+            
+            <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-100 dark:border-slate-800 transition-all focus-within:ring-2 focus-within:ring-brand-500/50">
+              <Filter size={16} className="text-brand-500 ml-2 shrink-0" />
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-300 py-1 pr-6 pl-1 outline-none cursor-pointer appearance-none min-w-[100px]"
+                  aria-label="Filter Orders by Progress"
+                >
+                  <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">All Progress</option>
+                  <option value="new" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">New</option>
+                  <option value="preparing" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Preparing</option>
+                  <option value="ready" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Ready</option>
+                  <option value="completed" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Completed</option>
+                </select>
+                <ChevronDown size={12} className="text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
           </div>
 
           <div className="overflow-x-auto">

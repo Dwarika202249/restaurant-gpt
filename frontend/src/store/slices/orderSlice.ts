@@ -60,7 +60,7 @@ const initialState: OrderState = {
  */
 export const fetchOrders = createAsyncThunk<
   Order[],
-  { status?: string; limit?: number },
+  { status?: string; limit?: number; date?: string; startDate?: string; endDate?: string },
   { state: RootState }
 >('orders/fetchAll', async (filters, { rejectWithValue, getState }) => {
   try {
@@ -101,7 +101,7 @@ export const updateOrderStatus = createAsyncThunk<
  */
 export const fetchOrderStats = createAsyncThunk<
   OrderStats,
-  { range?: string },
+  { dateRange?: string; startDate?: string; endDate?: string },
   { state: RootState }
 >('orders/fetchStats', async (params, { rejectWithValue, getState }) => {
   try {

@@ -172,24 +172,39 @@ const getOrders = async (req, res) => {
     // Filter by date range
     if (date) {
       const now = new Date();
-      let startDate;
+      let startDateVal;
+      let endDateVal;
 
       switch (date) {
         case 'today':
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          startDateVal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           break;
         case 'week':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          startDateVal = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           break;
         case 'month':
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          startDateVal = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case 'year':
+          startDateVal = new Date(now.getFullYear(), 0, 1);
+          break;
+        case 'custom':
+          if (req.query.startDate && req.query.endDate) {
+            startDateVal = new Date(req.query.startDate);
+            endDateVal = new Date(req.query.endDate);
+            // Include entire end date by setting time to 23:59:59.999
+            endDateVal.setHours(23, 59, 59, 999);
+          }
           break;
         default:
           break;
       }
 
-      if (startDate) {
-        filter.orderedAt = { $gte: startDate };
+      if (startDateVal) {
+        filter.orderedAt = { $gte: startDateVal };
+        if (endDateVal) {
+          filter.orderedAt.$lte = endDateVal;
+        }
       }
     }
 
@@ -344,7 +359,7 @@ const updateOrderStatus = async (req, res) => {
 const getOrderStats = async (req, res) => {
   try {
     const { restaurantId } = req;
-    const { dateRange = 'today' } = req.query;
+    const { dateRange = 'today', startDate, endDate } = req.query;
 
     if (!restaurantId) {
       return res.status(400).json({
@@ -354,22 +369,42 @@ const getOrderStats = async (req, res) => {
 
     // Calculate date range
     const now = new Date();
-    let startDate;
+    let startDateVal;
+    let endDateVal;
 
     switch (dateRange) {
       case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        startDateVal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
       case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        startDateVal = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         break;
       case 'month':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        startDateVal = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        startDateVal = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'custom':
+        if (startDate && endDate) {
+          startDateVal = new Date(startDate);
+          endDateVal = new Date(endDate);
+          endDateVal.setHours(23, 59, 59, 999);
+        } else {
+          return res.status(400).json({
+            message: 'Both startDate and endDate are required for custom date range'
+          });
+        }
         break;
       default:
         return res.status(400).json({
-          message: 'Invalid date range. Use: today, week, or month'
+          message: 'Invalid date range. Use: today, week, month, year, or custom'
         });
+    }
+
+    const dateFilter = { $gte: startDateVal };
+    if (endDateVal) {
+      dateFilter.$lte = endDateVal;
     }
 
     // Aggregation pipeline for stats
@@ -377,7 +412,7 @@ const getOrderStats = async (req, res) => {
       {
         $match: {
           restaurantId: new mongoose.Types.ObjectId(restaurantId),
-          orderedAt: { $gte: startDate }
+          orderedAt: dateFilter
         }
       },
       {
