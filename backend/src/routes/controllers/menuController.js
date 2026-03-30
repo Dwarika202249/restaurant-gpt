@@ -208,21 +208,39 @@ const deleteCategory = async (req, res) => {
       return res.status(400).json({ message: "Invalid Category ID format" });
     }
 
-    // 1. Check if any items in the Menu are using this category
+    // 1. Find or create "Others" category
+    let othersCategory = await Category.findOne({
+      restaurantId,
+      name: { $regex: /^Others$/i },
+    });
+
+    if (!othersCategory) {
+      othersCategory = new Category({
+        restaurantId,
+        name: "Others",
+        displayOrder: 999, // Push to end
+      });
+      await othersCategory.save();
+    }
+
+    // 2. Update all items in the Menu to point to "Others" category if they were in the deleted one
     const menu = await Menu.findOne({ restaurantId });
     if (menu) {
-      const hasItems = menu.items.some(
-        (item) => item.categoryId.toString() === categoryId
-      );
-      if (hasItems) {
-        return res.status(400).json({
-          message:
-            "Cannot delete category while it contains menu items. Please delete or move the items first.",
-        });
+      let itemsUpdated = false;
+      menu.items = menu.items.map((item) => {
+        if (item.categoryId.toString() === categoryId) {
+          item.categoryId = othersCategory._id;
+          itemsUpdated = true;
+        }
+        return item;
+      });
+
+      if (itemsUpdated) {
+        await menu.save();
       }
     }
 
-    // 2. Delete the category
+    // 3. Delete the category
     const result = await Category.findOneAndDelete({
       _id: categoryId,
       restaurantId,
@@ -232,7 +250,10 @@ const deleteCategory = async (req, res) => {
       return res.status(404).json({ message: "Category not found" });
     }
 
-    return res.status(200).json({ message: "Category deleted successfully" });
+    return res.status(200).json({ 
+      message: "Category deleted successfully. Items moved to 'Others'.",
+      othersCategoryId: othersCategory._id 
+    });
   } catch (error) {
     console.error("Delete category error:", error);
     return res.status(500).json({ message: "Failed to delete category" });
@@ -342,7 +363,7 @@ const updateItem = async (req, res) => {
   try {
     const { itemId } = req.params;
     const {
-      restaurantId,
+      categoryId,
       name,
       description,
       price,
@@ -351,12 +372,13 @@ const updateItem = async (req, res) => {
       allergens,
       isAvailable,
     } = req.body;
+    const restaurantId = req.restaurantId;
 
     // Validation
     if (!itemId || !restaurantId) {
       return res
         .status(400)
-        .json({ message: "Item ID and restaurant ID are required" });
+        .json({ message: "Item ID and Restaurant context are required" });
     }
 
     if (
@@ -364,6 +386,20 @@ const updateItem = async (req, res) => {
       !mongoose.Types.ObjectId.isValid(restaurantId)
     ) {
       return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    // If categoryId is provided, validate it
+    if (categoryId) {
+      if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+        return res.status(400).json({ message: "Invalid Category ID format" });
+      }
+      const categoryExists = await Category.findOne({
+        _id: categoryId,
+        restaurantId,
+      });
+      if (!categoryExists) {
+        return res.status(404).json({ message: "Category not found" });
+      }
     }
 
     if (price !== undefined && (typeof price !== "number" || price < 0)) {
@@ -385,6 +421,7 @@ const updateItem = async (req, res) => {
     }
 
     // Update fields
+    if (categoryId) item.categoryId = categoryId;
     if (name && name.trim()) item.name = name.trim();
     if (description !== undefined)
       item.description = description ? description.trim() : "";
@@ -421,13 +458,13 @@ const updateItem = async (req, res) => {
 const deleteItem = async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { restaurantId } = req.query;
+    const restaurantId = req.restaurantId;
 
     // Validation
     if (!itemId || !restaurantId) {
       return res
         .status(400)
-        .json({ message: "Item ID and restaurant ID are required" });
+        .json({ message: "Item ID and Restaurant context are required" });
     }
 
     if (
@@ -473,7 +510,8 @@ const deleteItem = async (req, res) => {
 const updateItemAvailability = async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { restaurantId, isAvailable } = req.body;
+    const { isAvailable } = req.body;
+    const restaurantId = req.restaurantId;
 
     // Validation
     if (!itemId || !restaurantId || isAvailable === undefined) {
@@ -481,7 +519,7 @@ const updateItemAvailability = async (req, res) => {
         .status(400)
         .json({
           message:
-            "Item ID, restaurant ID, and availability status are required",
+            "Item ID, Restaurant context, and availability status are required",
         });
     }
 

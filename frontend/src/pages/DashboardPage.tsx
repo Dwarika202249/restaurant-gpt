@@ -1,5 +1,5 @@
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
   ShoppingBag,
@@ -14,13 +14,14 @@ import {
   Calendar,
   Store,
   Plus,
-  ExternalLink
+  ExternalLink,
+  X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { fetchRestaurantProfile } from '@/store/slices/restaurantSlice';
-import { fetchOrders, fetchOrderStats } from '@/store/slices/orderSlice';
+import { fetchOrders, fetchOrderStats, Order } from '@/store/slices/orderSlice';
 import { formatDistanceToNow } from 'date-fns';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * DashboardPage
@@ -33,6 +34,8 @@ export const DashboardPage = () => {
   const { orders, stats: statsData } = useAppSelector((state) => state.orders);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     dispatch(fetchOrderStats({ range: 'today' }));
@@ -74,14 +77,7 @@ export const DashboardPage = () => {
     },
   ];
 
-  const recentOrders = orders.slice(0, 5).map(order => ({
-    id: order.orderNumber,
-    customer: `Table ${order.tableNo}`,
-    items: `${order.items.length} items`,
-    amount: `₹${order.total}`,
-    status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
-    time: formatDistanceToNow(new Date(order.orderedAt)) + ' ago'
-  }));
+  const recentOrders = orders.slice(0, 5);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -194,21 +190,21 @@ export const DashboardPage = () => {
                 {recentOrders.map((order, i) => (
                   <tr key={i} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-8 py-6">
-                      <span className="text-sm font-black text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors uppercase tracking-tight">{order.id}</span>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{order.time}</p>
+                      <span className="text-sm font-black text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors uppercase tracking-tight">{order.orderNumber}</span>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{formatDistanceToNow(new Date(order.orderedAt))} ago</p>
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 rounded-full bg-brand-500" />
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{order.customer}</span>
+                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Table {order.tableNo}</span>
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{order.amount}</span>
+                      <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">₹{order.total}</span>
                     </td>
                     <td className="px-8 py-6">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${order.status === 'Completed' ? 'bg-emerald-500/5 text-emerald-500 border-emerald-500/20' :
-                          order.status === 'Preparing' ? 'bg-amber-500/5 text-amber-600 border-amber-500/20' :
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${order.status === 'completed' ? 'bg-emerald-500/5 text-emerald-500 border-emerald-500/20' :
+                          order.status === 'preparing' ? 'bg-amber-500/5 text-amber-600 border-amber-500/20' :
                             'bg-blue-500/5 text-blue-500 border-blue-500/20'
                         }`}>
                         {order.status}
@@ -216,6 +212,7 @@ export const DashboardPage = () => {
                     </td>
                     <td className="px-8 py-6 text-right">
                       <button
+                        onClick={() => setSelectedOrder(order)}
                         title="Order Options"
                         aria-label="Order Options"
                         className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
@@ -230,7 +227,10 @@ export const DashboardPage = () => {
           </div>
 
           <div className="p-6 border-t border-slate-50 dark:border-slate-800 text-center">
-            <button className="text-sm font-black text-brand-500 uppercase tracking-widest hover:tracking-[0.2em] transition-all flex items-center justify-center w-full group">
+            <button 
+              onClick={() => navigate('/orders')}
+              className="text-sm font-black text-brand-500 uppercase tracking-widest hover:tracking-[0.2em] transition-all flex items-center justify-center w-full group"
+            >
               <span>View All Intelligence Data</span>
               <ChevronRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
             </button>
@@ -283,6 +283,83 @@ export const DashboardPage = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Order Details Modal */}
+      <AnimatePresence>
+        {selectedOrder && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              onClick={() => setSelectedOrder(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{selectedOrder.orderNumber}</h2>
+                  <p className="text-[10px] font-black text-brand-500 uppercase tracking-widest mt-1">Table {selectedOrder.tableNo} • {selectedOrder.paymentStatus.toUpperCase()}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  title="Close Details"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl"
+                >
+                  <X />
+                </button>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div className="space-y-4">
+                  {selectedOrder.items.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-brand-500/10 rounded-lg flex items-center justify-center text-brand-500 text-xs font-black">
+                          {item.quantity}x
+                        </div>
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.nameSnapshot}</span>
+                      </div>
+                      <span className="text-sm font-black text-slate-900 dark:text-white">₹{item.itemTotal}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    <span>Subtotal</span>
+                    <span>₹{selectedOrder.subtotal}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                    <span>Total Invoice</span>
+                    <span className="text-brand-500">₹{selectedOrder.total}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex gap-4">
+                <button
+                  onClick={() => navigate('/orders')}
+                  className="flex-1 py-4 bg-brand-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-brand-500/20"
+                >
+                  Manage Status
+                </button>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black uppercase tracking-widest text-xs"
+                >
+                  Close View
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

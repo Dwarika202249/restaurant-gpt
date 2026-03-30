@@ -87,6 +87,10 @@ export const MenuPage = () => {
     allergens: ''
   });
 
+  // Deletion confirmation
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; type: 'category' | 'item' } | null>(null);
+
   // Rehydrate user
   useEffect(() => {
     if (!auth.user && auth.accessToken) {
@@ -164,16 +168,43 @@ export const MenuPage = () => {
     }
   };
 
-  const deleteCategory = async (categoryId: string) => {
-    if (!confirm('Are you sure? Items in this category will remain but become uncategorized.')) return;
+  const deleteCategory = (categoryId: string) => {
+    const category = categories.find(c => c._id === categoryId);
+    if (category) {
+      setDeleteTarget({ id: categoryId, name: category.name, type: 'category' });
+      setShowDeleteModal(true);
+    }
+  };
+
+  const deleteItem = (itemId: string) => {
+    const item = menu?.items.find(i => i._id === itemId);
+    if (item) {
+      setDeleteTarget({ id: itemId, name: item.name, type: 'item' });
+      setShowDeleteModal(true);
+    }
+  };
+
+  const handleFinalDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await axios.delete(`${API_URL}/menu/category/${categoryId}`, {
-        headers: { Authorization: `Bearer ${auth.accessToken}` }
-      });
-      toast.success('Category deleted');
-      fetchCategories();
+      if (deleteTarget.type === 'category') {
+        await axios.delete(`${API_URL}/menu/category/${deleteTarget.id}`, {
+          headers: { Authorization: `Bearer ${auth.accessToken}` }
+        });
+        toast.success(<span>Category deleted. Items moved to <b>Others</b></span>);
+        fetchCategories();
+        fetchMenu();
+      } else {
+        await axios.delete(`${API_URL}/menu/item/${deleteTarget.id}?restaurantId=${auth.user?.restaurantId}`, {
+          headers: { Authorization: `Bearer ${auth.accessToken}` }
+        });
+        toast.success('Item removed');
+        fetchMenu();
+      }
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
     } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Failed to delete category');
+      toast.error(getErrorMessage(error) || `Failed to delete ${deleteTarget.type}`);
     }
   };
 
@@ -249,18 +280,6 @@ export const MenuPage = () => {
     }
   };
 
-  const deleteItem = async (itemId: string) => {
-    if (!confirm('Delete this item?')) return;
-    try {
-      await axios.delete(`${API_URL}/menu/item/${itemId}`, {
-        headers: { Authorization: `Bearer ${auth.accessToken}` }
-      });
-      toast.success('Item removed');
-      fetchMenu();
-    } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Failed to delete item');
-    }
-  };
 
   const filteredMenuData = useMemo(() => {
     return menu?.items.filter(item => 
@@ -640,6 +659,46 @@ export const MenuPage = () => {
               <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex gap-4">
                 <button onClick={saveCategoryModal} className="flex-1 py-4 bg-brand-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-brand-500/20 hover:scale-[1.02] transition-all">Persist</button>
                 <button onClick={() => setShowCategoryModal(false)} className="px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black uppercase tracking-widest text-xs">Close</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteModal && deleteTarget && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-white/5">
+              <div className="p-8 text-center">
+                <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Trash2 size={36} className="text-rose-500" />
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Delete {deleteTarget.type === 'category' ? 'Category' : 'Menu Item'}?</h2>
+                <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                  Are you sure you want to delete <span className="text-slate-900 dark:text-white font-black italic">"{deleteTarget.name}"</span>? 
+                  {deleteTarget.type === 'category' && (
+                    <span className="block mt-2 text-brand-500 text-xs font-black uppercase tracking-widest bg-brand-500/5 py-2 rounded-xl">
+                      Items will be moved to "Others" category
+                    </span>
+                  )}
+                </p>
+              </div>
+
+              <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex gap-4 bg-slate-50/50 dark:bg-slate-800/30">
+                <button 
+                  onClick={handleFinalDelete}
+                  className="flex-1 py-4 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-rose-500/20 hover:bg-rose-600 transition-all active:scale-95"
+                >
+                  Confirm Delete
+                </button>
+                <button 
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                >
+                  Go Back
+                </button>
               </div>
             </motion.div>
           </div>
