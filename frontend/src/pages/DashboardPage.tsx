@@ -18,6 +18,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTabTitle } from '@/hooks';
 import { fetchRestaurantProfile } from '@/store/slices/restaurantSlice';
 import { fetchOrders, fetchOrderStats, Order } from '@/store/slices/orderSlice';
 import { formatDistanceToNow } from 'date-fns';
@@ -34,6 +35,8 @@ export const DashboardPage = () => {
   const { orders, stats: statsData } = useAppSelector((state) => state.orders);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+
+  useTabTitle('Dashboard', restaurant?.name ? ` | ${restaurant.name}` : undefined);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');

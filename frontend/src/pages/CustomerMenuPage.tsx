@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { CustomerLayout } from '@/components';
 import { Search, ShoppingCart, Plus, Minus, X, Info, Zap, CheckCircle2, ChefHat, ShieldCheck, Wallet, Clock, ChevronRight, History, User as UserIcon, LogIn, UtensilsCrossed } from 'lucide-react';
+import { useTabTitle } from '@/hooks';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import CustomerAuthModal from '../components/CustomerAuthModal';
@@ -62,6 +63,9 @@ export const CustomerMenuPage = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
+  
+  useTabTitle('Digital Menu', guestSession?.restaurantName ? ` | ${guestSession.restaurantName}` : undefined);
+
   const [orderStep, setOrderStep] = useState<'validating' | 'submitting' | 'processing' | 'success'>('validating');
   const [finalOrder, setFinalOrder] = useState<{ id: string; number: string } | null>(null);
   const [activeOrders, setActiveOrders] = useState<any[]>([]);

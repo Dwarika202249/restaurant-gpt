@@ -1,29 +1,28 @@
 import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
+import { useTabTitle } from '@/hooks';
 import { fetchOrderStats } from '@/store/slices/orderSlice';
 import { motion } from 'framer-motion';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  ShoppingBag, 
-  Users, 
-  BarChart3, 
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  ShoppingBag,
+  Users,
+  BarChart3,
   PieChart as PieChartIcon,
   Sparkles,
-  Calendar,
-  ChevronDown,
   ChefHat
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  AreaChart, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
   Area,
   BarChart,
   Bar,
@@ -40,8 +39,10 @@ export const AnalyticsPage = () => {
 
   const [dateRange, setDateRange] = useState('week');
 
+  useTabTitle('Analytics');
+
   useEffect(() => {
-    dispatch(fetchOrderStats({ range: dateRange }));
+    dispatch(fetchOrderStats({ dateRange }));
   }, [dispatch, dateRange]);
 
   // Data transformations for Recharts
@@ -84,7 +85,7 @@ export const AnalyticsPage = () => {
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Performance insights and AI-driven growth metrics.</p>
         </div>
 
-        <select 
+        <select
           value={dateRange}
           onChange={(e) => setDateRange(e.target.value)}
           title="Select Date Range"
@@ -97,7 +98,7 @@ export const AnalyticsPage = () => {
       </div>
 
       {/* Primary Stats Grid */}
-      <motion.div 
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -153,8 +154,8 @@ export const AnalyticsPage = () => {
           </div>
           <p className="text-white/70 text-xs font-black uppercase tracking-widest">Conversion Rate</p>
           <h3 className="text-3xl font-black mt-1">
-            {stats?.summary?.totalOrders 
-              ? `${Math.round((stats.summary.completedOrders / stats.summary.totalOrders) * 100)}%` 
+            {stats?.summary?.totalOrders
+              ? `${Math.round((stats.summary.completedOrders / stats.summary.totalOrders) * 100)}%`
               : '0%'}
           </h3>
         </motion.div>
@@ -177,14 +178,14 @@ export const AnalyticsPage = () => {
               <AreaChart data={revenueTrends}>
                 <defs>
                   <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F97316" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#F97316" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#F97316" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
                 <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#64748B' }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#64748B' }} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                   itemStyle={{ color: '#F97316', fontWeight: 900 }}
                 />
@@ -210,9 +211,9 @@ export const AnalyticsPage = () => {
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" opacity={0.5} />
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 800, fill: '#64748B' }} width={100} />
-                <Tooltip 
+                <Tooltip
                   cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: 'none', shadow: 'xl' }}
+                  contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' }}
                 />
                 <Bar dataKey="revenue" fill="#3B82F6" radius={[0, 12, 12, 0]} barSize={24}>
                   {topItemsData.map((entry, index) => (
@@ -255,49 +256,49 @@ export const AnalyticsPage = () => {
             </ResponsiveContainer>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
-             {statusDistribution.map((item, idx) => (
-               <div key={idx} className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                  <span className="text-[10px] font-black text-slate-500 uppercase">{item.name} ({item.value})</span>
-               </div>
-             ))}
+            {statusDistribution.map((item, idx) => (
+              <div key={idx} className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                <span className="text-[10px] font-black text-slate-500 uppercase">{item.name} ({item.value})</span>
+              </div>
+            ))}
           </div>
         </motion.div>
 
         {/* AI Business Insights Card */}
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="lg:col-span-2 relative orange-gradient rounded-[2.5rem] p-8 text-white overflow-hidden group">
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 blur-[100px] rounded-full -mr-32 -mt-32 animate-pulse-slow" />
-          
+
           <div className="relative z-10 flex flex-col h-full">
-             <div className="flex items-center space-x-3 mb-6">
-               <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                 <Sparkles className="text-white" size={24} />
-               </div>
-               <span className="font-black text-sm uppercase tracking-widest text-white/80">AI Business Analyst</span>
-             </div>
-             
-             <h3 className="text-2xl font-black mb-6 leading-tight tracking-tight">Predictive Insights Available</h3>
-             
-             <div className="space-y-6 flex-grow">
-               <div className="flex items-start space-x-4 bg-white/10 p-5 rounded-3xl border border-white/10">
-                 <ChefHat size={20} className="text-white shrink-0 mt-1" />
-                 <div>
-                   <p className="text-sm font-bold">Inventory Optimization</p>
-                   <p className="text-xs text-white/70 mt-1 font-medium">AI predicts a 40% surge in Tandoori Platter demand for the upcoming weekend festival. Restock ingredients accordingly.</p>
-                 </div>
-               </div>
-               <div className="flex items-start space-x-4 bg-white/10 p-5 rounded-3xl border border-white/10">
-                 <TrendingUp size={20} className="text-white shrink-0 mt-1" />
-                 <div>
-                   <p className="text-sm font-bold">Dynamic Pricing Insight</p>
-                   <p className="text-xs text-white/70 mt-1 font-medium">Lowering beverage prices by 5% during 4 PM - 6 PM could increase total order value by 12%.</p>
-                 </div>
-               </div>
-             </div>
-             
-             <button className="mt-8 w-full bg-white text-brand-500 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
-               Export Full AI Report (PDF)
-             </button>
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                <Sparkles className="text-white" size={24} />
+              </div>
+              <span className="font-black text-sm uppercase tracking-widest text-white/80">AI Business Analyst</span>
+            </div>
+
+            <h3 className="text-2xl font-black mb-6 leading-tight tracking-tight">Predictive Insights Available</h3>
+
+            <div className="space-y-6 flex-grow">
+              <div className="flex items-start space-x-4 bg-white/10 p-5 rounded-3xl border border-white/10">
+                <ChefHat size={20} className="text-white shrink-0 mt-1" />
+                <div>
+                  <p className="text-sm font-bold">Inventory Optimization</p>
+                  <p className="text-xs text-white/70 mt-1 font-medium">AI predicts a 40% surge in Tandoori Platter demand for the upcoming weekend festival. Restock ingredients accordingly.</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-4 bg-white/10 p-5 rounded-3xl border border-white/10">
+                <TrendingUp size={20} className="text-white shrink-0 mt-1" />
+                <div>
+                  <p className="text-sm font-bold">Dynamic Pricing Insight</p>
+                  <p className="text-xs text-white/70 mt-1 font-medium">Lowering beverage prices by 5% during 4 PM - 6 PM could increase total order value by 12%.</p>
+                </div>
+              </div>
+            </div>
+
+            <button className="mt-8 w-full bg-white text-brand-500 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+              Export Full AI Report (PDF)
+            </button>
           </div>
         </motion.div>
       </div>

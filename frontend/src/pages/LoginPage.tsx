@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Phone, Lock, Copy, Check, ChevronLeft, ArrowRight, Sparkles, Utensils, ShieldCheck } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
+import { useTabTitle } from '@/hooks';
 import { sendOTP, verifyOTP, clearError } from '@/store/slices/authSlice';
 import { Error as ErrorComp, Success } from '@/components';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
@@ -10,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 type AuthStep = 'phone' | 'otp';
 
 export const LoginPage = () => {
+  useTabTitle('Login');
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);

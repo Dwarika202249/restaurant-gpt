@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { QrCode, Loader2, AlertCircle } from 'lucide-react';
+import { useTabTitle } from '@/hooks';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -10,6 +11,8 @@ export const SmartScanPage = () => {
   const { qrId } = useParams<{ qrId: string }>();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+
+  useTabTitle('Smart Scan');
 
   useEffect(() => {
     const resolveScan = async () => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
+import { useTabTitle } from '@/hooks';
 import { updateAdminProfile } from '@/store/slices/authSlice';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +30,8 @@ const AdminPage: React.FC = () => {
   const user = useAppSelector((state) => state.auth.user);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const dispatch = useAppDispatch();
+
+  useTabTitle('Restaurant Settings');
 
   useEffect(() => {
     if (!user && isAuthenticated) {

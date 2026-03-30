@@ -38,12 +38,12 @@ export const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (op
       {/* Sidebar Overlay */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="md:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-20" 
-            onClick={() => setIsOpen(false)} 
+            className="md:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-20"
+            onClick={() => setIsOpen(false)}
           />
         )}
       </AnimatePresence>
@@ -74,16 +74,15 @@ export const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (op
             <NavLink
               key={item.label}
               to={item.href}
-              className={({ isActive }) => `relative flex items-center space-x-3 px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden ${
-                isActive 
-                  ? 'bg-brand-500/10 text-brand-500 font-bold shadow-sm border-l-4 border-brand-500' 
+              className={({ isActive }) => `relative flex items-center space-x-3 px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden ${isActive
+                  ? 'bg-brand-500/10 text-brand-500 font-bold shadow-sm border-l-4 border-brand-500'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               {({ isActive }) => (
                 <>
                   {isActive && (
-                    <motion.div 
+                    <motion.div
                       layoutId="sidebar-active"
                       className="absolute inset-0 bg-brand-500/5 z-0"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
@@ -101,7 +100,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (op
         {/* Settings & Logout */}
         <div className="p-4 space-y-1.5 border-t border-white/5 bg-slate-900/30 backdrop-blur-xl">
           <Link
-            to="/profile"
+            to="/admin"
             className="flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-slate-400 hover:text-white group"
           >
             <Settings size={20} className="group-hover:rotate-45 transition-transform duration-500" />

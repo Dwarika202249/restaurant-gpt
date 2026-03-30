@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
+import { useTabTitle } from '@/hooks';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { useAPIError } from '@/hooks/useAPIError';
 import { 
@@ -68,6 +69,8 @@ export const MenuPage = () => {
   const [activeTab, setActiveTab] = useState<'categories' | 'items'>('items');
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  useTabTitle('Menu Studio');
 
   // Category management
   const [showCategoryModal, setShowCategoryModal] = useState(false);

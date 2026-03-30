@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
+import { useTabTitle } from '@/hooks';
 import { fetchOrders, updateOrderStatus, Order } from '@/store/slices/orderSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -30,6 +31,8 @@ export const OrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  useTabTitle('Live Orders');
 
   useEffect(() => {
     dispatch(fetchOrders({}));
