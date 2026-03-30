@@ -373,14 +373,25 @@ export const CustomerMenuPage = () => {
                         src={item.imageUrl} 
                         alt={item.name} 
                         title={item.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" 
+                        className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out ${!item.isAvailable ? 'grayscale opacity-50' : ''}`} 
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                      <div className={`w-full h-full flex items-center justify-center text-slate-300 ${!item.isAvailable ? 'grayscale opacity-30' : ''}`}>
                         <UtensilsCrossed size={48} />
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                    
+                    {!item.isAvailable && (
+                       <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="px-6 py-3 bg-slate-900/80 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
+                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white flex items-center gap-2">
+                                <Clock size={12} className="text-amber-500" /> Available Soon
+                             </span>
+                          </div>
+                       </div>
+                    )}
+
                     <div className="absolute top-5 right-5 flex flex-col gap-2">
                        {item.tags.map(tag => (
                          <span key={tag} className="px-3 py-1.5 bg-white/90 dark:bg-slate-900/95 backdrop-blur rounded-full text-[8px] font-black uppercase text-slate-900 dark:text-white border border-slate-100 dark:border-white/5 shadow-lg">#{tag}</span>
@@ -394,11 +405,20 @@ export const CustomerMenuPage = () => {
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-8 line-clamp-2 leading-relaxed">{item.description}</p>
                     <button 
-                      onClick={() => addToCart(item)}
-                      className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[2rem] font-black uppercase text-[10px] tracking-[0.2em] hover:bg-brand-500 hover:text-white dark:hover:bg-brand-500 dark:hover:text-white transition-all shadow-xl active:scale-95"
-                      title={`Select ${item.name}`}
+                      onClick={() => item.isAvailable && addToCart(item)}
+                      disabled={!item.isAvailable}
+                      className={`w-full py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-[0.2em] transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 ${
+                        item.isAvailable 
+                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-brand-500 hover:text-white dark:hover:bg-brand-500 dark:hover:text-white' 
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                      }`}
+                      title={item.isAvailable ? `Select ${item.name}` : "Currently Unavailable"}
                     >
-                      Add To Cart
+                      {item.isAvailable ? 'Add To Cart' : (
+                        <>
+                          <Clock size={14} /> Available Soon
+                        </>
+                      )}
                     </button>
                  </div>
               </motion.div>

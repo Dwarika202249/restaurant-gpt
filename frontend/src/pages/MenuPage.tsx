@@ -274,7 +274,7 @@ export const MenuPage = () => {
 
   const toggleItemAvailability = async (item: MenuItem) => {
     try {
-      await axios.put(`${API_URL}/menu/item/${item._id}`, { isAvailable: !item.isAvailable }, {
+      await axios.patch(`${API_URL}/menu/item/${item._id}/availability`, { isAvailable: !item.isAvailable }, {
         headers: { Authorization: `Bearer ${auth.accessToken}` }
       });
       fetchMenu();

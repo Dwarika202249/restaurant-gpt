@@ -587,7 +587,7 @@ const getPublicMenu = async (req, res) => {
       message: 'Menu retrieved successfully',
       data: {
         categories: categories, 
-        items: menu.items.filter((item) => item.isAvailable),
+        items: menu.items,
         restaurant: {
           _id: restaurant._id,
           name: restaurant.name,
