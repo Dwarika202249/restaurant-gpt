@@ -7,6 +7,8 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import CustomerAuthModal from '../components/CustomerAuthModal';
 import OrderStatusWidget from '../components/OrderStatusWidget';
+import { useLocation } from 'react-router-dom';
+import { Shield, CreditCard, Loader2, CheckIcon, PartyPopper } from 'lucide-react';
 
 interface MenuItem {
   _id: string;
@@ -63,6 +65,7 @@ export const CustomerMenuPage = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
+  const statusRef = useRef<HTMLDivElement>(null);
   
   useTabTitle('Digital Menu', guestSession?.restaurantName ? ` | ${guestSession.restaurantName}` : undefined);
 
@@ -234,7 +237,7 @@ export const CustomerMenuPage = () => {
     try {
       setIsOrdering(true);
       setOrderStep('validating');
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1500)); // Simulating Securing Connection
 
       setOrderStep('submitting');
       const orderPayload = {
@@ -251,16 +254,31 @@ export const CustomerMenuPage = () => {
       const order = data.data.order;
       
       setOrderStep('processing');
+      await new Promise(r => setTimeout(r, 2000)); // Simulating Bank Gateway
+      
       await axios.patch(`${API_URL}/orders/${order._id}/payment`, { paymentStatus: 'completed' }, {
         headers: { Authorization: `Bearer ${guestSession.sessionToken}` }
       });
 
       setFinalOrder({ id: order._id, number: data.data.orderNumber });
       setOrderStep('success');
+      
+      // Clear data but wait before closing overlay
       setCart([]);
       setCouponInfo(null);
       setCouponCode('');
       fetchActiveOrders(guestSession.sessionToken);
+
+      // Finish experience
+      setTimeout(() => {
+        setIsOrdering(false);
+        setShowCartPreview(false);
+        // Scroll to status
+        setTimeout(() => {
+          statusRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+      }, 3000);
+
     } catch (err) {
       alert('Order failed. Please try again.');
       setIsOrdering(false);
@@ -503,7 +521,85 @@ export const CustomerMenuPage = () => {
           )}
         </AnimatePresence>
 
-        <OrderStatusWidget orders={activeOrders} onRefresh={() => guestSession && fetchActiveOrders(guestSession.sessionToken)} />
+        {/* Checkout & Payment Interactive Overlay */}
+        <AnimatePresence>
+          {isOrdering && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6"
+            >
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                className="max-w-md w-full glass dark:glass-dark rounded-[3rem] p-10 text-center relative overflow-hidden"
+              >
+                {/* Background glow based on step */}
+                <div className={`absolute top-0 right-0 w-64 h-64 blur-[100px] rounded-full -mr-32 -mt-32 transition-colors duration-1000 ${orderStep === 'success' ? 'bg-emerald-500/20' : 'bg-brand-500/20'}`} />
+                
+                <div className="relative z-10 flex flex-col items-center">
+                  <AnimatePresence mode="wait">
+                    {orderStep === 'validating' && (
+                      <motion.div key="validating" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="flex flex-col items-center">
+                        <div className="w-24 h-24 rounded-[2rem] bg-brand-500/10 flex items-center justify-center mb-8 relative">
+                          <Shield size={40} className="text-brand-500" />
+                          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 3, ease: 'linear' }} className="absolute inset-0 border-4 border-dashed border-brand-500/30 rounded-[2rem]" />
+                        </div>
+                        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mb-4">Securing Connection</h3>
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-10 leading-relaxed">Authenticating with your financial provider for secure checkout...</p>
+                      </motion.div>
+                    )}
+
+                    {orderStep === 'submitting' && (
+                      <motion.div key="submitting" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="flex flex-col items-center">
+                        <div className="w-24 h-24 rounded-[2rem] bg-blue-500/10 flex items-center justify-center mb-8 relative">
+                          <CreditCard size={40} className="text-blue-500" />
+                          <Loader2 size={32} className="text-blue-500 absolute -top-2 -right-2 animate-spin" />
+                        </div>
+                        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mb-4">Processing Payment</h3>
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-10 leading-relaxed">Deducting ₹{finalTotal.toFixed(0)} from your digital wallet...</p>
+                      </motion.div>
+                    )}
+
+                    {orderStep === 'processing' && (
+                      <motion.div key="processing" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="flex flex-col items-center">
+                        <div className="w-24 h-24 rounded-[2rem] bg-emerald-500/10 flex items-center justify-center mb-8">
+                          <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="p-4 bg-emerald-500/20 rounded-full">
+                            <CheckIcon size={32} className="text-emerald-500" />
+                          </motion.div>
+                        </div>
+                        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mb-4">Verifying Order</h3>
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-10 leading-relaxed">Synchronizing with kitchen cloud network...</p>
+                      </motion.div>
+                    )}
+
+                    {orderStep === 'success' && (
+                      <motion.div key="success" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center">
+                         <div className="w-32 h-32 rounded-[2.5rem] bg-emerald-500 flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(16,185,129,0.4)]">
+                           <PartyPopper size={56} className="text-white" />
+                         </div>
+                         <div className="mb-8">
+                            <span className="inline-block px-4 py-1.5 bg-emerald-500/10 text-emerald-500 rounded-full text-[10px] font-black uppercase tracking-widest mb-3">Order #{finalOrder?.number} Confirmed!</span>
+                            <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-none">Bon Appétit!</h3>
+                         </div>
+                         <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-relaxed mb-10">Your culinary journey has begun. Redirecting to live tracking console...</p>
+                         
+                         <div className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 2 }} className="h-full bg-emerald-500 px-10" />
+                         </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div ref={statusRef}>
+          <OrderStatusWidget orders={activeOrders} onRefresh={() => guestSession && fetchActiveOrders(guestSession.sessionToken)} />
+        </div>
         <CustomerAuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
