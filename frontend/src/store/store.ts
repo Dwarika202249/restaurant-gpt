@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import restaurantReducer from './slices/restaurantSlice';
 import cartReducer from './slices/cartSlice';
+import orderReducer from './slices/orderSlice';
 
 /**
  * Redux store configuration
@@ -12,6 +13,7 @@ const store = configureStore({
     auth: authReducer,
     restaurant: restaurantReducer,
     cart: cartReducer,
+    orders: orderReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

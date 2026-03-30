@@ -1,12 +1,16 @@
 import { createBrowserRouter, RouteObject, Navigate } from 'react-router-dom';
 import { ProtectedRoute, DashboardLayout } from './components';
-import { LoginPage } from './pages/LoginPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { RestaurantProfilePage } from './pages/RestaurantProfilePage';
-import { MenuPage } from './pages/MenuPage';
-import { CustomerLandingPage } from './pages/CustomerLandingPage';
-import { CustomerMenuPage } from './pages/CustomerMenuPage';
-import { QRManagementPage } from './pages/QRManagementPage';
+import { 
+  LoginPage, 
+  DashboardPage, 
+  RestaurantProfilePage, 
+  MenuPage, 
+  CustomerLandingPage, 
+  CustomerMenuPage, 
+  QRManagementPage,
+  OrdersPage,
+  AnalyticsPage
+} from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
 
@@ -45,6 +49,14 @@ const routes: RouteObject[] = [
       {
         path: 'menu',
         element: <MenuPage />
+      },
+      {
+        path: 'orders',
+        element: <OrdersPage />
+      },
+      {
+        path: 'analytics',
+        element: <AnalyticsPage />
       },
       {
         path: 'qr-management',
