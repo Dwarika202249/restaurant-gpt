@@ -40,6 +40,20 @@ router.post('/admin/send-otp', sendOTP);
 router.post('/admin/verify-otp', verifyOTP);
 
 /**
+ * @route   POST /api/auth/customer/send-otp
+ * @desc    Send OTP to customer phone number
+ * @access  Public
+ */
+router.post('/customer/send-otp', sendOTP);
+
+/**
+ * @route   POST /api/auth/customer/verify-otp
+ * @desc    Verify OTP and return JWT tokens for customer
+ * @access  Public
+ */
+router.post('/customer/verify-otp', verifyOTP);
+
+/**
  * @route   POST /api/auth/admin/refresh
  * @desc    Refresh access token using refresh token
  * @access  Public (but requires valid refresh token)

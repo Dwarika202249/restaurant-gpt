@@ -18,6 +18,7 @@ const {
   deleteTable,
   resolveScan
 } = require('./controllers/tableController');
+const { getRestaurantCustomers } = require('./controllers/crmController');
 const { authenticateAdmin } = require('../middleware/auth');
 const { attachRestaurantContext, verifyRestaurantAccess } = require('../middleware/tenantContext');
 
@@ -173,6 +174,23 @@ router.delete(
   authenticateAdmin,
   attachRestaurantContext,
   deleteTable
+);
+
+/**
+ * CRM Routes
+ */
+
+/**
+ * @route   GET /api/restaurant/customers
+ * @desc    Get customers who have ordered from this restaurant
+ * @access  Private (Admin)
+ */
+router.get(
+  '/customers',
+  authenticateAdmin,
+  attachRestaurantContext,
+  verifyRestaurantAccess,
+  getRestaurantCustomers
 );
 
 module.exports = router;

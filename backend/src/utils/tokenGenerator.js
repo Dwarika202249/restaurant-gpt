@@ -45,7 +45,7 @@ const generateGuestToken = (sessionId, restaurantId, tableNo) => {
     },
     process.env.JWT_SECRET,
     {
-      expiresIn: '4h'
+      expiresIn: '45m'
     }
   );
 

@@ -1,5 +1,6 @@
-const { User, Restaurant } = require('../../models');
-const { generateTokens, generateGuestToken } = require('../../utils/tokenGenerator');
+ const { User, Restaurant } = require('../../models');
+ const { generateTokens, generateGuestToken } = require('../../utils/tokenGenerator');
+ const mongoose = require('mongoose');
 
 /**
  * Send OTP to admin phone number
@@ -108,19 +109,34 @@ const verifyOTP = async (req, res) => {
     delete global.otpStore[phone];
 
     // Find or create user
-    let user = await User.findOne({ phone, role: 'admin' });
+    const userRole = req.path.includes('customer') ? 'customer' : 'admin';
+    let user = await User.findOne({ phone, role: userRole });
 
     if (!user) {
       // New user - create account
       user = new User({
         phone,
-        role: 'admin'
+        role: userRole
       });
       await user.save();
     }
 
+    // Migration Logic: If customer login and guestSessionId provided, link orders
+    const { guestSessionId, restaurantId: sessionRestaurantId } = req.body;
+    if (userRole === 'customer' && guestSessionId && sessionRestaurantId) {
+      const { Order } = require('../../models');
+      await Order.updateMany(
+        { 
+          guestSessionId: new mongoose.Types.ObjectId(guestSessionId), 
+          restaurantId: new mongoose.Types.ObjectId(sessionRestaurantId),
+          customerId: null 
+        },
+        { $set: { customerId: user._id } }
+      );
+    }
+
     // Generate tokens
-    const { accessToken, refreshToken } = generateTokens(user._id, user.restaurantId);
+    const { accessToken, refreshToken } = generateTokens(user._id, user.restaurantId || sessionRestaurantId);
 
     // Store refresh token in user's token list
     user.refreshTokens.push({
@@ -288,7 +304,8 @@ const generateGuestSession = async (req, res) => {
         sessionId,
         restaurantId: restaurant._id,
         restaurantName: restaurant.name,
-        tableNo
+        tableNo,
+        expiresAt: new Date(Date.now() + 45 * 60 * 1000)
       }
     });
   } catch (error) {

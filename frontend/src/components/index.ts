@@ -7,3 +7,5 @@ export { Navbar } from './Navbar';
 export { DashboardLayout } from './DashboardLayout';
 export { CartSummary } from './CartSummary';
 export { CustomerLayout } from './CustomerLayout';
+export { default as OrderStatusWidget } from './OrderStatusWidget';
+export { default as CustomerAuthModal } from './CustomerAuthModal';
