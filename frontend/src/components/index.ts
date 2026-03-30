@@ -9,3 +9,5 @@ export { CartSummary } from './CartSummary';
 export { CustomerLayout } from './CustomerLayout';
 export { default as OrderStatusWidget } from './OrderStatusWidget';
 export { default as CustomerAuthModal } from './CustomerAuthModal';
+export { AdminProfileForm } from './AdminProfileForm';
+export { RestaurantSetupForm } from './RestaurantSetupForm';

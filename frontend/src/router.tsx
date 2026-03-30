@@ -35,10 +35,6 @@ const routes: RouteObject[] = [
         element: <DashboardPage />
       },
       {
-        path: 'admin-profile',
-        element: <CreateAdminProfilePage />
-      },
-      {
         path: 'admin',
         element: <AdminPage />
       },
@@ -64,6 +60,16 @@ const routes: RouteObject[] = [
         element: <Navigate to="/dashboard" replace />
       }
     ]
+  },
+  
+  // Profile Setup Route (Protected, No Layout)
+  {
+    path: '/admin-profile',
+    element: (
+      <ProtectedRoute requiredRole="admin">
+        <CreateAdminProfilePage />
+      </ProtectedRoute>
+    )
   },
 
   // Public Route - Smart Scan Redirector
