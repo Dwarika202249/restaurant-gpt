@@ -9,7 +9,8 @@ import {
   CustomerMenuPage, 
   QRManagementPage,
   OrdersPage,
-  AnalyticsPage
+  AnalyticsPage,
+  SmartScanPage
 } from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
@@ -68,6 +69,12 @@ const routes: RouteObject[] = [
         element: <Navigate to="/dashboard" replace />
       }
     ]
+  },
+
+  // Public Route - Smart Scan Redirector
+  {
+    path: '/s/:qrId',
+    element: <SmartScanPage />
   },
 
   // Customer Routes (QR Code Entry Point)

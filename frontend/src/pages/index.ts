@@ -7,3 +7,4 @@ export { CustomerMenuPage } from './CustomerMenuPage';
 export { QRManagementPage } from './QRManagementPage';
 export { OrdersPage } from './OrdersPage';
 export { AnalyticsPage } from './AnalyticsPage';
+export { SmartScanPage } from './SmartScanPage';

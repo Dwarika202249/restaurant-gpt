@@ -548,6 +548,8 @@ const getPublicMenu = async (req, res) => {
     return res.status(200).json({
       message: 'Menu retrieved successfully',
       data: {
+        categories: categories, 
+        items: menu.items.filter((item) => item.isAvailable),
         restaurant: {
           _id: restaurant._id,
           name: restaurant.name,
@@ -555,10 +557,6 @@ const getPublicMenu = async (req, res) => {
           themeColor: restaurant.themeColor,
           logoUrl: restaurant.logoUrl,
           currency: restaurant.currency
-        },
-        menu: {
-          categories: categories, // Fetched from Category collection
-          items: menu.items.filter((item) => item.isAvailable) 
         }
       }
     });

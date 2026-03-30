@@ -30,11 +30,14 @@ const restaurantRoutes = require('./src/routes/restaurant');
 const menuRoutes = require('./src/routes/menu');
 const orderRoutes = require('./src/routes/orders');
 const customerRoutes = require('./src/routes/customer');
+const publicRoutes = require('./src/routes/public');
+
 app.use('/api/auth', authRoutes);
 app.use('/api/restaurant', restaurantRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/customer', customerRoutes);
+app.use('/api/public', publicRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

@@ -5,6 +5,7 @@ const Order = require('./Order');
 const Session = require('./Session');
 const AIConversation = require('./AIConversation');
 const Category = require('./Category');
+const Table = require('./Table');
 
 module.exports = {
   Restaurant,
@@ -13,5 +14,6 @@ module.exports = {
   Order,
   Session,
   AIConversation,
-  Category
+  Category,
+  Table
 };

@@ -11,6 +11,13 @@ const {
   generateTableQRCodes,
   getTableQRPreview
 } = require('./controllers/qrController');
+const {
+  getTables,
+  addTable,
+  updateTable,
+  deleteTable,
+  resolveScan
+} = require('./controllers/tableController');
 const { authenticateAdmin } = require('../middleware/auth');
 const { attachRestaurantContext, verifyRestaurantAccess } = require('../middleware/tenantContext');
 
@@ -75,6 +82,16 @@ router.get(
 );
 
 /**
+ * @route   GET /api/restaurant/scan/:qrId
+ * @desc    Resolve QR scan to restaurant/table context
+ * @access  Public
+ */
+router.get(
+  '/scan/:qrId',
+  resolveScan
+);
+
+/**
  * QR Code Routes
  */
 
@@ -104,6 +121,58 @@ router.get(
   '/qr-preview/:restaurantId/:tableNo',
   authenticateAdmin,
   getTableQRPreview
+);
+
+/**
+ * Table Management Routes
+ */
+
+/**
+ * @route   GET /api/tables
+ * @desc    Get all tables for a restaurant
+ * @access  Private (Admin)
+ */
+router.get(
+  '/tables',
+  authenticateAdmin,
+  attachRestaurantContext,
+  getTables
+);
+
+/**
+ * @route   POST /api/tables
+ * @desc    Add a new table
+ * @access  Private (Admin)
+ */
+router.post(
+  '/tables',
+  authenticateAdmin,
+  attachRestaurantContext,
+  addTable
+);
+
+/**
+ * @route   PATCH /api/tables/:id
+ * @desc    Update table details
+ * @access  Private (Admin)
+ */
+router.patch(
+  '/tables/:id',
+  authenticateAdmin,
+  attachRestaurantContext,
+  updateTable
+);
+
+/**
+ * @route   DELETE /api/tables/:id
+ * @desc    Delete a table
+ * @access  Private (Admin)
+ */
+router.delete(
+  '/tables/:id',
+  authenticateAdmin,
+  attachRestaurantContext,
+  deleteTable
 );
 
 module.exports = router;
