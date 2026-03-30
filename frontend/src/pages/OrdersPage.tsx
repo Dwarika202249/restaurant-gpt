@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Search,
   Filter,
-  ArrowRight
+  ArrowRight,
+  X
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -27,6 +28,8 @@ export const OrdersPage = () => {
   const dispatch = useAppDispatch();
   const { orders, loading } = useAppSelector((state) => state.orders);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     dispatch(fetchOrders({}));
@@ -44,9 +47,12 @@ export const OrdersPage = () => {
   const ordersList = Array.isArray(orders) ? orders : [];
 
   const filteredOrders = ordersList.filter(
-    (order) => 
-      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.tableNo.toLowerCase().includes(searchTerm.toLowerCase())
+    (order) => {
+      const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           order.tableNo.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    }
   );
 
   const getNextStatus = (currentStatus: string) => {
@@ -91,9 +97,19 @@ export const OrdersPage = () => {
               className="pl-12 pr-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all dark:text-white"
             />
           </div>
-          <button title="Quick Filters" className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-500 shadow-sm hover:border-brand-500 hover:text-brand-500 transition-all">
-            <Filter size={20} />
-          </button>
+          <div className="flex items-center space-x-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              title="Filter by Status"
+              className="px-4 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all dark:text-white appearance-none"
+            >
+              <option value="all">All Orders</option>
+              {STATUS_COLUMNS.map(col => (
+                <option key={col.id} value={col.id}>{col.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -141,7 +157,14 @@ export const OrdersPage = () => {
                             <span className="text-[10px] font-black text-brand-500 uppercase tracking-[0.2em]">{order.orderNumber}</span>
                             <h4 className="text-lg font-black text-slate-900 dark:text-white mt-0.5">Table {order.tableNo}</h4>
                           </div>
-                          <button title="Order Details" className="p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-400 opacity-0 group-hover:opacity-100 transition-all">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrder(order);
+                            }}
+                            title="Order Details" 
+                            className="p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-400 group-hover:text-brand-500 transition-all"
+                          >
                             <MoreVertical size={16} />
                           </button>
                         </div>
@@ -184,6 +207,87 @@ export const OrdersPage = () => {
           );
         })}
       </div>
+      {/* Order Details Modal */}
+      <AnimatePresence>
+        {selectedOrder && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" 
+              onClick={() => setSelectedOrder(null)} 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 20 }} 
+              className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{selectedOrder.orderNumber}</h2>
+                  <p className="text-[10px] font-black text-brand-500 uppercase tracking-widest mt-1">Table {selectedOrder.tableNo} • {selectedOrder.paymentStatus.toUpperCase()}</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedOrder(null)} 
+                  title="Close Details"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl"
+                >
+                  <X />
+                </button>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div className="space-y-4">
+                   {selectedOrder.items.map((item, idx) => (
+                     <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-brand-500/10 rounded-lg flex items-center justify-center text-brand-500 text-xs font-black">
+                            {item.quantity}x
+                          </div>
+                          <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.nameSnapshot}</span>
+                        </div>
+                        <span className="text-sm font-black text-slate-900 dark:text-white">₹{item.itemTotal}</span>
+                     </div>
+                   ))}
+                </div>
+
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                   <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-widest">
+                      <span>Subtotal</span>
+                      <span>₹{selectedOrder.subtotal}</span>
+                   </div>
+                   <div className="flex justify-between text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                      <span>Total Invoice</span>
+                      <span className="text-brand-500">₹{selectedOrder.total}</span>
+                   </div>
+                </div>
+              </div>
+
+              <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex gap-4">
+                {getNextStatus(selectedOrder.status) && (
+                  <button 
+                    onClick={() => {
+                      handleStatusUpdate(selectedOrder._id, getNextStatus(selectedOrder.status)!);
+                      setSelectedOrder(null);
+                    }}
+                    className="flex-1 py-4 bg-brand-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-brand-500/20"
+                  >
+                    Move to {getNextStatus(selectedOrder.status)}
+                  </button>
+                )}
+                <button 
+                  onClick={() => setSelectedOrder(null)}
+                  className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black uppercase tracking-widest text-xs"
+                >
+                  Close View
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

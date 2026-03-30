@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { useAPIError } from '@/hooks/useAPIError';
@@ -17,7 +17,8 @@ import {
   Trash,
   Check,
   Package,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Search
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -66,6 +67,7 @@ export const MenuPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'categories' | 'items'>('items');
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Category management
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -260,6 +262,28 @@ export const MenuPage = () => {
     }
   };
 
+  const filteredMenuData = useMemo(() => {
+    return menu?.items.filter(item => 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
+    ) || [];
+  }, [menu, searchTerm]);
+
+  const filteredCategories = useMemo(() => {
+    return categories.filter(cat => 
+      cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [categories, searchTerm]);
+
+  const itemsByCategory = useMemo(() => {
+    return (searchTerm ? filteredMenuData : (menu?.items || [])).reduce((acc, item) => {
+      if (!acc[item.categoryId]) acc[item.categoryId] = [];
+      acc[item.categoryId].push(item);
+      return acc;
+    }, {} as Record<string, MenuItem[]>);
+  }, [menu, filteredMenuData, searchTerm]);
+
   if (!auth.user || loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -268,68 +292,58 @@ export const MenuPage = () => {
     );
   }
 
-  const itemsByCategory = menu?.items.reduce((acc, item) => {
-    if (!acc[item.categoryId]) acc[item.categoryId] = [];
-    acc[item.categoryId].push(item);
-    return acc;
-  }, {} as Record<string, MenuItem[]>) || {};
-
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto scrollbar-hide">
-      {/* Header */}
+      {/* Header section with Tabs and Search */}
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6"
+        className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6"
       >
-        <div>
+        <div className="flex-1">
           <div className="flex items-center space-x-2 text-brand-500 font-bold text-sm tracking-widest uppercase mb-2">
             <span className="w-8 h-[2px] bg-brand-500" />
-            <span>Catalogue</span>
+            <span>Inventory</span>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-            Menu Intelligence
-            <Utensils className="text-brand-500" size={32} />
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            Manage your categories, items, and inventory availability.
-          </p>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Menu Studio</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Design and manage your digital dining experience.</p>
+          
+          <div className="flex items-center space-x-1 mt-8 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl w-fit">
+            <button 
+              onClick={() => { setActiveTab('items'); setSearchTerm(''); }}
+              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'items' ? 'bg-white dark:bg-slate-700 text-brand-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            >
+              Menu Items
+            </button>
+            <button 
+              onClick={() => { setActiveTab('categories'); setSearchTerm(''); }}
+              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'categories' ? 'bg-white dark:bg-slate-700 text-brand-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            >
+              Categories
+            </button>
+          </div>
         </div>
 
-        <button
-          onClick={() => (activeTab === 'items' ? openItemModal() : openCategoryModal())}
-          className="flex items-center space-x-2 px-6 py-3 bg-brand-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-brand-500/20 hover:scale-105 transition-all"
-        >
-          <Plus size={16} />
-          <span>Add {activeTab === 'items' ? 'New Item' : 'Category'}</span>
-        </button>
+        <div className="flex items-center space-x-4">
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-500 transition-colors" size={18} />
+            <input
+              type="text"
+              placeholder={`Search ${activeTab}...`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 pr-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all dark:text-white w-full lg:w-64"
+            />
+          </div>
+          <button 
+            onClick={() => activeTab === 'items' ? openItemModal() : openCategoryModal()}
+            className="flex items-center space-x-2 bg-brand-500 hover:bg-brand-600 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-brand-500/20 transition-all active:scale-95"
+          >
+            <Plus size={16} />
+            <span>Add {activeTab === 'items' ? 'Item' : 'Category'}</span>
+          </button>
+        </div>
       </motion.div>
-
-      {/* Tabs */}
-      <div className="flex gap-4 mb-8 bg-slate-50/50 dark:bg-slate-900/50 p-1.5 rounded-[1.5rem] w-fit border border-slate-100 dark:border-slate-800">
-        <button
-          onClick={() => setActiveTab('items')}
-          className={`px-8 py-3 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] flex items-center gap-2 ${
-            activeTab === 'items'
-              ? 'bg-white dark:bg-slate-800 text-brand-500 shadow-sm'
-              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-          }`}
-        >
-          <Package size={14} />
-          Items ({menu?.items.length || 0})
-        </button>
-        <button
-          onClick={() => setActiveTab('categories')}
-          className={`px-8 py-3 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] flex items-center gap-2 ${
-            activeTab === 'categories'
-              ? 'bg-white dark:bg-slate-800 text-brand-500 shadow-sm'
-              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-          }`}
-        >
-          <Layers size={14} />
-          Categories ({categories.length || 0})
-        </button>
-      </div>
 
       <AnimatePresence mode="wait">
         {activeTab === 'categories' ? (
@@ -340,7 +354,7 @@ export const MenuPage = () => {
             exit={{ opacity: 0, y: -10 }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {categories.map((category) => (
+            {filteredCategories.map((category) => (
               <motion.div 
                 key={category._id}
                 whileHover={{ y: -4 }}

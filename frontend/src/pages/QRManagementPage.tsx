@@ -143,8 +143,18 @@ export const QRManagementPage = () => {
         setSuccess('Bulk PDF Exported Successfully.');
       } else if (selectedFormat === 'svg') {
         const codes = response.data.data.qrCodes;
+        // Trigger download for each SVG (or we could zip them, but individual is simpler for now)
+        codes.forEach((qr: any) => {
+          const blob = new Blob([qr.svg], { type: 'image/svg+xml' });
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', `Table-${qr.tableNo}-QR.svg`);
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        });
         setSuccess(`Exported ${codes.length} high-fidelity SVGs.`);
-        // Note: Actual download logic remains similar but uses the new data
       } else {
         setQrCodes(response.data.data.qrCodes);
         setShowPreview(true);

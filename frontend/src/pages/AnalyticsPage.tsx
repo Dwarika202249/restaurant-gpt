@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { fetchOrderStats } from '@/store/slices/orderSlice';
 import { motion } from 'framer-motion';
@@ -38,34 +38,28 @@ export const AnalyticsPage = () => {
   const dispatch = useAppDispatch();
   const { stats, loading } = useAppSelector((state) => state.orders);
 
+  const [dateRange, setDateRange] = useState('week');
+
   useEffect(() => {
-    dispatch(fetchOrderStats({ range: 'week' }));
-  }, [dispatch]);
+    dispatch(fetchOrderStats({ range: dateRange }));
+  }, [dispatch, dateRange]);
 
-  // Mock data if stats are missing (safeguard for UI preview)
-  const mockRevenueTrends = stats?.revenueTrends || [
-    { date: 'Mon', amount: 4200 },
-    { date: 'Tue', amount: 3800 },
-    { date: 'Wed', amount: 5100 },
-    { date: 'Thu', amount: 4800 },
-    { date: 'Fri', amount: 6200 },
-    { date: 'Sat', amount: 8400 },
-    { date: 'Sun', amount: 7900 },
-  ];
+  // Data transformations for Recharts
+  const revenueTrends = stats?.byHour?.map(item => ({
+    hour: `${item._id}:00`,
+    amount: item.revenue
+  })) || [];
 
-  const mockTopItems = stats?.topItems || [
-    { name: 'Paneer Tikka', count: 45, revenue: 11250 },
-    { name: 'Butter Chicken', count: 38, revenue: 15200 },
-    { name: 'Dal Makhani', count: 32, revenue: 8000 },
-    { name: 'Garlic Naan', count: 120, revenue: 4800 },
-    { name: 'Cold Coffee', count: 28, revenue: 3360 },
-  ];
+  const topItemsData = stats?.topItems?.map(item => ({
+    name: item._id,
+    count: item.count,
+    revenue: item.revenue
+  })) || [];
 
-  const mockStatusDistribution = stats?.statusDistribution || [
-    { name: 'Completed', value: 85 },
-    { name: 'Cancelled', value: 5 },
-    { name: 'Returned', value: 10 },
-  ];
+  const statusDistribution = stats?.byStatus?.map(item => ({
+    name: item._id.charAt(0).toUpperCase() + item._id.slice(1),
+    value: item.count
+  })) || [];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -90,11 +84,16 @@ export const AnalyticsPage = () => {
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Performance insights and AI-driven growth metrics.</p>
         </div>
 
-        <button className="flex items-center space-x-3 bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300">
-          <Calendar size={18} className="text-brand-500" />
-          <span>Last 7 Days</span>
-          <ChevronDown size={16} />
-        </button>
+        <select 
+          value={dateRange}
+          onChange={(e) => setDateRange(e.target.value)}
+          title="Select Date Range"
+          className="flex items-center space-x-3 bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-brand-500/20"
+        >
+          <option value="today">Today</option>
+          <option value="week">Last 7 Days</option>
+          <option value="month">Last 30 Days</option>
+        </select>
       </div>
 
       {/* Primary Stats Grid */}
@@ -116,7 +115,7 @@ export const AnalyticsPage = () => {
             </div>
           </div>
           <p className="text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest">Total Revenue</p>
-          <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">₹42,850</h3>
+          <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">₹{stats?.summary?.totalRevenue?.toLocaleString() || '0'}</h3>
         </motion.div>
 
         <motion.div variants={itemVariants} className="glass dark:glass-dark p-6 rounded-[2rem] relative overflow-hidden group">
@@ -130,7 +129,7 @@ export const AnalyticsPage = () => {
             </div>
           </div>
           <p className="text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest">Orders Handled</p>
-          <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">1,240</h3>
+          <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">{stats?.summary?.totalOrders || '0'}</h3>
         </motion.div>
 
         <motion.div variants={itemVariants} className="glass dark:glass-dark p-6 rounded-[2rem] relative overflow-hidden group">
@@ -144,7 +143,7 @@ export const AnalyticsPage = () => {
             </div>
           </div>
           <p className="text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest">Store Footfall</p>
-          <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">3,420</h3>
+          <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">{stats?.summary?.completedOrders || '0'}</h3>
         </motion.div>
 
         <motion.div variants={itemVariants} className="orange-gradient p-6 rounded-[2rem] text-white shadow-xl shadow-brand-500/20">
@@ -153,7 +152,11 @@ export const AnalyticsPage = () => {
             <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2 py-1 rounded-lg">AI Ready</span>
           </div>
           <p className="text-white/70 text-xs font-black uppercase tracking-widest">Conversion Rate</p>
-          <h3 className="text-3xl font-black mt-1">36.2%</h3>
+          <h3 className="text-3xl font-black mt-1">
+            {stats?.summary?.totalOrders 
+              ? `${Math.round((stats.summary.completedOrders / stats.summary.totalOrders) * 100)}%` 
+              : '0%'}
+          </h3>
         </motion.div>
       </motion.div>
 
@@ -171,7 +174,7 @@ export const AnalyticsPage = () => {
           </div>
           <div className="flex-1 w-full min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockRevenueTrends}>
+              <AreaChart data={revenueTrends}>
                 <defs>
                   <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#F97316" stopOpacity={0.3}/>
@@ -179,7 +182,7 @@ export const AnalyticsPage = () => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#64748B' }} dy={10} />
+                <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#64748B' }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#64748B' }} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -203,7 +206,7 @@ export const AnalyticsPage = () => {
           </div>
           <div className="flex-1 w-full min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockTopItems} layout="vertical">
+              <BarChart data={topItemsData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" opacity={0.5} />
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 800, fill: '#64748B' }} width={100} />
@@ -212,7 +215,7 @@ export const AnalyticsPage = () => {
                   contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: 'none', shadow: 'xl' }}
                 />
                 <Bar dataKey="revenue" fill="#3B82F6" radius={[0, 12, 12, 0]} barSize={24}>
-                  {mockTopItems.map((entry, index) => (
+                  {topItemsData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
@@ -235,7 +238,7 @@ export const AnalyticsPage = () => {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={mockStatusDistribution}
+                  data={statusDistribution}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -243,7 +246,7 @@ export const AnalyticsPage = () => {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {mockStatusDistribution.map((entry, index) => (
+                  {statusDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -252,10 +255,10 @@ export const AnalyticsPage = () => {
             </ResponsiveContainer>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
-             {mockStatusDistribution.map((item, idx) => (
+             {statusDistribution.map((item, idx) => (
                <div key={idx} className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                  <span className="text-[10px] font-black text-slate-500 uppercase">{item.name} ({item.value}%)</span>
+                  <span className="text-[10px] font-black text-slate-500 uppercase">{item.name} ({item.value})</span>
                </div>
              ))}
           </div>

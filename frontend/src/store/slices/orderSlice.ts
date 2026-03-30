@@ -26,13 +26,19 @@ export interface Order {
   orderedAt: string;
 }
 
+export interface OrderStatsSummary {
+  totalOrders: number;
+  totalRevenue: number;
+  totalTax: number;
+  averageOrderValue: number;
+  completedOrders: number;
+}
+
 export interface OrderStats {
-  revenue: number;
-  ordersCount: number;
-  avgOrderValue: number;
-  topItems: Array<{ name: string; count: number; revenue: number }>;
-  revenueTrends: Array<{ date: string; amount: number }>;
-  statusDistribution: Array<{ name: string; value: number }>;
+  summary: OrderStatsSummary;
+  byStatus: Array<{ _id: string; count: number; revenue: number }>;
+  byHour: Array<{ _id: number; count: number; revenue: number }>;
+  topItems: Array<{ _id: string; count: number; revenue: number }>;
 }
 
 interface OrderState {
