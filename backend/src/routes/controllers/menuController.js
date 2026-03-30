@@ -529,27 +529,24 @@ const getPublicMenu = async (req, res) => {
   try {
     const { restaurantSlug } = req.params;
 
-    if (!restaurantSlug || !restaurantSlug.trim()) {
-      return res.status(400).json({ message: "Restaurant slug is required" });
-    }
-
-    // Find restaurant by slug
-    const restaurant = await Restaurant.findOne({
-      slug: restaurantSlug.toLowerCase(),
-    });
+    // 1. Find restaurant by slug
+    const restaurant = await Restaurant.findOne({ slug: restaurantSlug.toLowerCase() });
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant not found" });
+      return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // Find menu
-    let menu = await Menu.findOne({ restaurantId: restaurant._id });
+    // 2. Find Menu (Items) AND Categories in parallel
+    const [menu, categories] = await Promise.all([
+      Menu.findOne({ restaurantId: restaurant._id }),
+      Category.find({ restaurantId: restaurant._id }).sort({ displayOrder: 1 })
+    ]);
+
     if (!menu) {
-      return res.status(404).json({ message: "Menu not found" });
+      return res.status(404).json({ message: 'Menu not found' });
     }
 
-    // Return menu with restaurant info
     return res.status(200).json({
-      message: "Menu retrieved successfully",
+      message: 'Menu retrieved successfully',
       data: {
         restaurant: {
           _id: restaurant._id,
@@ -557,22 +554,17 @@ const getPublicMenu = async (req, res) => {
           slug: restaurant.slug,
           themeColor: restaurant.themeColor,
           logoUrl: restaurant.logoUrl,
-          currency: restaurant.currency,
+          currency: restaurant.currency
         },
         menu: {
-          categories: menu.categories.sort(
-            (a, b) => a.displayOrder - b.displayOrder
-          ),
-          items: menu.items.filter((item) => item.isAvailable), // Only show available items
-        },
-      },
+          categories: categories, // Fetched from Category collection
+          items: menu.items.filter((item) => item.isAvailable) 
+        }
+      }
     });
   } catch (error) {
-    console.error("Get public menu error:", error);
-    return res.status(500).json({
-      message: "Failed to retrieve menu",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
+    console.error('Get public menu error:', error);
+    return res.status(500).json({ message: 'Failed to retrieve menu' });
   }
 };
 

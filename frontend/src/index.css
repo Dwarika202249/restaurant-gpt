@@ -1,3 +1,65 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary: #f97316;
+    --surface-light: #ffffff;
+    --surface-dark: #0f172a;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply transition-colors duration-300 antialiased font-sans overflow-x-hidden;
+    background-color: var(--surface-light);
+    @apply text-slate-900;
+  }
+
+  .dark body {
+    background-color: var(--surface-dark);
+    @apply text-white;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-sm;
+  }
+
+  .glass-dark {
+    @apply bg-slate-900/40 backdrop-blur-md border border-white/10 shadow-lg;
+  }
+
+  .orange-gradient {
+    @apply bg-gradient-to-br from-brand-400 via-brand-500 to-brand-600;
+  }
+
+  .orange-glow-hover {
+    @apply hover:shadow-glow-orange-lg transition-all duration-300;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full transition-colors;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-slate-800;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-brand-500;
+}
