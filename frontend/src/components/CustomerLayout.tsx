@@ -1,182 +1,202 @@
-import { Outlet } from 'react-router-dom';
-import { X, Phone, User, LogOut, Heart, LogIn } from 'lucide-react';
-import { useState } from 'react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  User as UserIcon, 
+  ChevronDown, 
+  LogOut, 
+  Ticket, 
+  History, 
+  MapPin, 
+  Table as TableIcon,
+  LogIn,
+  UserPlus
+} from 'lucide-react';
 
 interface CustomerLayoutProps {
+  children: React.ReactNode;
   restaurantName: string;
   restaurantLogo?: string;
-  themeColor: string;
+  themeColor?: string;
   tableNo: number;
   onLogout: () => void;
   onLoginClick?: () => void;
   customerUser?: any;
-  children: React.ReactNode; 
 }
 
-export const CustomerLayout: React.FC<CustomerLayoutProps> = ({
-  restaurantName,
-  restaurantLogo,
-  themeColor,
+export const CustomerLayout: React.FC<CustomerLayoutProps> = ({ 
+  children, 
+  restaurantName, 
+  restaurantLogo, 
+  themeColor = '#ff9500',
   tableNo,
   onLogout,
   onLoginClick,
-  customerUser,
-  children,
+  customerUser
 }) => {
-  const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+
+  // Brand Sync: Inject theme color as a CSS variable
+  useEffect(() => {
+    document.documentElement.style.setProperty('--brand-500', themeColor);
+    // Also generate a "subtle" version for backgrounds
+    document.documentElement.style.setProperty('--brand-50', `${themeColor}15`);
+  }, [themeColor]);
 
   return (
-    <div 
-      className="flex flex-col min-h-screen bg-[#fcfaf8] dark:bg-slate-950 transition-colors duration-500"
-      style={{ 
-        ['--brand-color' as any]: themeColor,
-        ['--brand-color-transparent' as any]: `${themeColor}15`
-      }}
-    >
-      <header className="sticky top-0 z-[100] w-full bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200/60 dark:border-white/5 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-          
-          <div className="flex items-center gap-4">
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="relative"
-            >
-              <div className="absolute -inset-1 blur-sm rounded-full opacity-20 bg-[var(--brand-color)]" />
-              {restaurantLogo ? (
-                <img
-                  src={restaurantLogo}
-                  alt={restaurantName}
-                  className="relative h-12 w-12 rounded-full object-cover ring-2 ring-white dark:ring-slate-800 shadow-md"
-                />
-              ) : (
-                <div className="relative h-12 w-12 rounded-full bg-slate-200 flex items-center justify-center font-black text-slate-500">
-                  {restaurantName.charAt(0)}
-                </div>
-              )}
-            </motion.div>
-            
-            <div className="flex flex-col">
-              <h1 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight">
-                {restaurantName}
-              </h1>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded-full border border-slate-200 dark:border-white/5">
-                  <div className="w-1.5 h-1.5 rounded-full animate-pulse bg-[var(--brand-color)]" />
-                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                    Table {tableNo}
-                  </span>
-                </div>
-              </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans selection:bg-brand-500/20 selection:text-brand-500">
+      {/* Dynamic Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div 
+          className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-20 transition-colors duration-1000"
+          style={{ backgroundColor: themeColor }}
+        />
+        <div 
+          className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-10 transition-colors duration-1000"
+          style={{ backgroundColor: themeColor }}
+        />
+      </div>
+
+      {/* Premium Glass Header */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border-b border-white/20 px-6 py-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-2xl shadow-inner border border-slate-100 dark:border-white/5 flex items-center justify-center overflow-hidden">
+            {restaurantLogo ? (
+              <img src={restaurantLogo} alt={restaurantName} className="w-full h-full object-contain" />
+            ) : (
+              <span className="font-black text-brand-500 text-lg uppercase">{restaurantName.charAt(0)}</span>
+            )}
+          </div>
+          <div>
+            <h1 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{restaurantName}</h1>
+            <div className="flex items-center gap-1.5">
+               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Table {tableNo}</p>
             </div>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3 relative">
-            <button
-              onClick={() => setShowActionsMenu(!showActionsMenu)}
-              title="Profile and Actions"
-              aria-label="Open profile and actions menu"
-              className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-all border border-slate-200 dark:border-white/5 relative group"
-            >
-              <User size={20} className="text-slate-600 dark:text-slate-400 group-hover:scale-110 transition-transform" />
-            </button>
+        {/* Profile / Auth Section */}
+        <div className="relative">
+          <button 
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            className="flex items-center gap-2 px-3 py-2 bg-slate-100/50 dark:bg-white/5 rounded-2xl border border-white/20 hover:bg-white dark:hover:bg-white/10 transition-all group"
+            title="Account Information"
+          >
+            <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20 group-hover:scale-110 transition-transform">
+               <UserIcon size={16} strokeWidth={3} />
+            </div>
+            <ChevronDown size={14} className={`text-slate-400 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} />
+          </button>
 
-            <AnimatePresence>
-              {showActionsMenu && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setShowActionsMenu(false)}
-                    className="fixed inset-0 z-10"
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute top-full right-0 mt-3 w-64 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl shadow-slate-200 dark:shadow-none border border-slate-200 dark:border-white/5 z-20 overflow-hidden p-2"
-                  >
-                    <div className="p-4 border-b border-slate-100 dark:border-white/5 mb-2">
-                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                         {customerUser ? 'Member Profile' : 'Guest Account'}
-                       </p>
-                       <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">
-                         {customerUser ? customerUser.name || customerUser.phone : `GUEST_SESSION`}
-                       </p>
-                    </div>
-                    
+          <AnimatePresence>
+            {isProfileOpen && (
+              <>
+                <motion.div 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsProfileOpen(false)}
+                  className="fixed inset-0 z-[-1]" 
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute right-0 mt-4 w-72 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-white/5 p-4 overflow-hidden"
+                >
+                  <div className="px-4 py-6 border-b border-slate-50 dark:border-white/5 mb-2">
+                    {customerUser ? (
+                      <div className="space-y-1">
+                        <p className="text-[8px] font-black text-brand-500 uppercase tracking-[0.2em]">Signed in as</p>
+                        <h4 className="font-black text-lg text-slate-900 dark:text-white truncate">{customerUser.name || customerUser.phone}</h4>
+                        {customerUser.loyaltyPoints !== undefined && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="px-2.5 py-1 bg-brand-500 text-white rounded-lg text-[9px] font-black uppercase">
+                              {customerUser.loyaltyPoints} Points
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Private Dining</p>
+                        <h4 className="font-black text-lg text-slate-900 dark:text-white uppercase italic tracking-tighter">Guest Session</h4>
+                        <p className="text-xs text-slate-500 font-medium leading-tight mt-1">Unlock rewards and track orders by logging in.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
                     {!customerUser ? (
                       <button 
-                        onClick={() => {
-                          onLoginClick?.();
-                          setShowActionsMenu(false);
-                        }}
-                        className="w-full p-4 flex items-center gap-3 hover:bg-brand-500/10 rounded-2xl transition-all group"
-                        title="Login or Sign Up"
+                        onClick={() => { setIsProfileOpen(false); onLoginClick?.(); }}
+                        className="w-full flex items-center gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all group"
                       >
-                        <div className="p-2 bg-brand-500/10 rounded-xl group-hover:scale-110 transition-transform">
-                          <LogIn size={16} className="text-brand-500" />
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                          <LogIn size={20} />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Login / Sign Up</span>
+                        <div className="text-left">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Login / Sign Up</p>
+                           <p className="text-[9px] font-bold text-slate-400">Join our rewards program</p>
+                        </div>
                       </button>
                     ) : (
-                      <button className="w-full p-4 flex items-center gap-3 hover:bg-pink-50 dark:hover:bg-pink-500/5 rounded-2xl transition-all group" title="View Rewards">
-                        <div className="p-2 bg-pink-500/10 rounded-xl group-hover:scale-110 transition-transform">
-                          <Heart size={16} className="text-pink-500 fill-pink-500" />
-                        </div>
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">My Rewards</span>
-                      </button>
+                      <>
+                        <button className="w-full flex items-center gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all group">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+                            <Ticket size={20} />
+                          </div>
+                          <div className="text-left">
+                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">My Rewards</p>
+                             <p className="text-[9px] font-bold text-slate-400">View your active coupons</p>
+                          </div>
+                        </button>
+                        <button className="w-full flex items-center gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all group">
+                          <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
+                            <History size={20} />
+                          </div>
+                          <div className="text-left">
+                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Order History</p>
+                             <p className="text-[9px] font-bold text-slate-400">Reorder your favorites</p>
+                          </div>
+                        </button>
+                      </>
                     )}
-
-                    <button className="w-full p-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all group" title="Call for service">
-                      <div className="p-2 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform">
-                        <Phone size={16} className="text-blue-500" />
-                      </div>
-                      <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Call Waiter</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        if (customerUser) {
-                          localStorage.removeItem('customerUser');
-                          localStorage.removeItem('customerToken');
-                          window.location.reload();
-                        } else {
-                          onLogout();
-                        }
-                        setShowActionsMenu(false);
-                      }}
-                      className="w-full p-4 flex items-center gap-3 hover:bg-rose-50 dark:hover:bg-rose-500/5 rounded-2xl transition-all group"
-                      title={customerUser ? "Logout" : "Clear Session"}
+                    
+                    <button 
+                      onClick={() => { setIsProfileOpen(false); onLogout(); }}
+                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-2xl transition-all group mt-2"
                     >
-                      <div className="p-2 bg-rose-500/10 rounded-xl group-hover:rotate-12 transition-transform">
-                        <LogOut size={16} className="text-rose-500" />
+                      <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
+                        <LogOut size={20} />
                       </div>
-                      <span className="text-sm font-bold text-rose-600">
-                        {customerUser ? 'Sign Out' : 'Leave Table'}
-                      </span>
+                      <div className="text-left">
+                         <p className="text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-500">Leave Table</p>
+                         <p className="text-[9px] font-bold text-red-400">End your current session</p>
+                      </div>
                     </button>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
-      </header>
+      </nav>
 
-      <main className="flex-1">
-        <Outlet />
+      <main className="pt-24 min-h-screen">
         {children}
       </main>
 
-      <div className="fixed bottom-0 left-0 w-full h-96 -z-10 opacity-[0.03] pointer-events-none">
-        <div className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-t from-[var(--brand-color)] to-transparent" />
-      </div>
+      {/* Global CSS for Brand Variable Sync */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        :root {
+          --brand-500: ${themeColor};
+        }
+        .text-brand-500 { color: var(--brand-500); }
+        .bg-brand-500 { background-color: var(--brand-500); }
+        .border-brand-500 { border-color: var(--brand-500); }
+        .ring-brand-500 { --tw-ring-color: var(--brand-500); }
+      `}} />
     </div>
   );
 };
-
-export default CustomerLayout;

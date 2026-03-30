@@ -1,12 +1,11 @@
 import { createBrowserRouter, RouteObject, Navigate } from 'react-router-dom';
 import { ProtectedRoute, DashboardLayout } from './components';
-import { 
-  LoginPage, 
-  DashboardPage, 
-  RestaurantProfilePage, 
-  MenuPage, 
-  CustomerLandingPage, 
-  CustomerMenuPage, 
+import {
+  LoginPage,
+  DashboardPage,
+  MenuPage,
+  CustomerLandingPage,
+  CustomerMenuPage,
   QRManagementPage,
   OrdersPage,
   AnalyticsPage,
@@ -42,10 +41,6 @@ const routes: RouteObject[] = [
       {
         path: 'admin',
         element: <AdminPage />
-      },
-      {
-        path: 'profile',
-        element: <RestaurantProfilePage />
       },
       {
         path: 'menu',

@@ -54,27 +54,9 @@ export const Navbar = () => {
     navigate('/login');
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Search:', searchQuery);
-  };
-
   return (
     <nav className="bg-surface-light dark:bg-surface-dark border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 transition-colors duration-300">
-      <div className="flex items-center justify-between px-6 py-4">
-        {/* Search Bar */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-md hidden md:block">
-          <div className="relative group">
-            <Search size={18} className="absolute left-3 top-3 text-slate-400 group-focus-within:text-brand-500 transition-colors" />
-            <input
-              type="text"
-              placeholder="Search anything..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
-            />
-          </div>
-        </form>
+      <div className="flex items-center justify-end px-6 py-4">
 
         {/* Right Section */}
         <div className="flex items-center space-x-4 md:space-x-6">
@@ -129,13 +111,6 @@ export const Navbar = () => {
                     <span>Admin Profile</span>
                   </Link>
 
-                  <Link
-                    to="/profile"
-                    className="flex items-center space-x-3 px-3 py-2.5 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-xl transition-colors text-sm text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400"
-                  >
-                    <Settings size={18} className="text-slate-400 group-hover:text-inherit" />
-                    <span>Restaurant Profile</span>
-                  </Link>
                 </div>
 
                 <div className="p-2 border-t border-slate-100 dark:border-slate-800">
