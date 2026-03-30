@@ -9,7 +9,9 @@ import {
   QRManagementPage,
   OrdersPage,
   AnalyticsPage,
-  SmartScanPage
+  SmartScanPage,
+  HelpPage,
+  PrivacyPage
 } from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
@@ -87,6 +89,17 @@ const routes: RouteObject[] = [
   {
     path: '/customer/:restaurantSlug/table/:tableNo',
     element: <CustomerMenuPage />
+  },
+
+  // Public Support Routes
+  {
+    path: '/help',
+    element: <HelpPage />
+  },
+
+  {
+    path: '/privacy',
+    element: <PrivacyPage />
   },
 
   // 404 - Not found

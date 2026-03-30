@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Phone, Lock, Copy, Check, ChevronLeft, ArrowRight, Sparkles, Utensils, ShieldCheck } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { useTabTitle } from '@/hooks';
-import { sendOTP, verifyOTP, clearError } from '@/store/slices/authSlice';
+import { sendOTP, verifyOTP, clearError, resetOTPSent } from '@/store/slices/authSlice';
 import { Error as ErrorComp, Success } from '@/components';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -50,6 +50,15 @@ export const LoginPage = () => {
     }
   }, [otpSent, step]);
 
+  useEffect(() => {
+    if (step === 'otp') {
+      // Auto-focus first digit on step transition
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+    }
+  }, [step]);
+
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleaned = phone.replace(/\D/g, '');
@@ -73,12 +82,17 @@ export const LoginPage = () => {
   };
 
   const handleOtpChange = (value: string, index: number) => {
-    if (isNaN(Number(value))) return;
-    const newOtpArray = [...otpArray];
-    newOtpArray[index] = value.slice(-1);
-    setOtpArray(newOtpArray);
+    // Only allow numbers or empty string (for backspace)
+    if (value !== '' && !/^[0-9]$/.test(value.slice(-1))) return;
     
-    if (value && index < 5) {
+    const newOtpArray = [...otpArray];
+    const val = value.slice(-1);
+    newOtpArray[index] = val;
+    setOtpArray(newOtpArray);
+    setOtpError('');
+    
+    // Auto-focus next box
+    if (val && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
     }
   };
@@ -228,7 +242,11 @@ export const LoginPage = () => {
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               >
                 <button 
-                  onClick={() => setStep('phone')}
+                  onClick={() => {
+                    dispatch(resetOTPSent());
+                    setStep('phone');
+                    setOtpArray(['', '', '', '', '', '']);
+                  }}
                   className="flex items-center space-x-2 text-brand-500 font-bold text-sm mb-10 hover:translate-x-[-4px] transition-transform"
                 >
                   <ChevronLeft size={18} />
@@ -271,12 +289,16 @@ export const LoginPage = () => {
                           key={i}
                           ref={(el) => { otpInputRefs.current[i] = el; }}
                           type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           maxLength={1}
                           value={digit}
+                          autoFocus={i === 0 && step === 'otp'}
                           title={`OTP digit ${i + 1}`}
                           aria-label={`OTP digit ${i + 1}`}
                           onChange={(e) => handleOtpChange(e.target.value, i)}
                           onKeyDown={(e) => handleKeyDown(e, i)}
+                          onFocus={(e) => e.target.select()}
                           className={`w-full aspect-square text-center text-2xl font-black rounded-2xl bg-slate-50 dark:bg-slate-900 border-2 ${otpError ? 'border-red-500' : 'border-slate-100 dark:border-slate-800 focus:border-brand-500'} transition-all focus:outline-none focus:ring-4 focus:ring-brand-500/10 text-slate-900 dark:text-white`}
                         />
                       ))}
@@ -306,8 +328,8 @@ export const LoginPage = () => {
           <div className="mt-12 pt-8 border-t border-slate-50 dark:border-slate-900 flex justify-between items-center">
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">© 2026 ResGPT.ai</p>
             <div className="flex space-x-4">
-               <a href="#" className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest">Help</a>
-               <a href="#" className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest">Privacy</a>
+               <button onClick={() => navigate('/help')} className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest outline-none">Help</button>
+               <button onClick={() => navigate('/privacy')} className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest outline-none">Privacy</button>
             </div>
           </div>
         </div>

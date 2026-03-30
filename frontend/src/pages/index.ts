@@ -7,3 +7,5 @@ export { QRManagementPage } from './QRManagementPage';
 export { OrdersPage } from './OrdersPage';
 export { AnalyticsPage } from './AnalyticsPage';
 export { SmartScanPage } from './SmartScanPage';
+export { HelpPage } from './HelpPage';
+export { PrivacyPage } from './PrivacyPage';

@@ -204,6 +204,10 @@ const authSlice = createSlice({
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
     },
+    resetOTPSent: (state) => {
+      state.otpSent = false;
+      state.otpPhone = null;
+    },
   },
   extraReducers: (builder) => {
     // Send OTP
@@ -312,5 +316,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, resetAuth } = authSlice.actions;
+export const { clearError, resetAuth, resetOTPSent } = authSlice.actions;
 export default authSlice.reducer;
