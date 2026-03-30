@@ -9,8 +9,11 @@ import {
   MapPin, 
   Table as TableIcon,
   LogIn,
-  UserPlus
+  UserPlus, 
+  Settings,
+  Star
 } from 'lucide-react';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 
 interface CustomerLayoutProps {
   children: React.ReactNode;
@@ -34,6 +37,8 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({
   customerUser
 }) => {
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+  const { restaurantSlug } = useParams<{ restaurantSlug: string }>();
+  const navigate = useNavigate();
 
   // Brand Sync: Inject theme color as a CSS variable
   useEffect(() => {
@@ -58,8 +63,12 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({
 
       {/* Premium Glass Header */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border-b border-white/20 px-6 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-2xl shadow-inner border border-slate-100 dark:border-white/5 flex items-center justify-center overflow-hidden">
+        <Link 
+          to={`/customer/${restaurantSlug}/table/${tableNo}`}
+          className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
+          title="Back to Menu"
+        >
+          <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-2xl shadow-inner border border-slate-100 dark:border-white/5 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
             {restaurantLogo ? (
               <img src={restaurantLogo} alt={restaurantName} className="w-full h-full object-contain" />
             ) : (
@@ -73,7 +82,7 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({
                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Table {tableNo}</p>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Profile / Auth Section */}
         <div className="relative">
@@ -126,42 +135,65 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({
                     )}
                   </div>
 
-                  <div className="space-y-1">
-                    {!customerUser ? (
-                      <button 
-                        onClick={() => { setIsProfileOpen(false); onLoginClick?.(); }}
-                        className="w-full flex items-center gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all group"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
-                          <LogIn size={20} />
-                        </div>
-                        <div className="text-left">
-                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Login / Sign Up</p>
-                           <p className="text-[9px] font-bold text-slate-400">Join our rewards program</p>
-                        </div>
-                      </button>
-                    ) : (
-                      <>
-                        <button className="w-full flex items-center gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all group">
-                          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
-                            <Ticket size={20} />
+                    <div className="space-y-1">
+                      {!customerUser ? (
+                        <button 
+                          onClick={() => { setIsProfileOpen(false); onLoginClick?.(); }}
+                          className="w-full flex items-center gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all group"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                            <LogIn size={20} />
                           </div>
                           <div className="text-left">
-                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">My Rewards</p>
-                             <p className="text-[9px] font-bold text-slate-400">View your active coupons</p>
+                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Login / Sign Up</p>
+                             <p className="text-[9px] font-bold text-slate-400">Join our rewards program</p>
                           </div>
                         </button>
-                        <button className="w-full flex items-center gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all group">
-                          <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
-                            <History size={20} />
-                          </div>
-                          <div className="text-left">
-                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Order History</p>
-                             <p className="text-[9px] font-bold text-slate-400">Reorder your favorites</p>
-                          </div>
-                        </button>
-                      </>
-                    )}
+                      ) : (
+                        <>
+                          <Link 
+                            to={`/r/${restaurantSlug}/rewards`} 
+                            onClick={() => setIsProfileOpen(false)}
+                            className="w-full flex items-center gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+                              <Star size={20} />
+                            </div>
+                            <div className="text-left">
+                               <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">My Rewards</p>
+                               <p className="text-[9px] font-bold text-slate-400">View loyalty benefits</p>
+                            </div>
+                          </Link>
+                          
+                          <Link 
+                            to={`/r/${restaurantSlug}/history`} 
+                            onClick={() => setIsProfileOpen(false)}
+                            className="w-full flex items-center gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
+                              <History size={20} />
+                            </div>
+                            <div className="text-left">
+                               <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Order History</p>
+                               <p className="text-[9px] font-bold text-slate-400">Reorder your favorites</p>
+                            </div>
+                          </Link>
+
+                          <Link 
+                            to={`/r/${restaurantSlug}/profile`} 
+                            onClick={() => setIsProfileOpen(false)}
+                            className="w-full flex items-center gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                              <Settings size={20} />
+                            </div>
+                            <div className="text-left">
+                               <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Settings</p>
+                               <p className="text-[9px] font-bold text-slate-400">Manage your profile</p>
+                            </div>
+                          </Link>
+                        </>
+                      )}
                     
                     <button 
                       onClick={() => { setIsProfileOpen(false); onLogout(); }}

@@ -11,7 +11,10 @@ import {
   AnalyticsPage,
   SmartScanPage,
   HelpPage,
-  PrivacyPage
+  PrivacyPage,
+  CustomerProfilePage,
+  CustomerHistoryPage,
+  CustomerRewardsPage
 } from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
@@ -84,6 +87,21 @@ const routes: RouteObject[] = [
   {
     path: '/r/:restaurantSlug/table/:tableNo',
     element: <CustomerLandingPage />
+  },
+
+  {
+    path: '/r/:restaurantSlug/profile',
+    element: <CustomerProfilePage />
+  },
+
+  {
+    path: '/r/:restaurantSlug/history',
+    element: <CustomerHistoryPage />
+  },
+
+  {
+    path: '/r/:restaurantSlug/rewards',
+    element: <CustomerRewardsPage />
   },
 
   {

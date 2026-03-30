@@ -604,10 +604,12 @@ const getMyOrders = async (req, res) => {
 
     // Filter to show active orders OR recently completed ones (last 30 mins)
     const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
-    const statusFilter = [
-      { status: { $ne: 'completed' } },
-      { status: 'completed', completedAt: { $gte: thirtyMinsAgo } }
-    ];
+    const statusFilter = req.query.history === 'true' && customerId 
+      ? [{ status: { $exists: true } }] // Show all orders for history view
+      : [
+          { status: { $ne: 'completed' } },
+          { status: 'completed', completedAt: { $gte: thirtyMinsAgo } }
+        ];
 
     // Combine identity and status filters using $and to ensure strict isolation
     const filter = {

@@ -10,9 +10,12 @@ interface OrderStatusWidgetProps {
 const OrderStatusWidget: React.FC<OrderStatusWidgetProps> = ({ orders, onRefresh }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
-  if (orders.length === 0) return null;
+  // Focus only on non-completed orders for this "In-Progress" widget
+  const activeOrders = orders.filter(o => o.status !== 'completed');
 
-  const mainOrder = orders[0];
+  if (activeOrders.length === 0) return null;
+
+  const mainOrder = activeOrders[0];
 
   return (
     <div className="fixed bottom-6 left-6 right-6 z-[60] flex justify-center pointer-events-none">
@@ -35,7 +38,7 @@ const OrderStatusWidget: React.FC<OrderStatusWidgetProps> = ({ orders, onRefresh
             </div>
             <div className="text-left">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 line-clamp-1">
-                {orders.length} Order{orders.length > 1 ? 's' : ''} in progress
+                {activeOrders.length} Order{activeOrders.length > 1 ? 's' : ''} in progress
               </p>
               <h4 className="text-white text-xs font-black uppercase tracking-widest">
                  {mainOrder.status === 'new' && 'Order Received'}
@@ -59,7 +62,7 @@ const OrderStatusWidget: React.FC<OrderStatusWidgetProps> = ({ orders, onRefresh
               className="border-t border-white/10 px-5 pb-5"
             >
               <div className="space-y-4 pt-4 text-left">
-                 {orders.map((order) => (
+                 {activeOrders.map((order) => (
                    <div key={order._id} className="flex items-start justify-between">
                       <div>
                          <p className="text-white text-[10px] font-black uppercase tracking-widest mb-1">Order #{order.orderNumber?.split('-').pop()}</p>

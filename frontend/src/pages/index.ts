@@ -9,3 +9,6 @@ export { AnalyticsPage } from './AnalyticsPage';
 export { SmartScanPage } from './SmartScanPage';
 export { HelpPage } from './HelpPage';
 export { PrivacyPage } from './PrivacyPage';
+export { CustomerProfilePage } from './CustomerProfilePage';
+export { CustomerHistoryPage } from './CustomerHistoryPage';
+export { CustomerRewardsPage } from './CustomerRewardsPage';

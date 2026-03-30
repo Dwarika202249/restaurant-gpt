@@ -2,6 +2,7 @@ const { getAdminMe } = require('./controllers/getAdminMe');
 const express = require('express');
 const router = express.Router();
 const { updateAdminProfile } = require('./controllers/updateAdminProfile');
+const { updateCustomerProfile } = require('./controllers/updateCustomerProfile');
 const {
   sendOTP,
   verifyOTP,
@@ -9,7 +10,7 @@ const {
   logout,
   generateGuestSession
 } = require('./controllers/authController');
-const { authenticateAdmin, verifyRefresh } = require('../middleware/auth');
+const { authenticateAdmin, authenticateAny, verifyRefresh } = require('../middleware/auth');
 
 /**
  * @route   GET /api/auth/admin/me
@@ -52,6 +53,13 @@ router.post('/customer/send-otp', sendOTP);
  * @access  Public
  */
 router.post('/customer/verify-otp', verifyOTP);
+
+/**
+ * @route   PUT /api/auth/customer/profile
+ * @desc    Update customer profile (name, email)
+ * @access  Private (customer)
+ */
+router.put('/customer/profile', authenticateAny, updateCustomerProfile);
 
 /**
  * @route   POST /api/auth/admin/refresh
