@@ -89,7 +89,60 @@ const analyzeBusinessInsights = async (orders, stats, restaurant, dateRange) => 
   }
 };
 
+/**
+ * AI Concierge for guest menu interactions
+ * @param {string} userMessage - Guest's question
+ * @param {Object} menuContext - { categories: [], items: [], restaurant: {} }
+ * @param {Array} history - Previous messages
+ * @returns {Promise<string>} - AI response
+ */
+const getAiConciergeResponse = async (userMessage, menuContext, history = []) => {
+  try {
+    const { categories, items, restaurant } = menuContext;
+    
+    const systemPrompt = `
+      You are "RestaurantGPT's AI Concierge", a sophisticated and welcoming digital Maître d' for "${restaurant.name}". 
+      Your goal is to help guests navigate the menu, make flavor-accurate recommendations, and answer dietary questions.
+
+      ## Restaurant Context:
+      - Name: ${restaurant.name}
+      - Theme: Indian Fine Dining
+      - Categories: ${categories.map(c => c.name).join(', ')}
+      - Full Menu Base: ${items.map(i => `${i.name} (${restaurant.currency}${i.price}) - ${i.description}. Tags: [${i.tags?.join(', ')}]. Allergens: [${i.allergens?.join(', ')}]`).join('; ')}
+
+      ## Conversational Rules:
+      1. Be polite, warm, and professional. Use "Namaste" occasionally.
+      2. If asked for recommendations, suggest 2-3 specific dishes with a reason (e.g., "Our Butter Chicken is a guest favorite because of its velvet-smooth tomato gravy").
+      3. Be 100% accurate about allergens. If unsure, tell the guest to consult the staff directly.
+      4. Speak enthusiastically about the flavors (aromatic, spice-infused, etc.).
+      5. Keep responses concise (max 3-4 sentences total) for quick mobile reading.
+      6. Use clean Markdown for headers or lists if needed.
+      7. NEVER mention competitors or other restaurants.
+      8. Do not talk about politics, religion, or off-topic subjects.
+    `.trim();
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history.slice(-6), // Keep last 3 exchanges
+      { role: 'user', content: userMessage }
+    ];
+
+    const completion = await groq.chat.completions.create({
+      messages,
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.7,
+      max_tokens: 500,
+    });
+
+    return completion.choices[0]?.message?.content || "I'm having a bit of a kitchen slip-up. How else can I assist you?";
+  } catch (error) {
+    console.error('AI Concierge Error:', error);
+    throw new Error('Failed to get AI concierge response');
+  }
+};
+
 module.exports = {
   generateItemDescription,
-  analyzeBusinessInsights
+  analyzeBusinessInsights,
+  getAiConciergeResponse
 };
