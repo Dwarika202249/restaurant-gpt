@@ -19,7 +19,11 @@ import {
   Check,
   Package,
   Image as ImageIcon,
-  Search
+  Search,
+  Settings, 
+  HelpCircle,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -79,7 +83,8 @@ export const MenuPage = () => {
 
   // Item management
   const [showItemModal, setShowItemModal] = useState(false);
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const [itemForm, setItemForm] = useState({
     categoryId: '',
     name: '',
@@ -237,6 +242,31 @@ export const MenuPage = () => {
       });
     }
     setShowItemModal(true);
+  };
+
+  const handleMagicWrite = async () => {
+    if (!itemForm.name) return;
+    
+    setAiLoading(true);
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const category = categories.find(c => c._id === itemForm.categoryId)?.name;
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/describe-item`,
+        { 
+          name: itemForm.name, 
+          description: itemForm.description,
+          category,
+          tags: itemForm.tags.split(',').map((t: string) => t.trim()) 
+        },
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      setItemForm({ ...itemForm, description: response.data.data });
+    } catch (error) {
+      console.error('Magic write failed:', error);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const saveItemModal = async () => {
@@ -584,7 +614,18 @@ export const MenuPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Experience Description</label>
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Experience Description</label>
+                    <button 
+                      type="button"
+                      onClick={handleMagicWrite}
+                      disabled={aiLoading || !itemForm.name}
+                      className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-brand-500 hover:text-brand-600 disabled:opacity-30 transition-all group"
+                    >
+                      {aiLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} className="group-hover:rotate-12 transition-transform" />}
+                      {aiLoading ? 'Brewing Magic...' : 'Magic Write'}
+                    </button>
+                  </div>
                   <textarea
                     value={itemForm.description}
                     onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}

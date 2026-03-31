@@ -38,6 +38,18 @@ const restaurantSchema = new mongoose.Schema({
     type: Number,
     default: 10
   },
+  isPremium: {
+    type: Boolean,
+    default: false
+  },
+  subscriptionExpiresAt: {
+    type: Date,
+    default: null
+  },
+  trialActivatedAt: {
+    type: Date,
+    default: Date.now
+  },
   createdAt: {
     type: Date,
     default: Date.now

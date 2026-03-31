@@ -12,8 +12,17 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   Sparkles,
-  ChefHat
+  ChefHat,
+  Calendar,
+  Lock,
+  ArrowRight,
+  Loader2,
+  Gem,
+  Zap
 } from 'lucide-react';
+import { SubscriptionModal } from '@/components/SubscriptionModal';
+import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
 import {
   LineChart,
   Line,
@@ -36,14 +45,51 @@ const COLORS = ['#F97316', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'
 export const AnalyticsPage = () => {
   const dispatch = useAppDispatch();
   const { stats, loading } = useAppSelector((state) => state.orders);
+  const { currentRestaurant } = useAppSelector((state) => state.restaurant);
 
   const [dateRange, setDateRange] = useState('week');
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiInsights, setAiInsights] = useState<string | null>(null);
+
+  // Trial Logic: 30 days from trialActivatedAt or createdAt
+  const trialStart = currentRestaurant?.trialActivatedAt || currentRestaurant?.createdAt;
+  const isTrialActive = trialStart
+    ? (Date.now() - new Date(trialStart).getTime()) < (30 * 24 * 60 * 60 * 1000)
+    : true;
+
+  const hasPremiumAccess = currentRestaurant?.isPremium || isTrialActive;
 
   useTabTitle('Analytics');
 
   useEffect(() => {
     dispatch(fetchOrderStats({ dateRange }));
   }, [dispatch, dateRange]);
+
+  const handleAskAI = async () => {
+    if (!hasPremiumAccess) {
+      setIsSubModalOpen(true);
+      return;
+    }
+
+    setAiLoading(true);
+    setAiInsights(null);
+
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      // For AI, we'll use a slightly longer window if not custom
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/analyze-stats`,
+        { dateRange },
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      setAiInsights(response.data.data);
+    } catch (error) {
+      console.error('AI Analysis failed:', error);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   // Data transformations for Recharts
   const revenueTrends = stats?.byHour?.map(item => ({
@@ -287,42 +333,106 @@ export const AnalyticsPage = () => {
         </motion.div>
 
         {/* AI Business Insights Card */}
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="lg:col-span-2 relative orange-gradient rounded-[2.5rem] p-8 text-white overflow-hidden group">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="lg:col-span-2 relative orange-gradient rounded-[2.5rem] p-8 text-white overflow-hidden group shadow-2xl shadow-brand-500/30"
+        >
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 blur-[100px] rounded-full -mr-32 -mt-32 animate-pulse-slow" />
 
           <div className="relative z-10 flex flex-col h-full">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                <Sparkles className="text-white" size={24} />
-              </div>
-              <span className="font-black text-sm uppercase tracking-widest text-white/80">AI Business Analyst</span>
-            </div>
-
-            <h3 className="text-2xl font-black mb-6 leading-tight tracking-tight">Predictive Insights Available</h3>
-
-            <div className="space-y-6 flex-grow">
-              <div className="flex items-start space-x-4 bg-white/10 p-5 rounded-3xl border border-white/10">
-                <ChefHat size={20} className="text-white shrink-0 mt-1" />
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                  <Sparkles className="text-white" size={24} />
+                </div>
                 <div>
-                  <p className="text-sm font-bold">Inventory Optimization</p>
-                  <p className="text-xs text-white/70 mt-1 font-medium">AI predicts a 40% surge in Tandoori Platter demand for the upcoming weekend festival. Restock ingredients accordingly.</p>
+                  <span className="font-black text-sm uppercase tracking-widest text-white/80 block leading-none mb-1">AI Business Analyst</span>
+                  {!hasPremiumAccess && (
+                    <span className="flex items-center gap-1 text-[8px] font-black uppercase bg-white/20 px-2 py-0.5 rounded-full w-fit">
+                      <Lock size={8} /> Pro Feature
+                    </span>
+                  )}
+                  {isTrialActive && !currentRestaurant?.isPremium && (
+                    <span className="flex items-center gap-1 text-[8px] font-black uppercase bg-emerald-500/40 px-2 py-0.5 rounded-full w-fit">
+                      Trial Active
+                    </span>
+                  )}
                 </div>
               </div>
-              <div className="flex items-start space-x-4 bg-white/10 p-5 rounded-3xl border border-white/10">
-                <TrendingUp size={20} className="text-white shrink-0 mt-1" />
-                <div>
-                  <p className="text-sm font-bold">Dynamic Pricing Insight</p>
-                  <p className="text-xs text-white/70 mt-1 font-medium">Lowering beverage prices by 5% during 4 PM - 6 PM could increase total order value by 12%.</p>
-                </div>
-              </div>
+
+              {!aiInsights && (
+                <button
+                  onClick={handleAskAI}
+                  disabled={aiLoading}
+                  className="px-6 py-3 bg-white text-brand-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-xl"
+                >
+                  {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <ChefHat size={14} />}
+                  {aiLoading ? 'Generating...' : 'Analyze Now'}
+                </button>
+              )}
             </div>
 
-            <button className="mt-8 w-full bg-white text-brand-500 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
-              Export Full AI Report (PDF)
-            </button>
+            <div className="flex-grow">
+              {aiInsights ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/10 max-h-[400px] overflow-y-auto custom-scrollbar prose prose-invert prose-sm max-w-none"
+                >
+                  <ReactMarkdown>{aiInsights}</ReactMarkdown>
+                  <button
+                    onClick={() => setAiInsights(null)}
+                    className="mt-6 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white transition-colors"
+                  >
+                    Clear Analysis
+                  </button>
+                </motion.div>
+              ) : (
+                <>
+                  <h3 className="text-2xl font-black mb-6 leading-tight tracking-tight italic uppercase">Unlock High-Performance Intelligence</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-start space-x-4 bg-white/10 p-5 rounded-3xl border border-white/10 group-hover:bg-white/20 transition-colors">
+                      <div className="p-2 bg-white/20 rounded-xl"><Gem size={18} /></div>
+                      <div>
+                        <p className="text-sm font-bold">Predictive Engines</p>
+                        <p className="text-[10px] text-white/70 mt-1 font-medium leading-relaxed">Forecast weekend demand and optimize staff schedules automatically.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-4 bg-white/10 p-5 rounded-3xl border border-white/10 group-hover:bg-white/20 transition-colors">
+                      <div className="p-2 bg-white/20 rounded-xl"><Zap size={18} /></div>
+                      <div>
+                        <p className="text-sm font-bold">Menu Profit Audit</p>
+                        <p className="text-[10px] text-white/70 mt-1 font-medium leading-relaxed">Identify low-margin items and get AI pricing suggestions to boost ROI.</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {!hasPremiumAccess && !aiInsights && (
+              <div className="mt-8 pt-8 border-t border-white/10 flex items-center justify-between">
+                <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest flex items-center gap-2">
+                  <Calendar size={14} /> Trial expired. Upgrade to keep insights.
+                </p>
+                <button
+                  onClick={() => setIsSubModalOpen(true)}
+                  className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-4 transition-all"
+                >
+                  Upgrade to Pro <ArrowRight size={14} />
+                </button>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
+
+      <SubscriptionModal
+        isOpen={isSubModalOpen}
+        onClose={() => setIsSubModalOpen(false)}
+        restaurantName={currentRestaurant?.name || 'Restaurant'}
+      />
     </div>
   );
 };

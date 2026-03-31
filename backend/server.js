@@ -32,6 +32,8 @@ const orderRoutes = require('./src/routes/orders');
 const customerRoutes = require('./src/routes/customer');
 const publicRoutes = require('./src/routes/public');
 const couponRoutes = require('./src/routes/coupons');
+const aiRoutes = require('./src/routes/ai');
+const subscriptionRoutes = require('./src/routes/subscription');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/restaurant', restaurantRoutes);
@@ -40,6 +42,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/customer', customerRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/restaurant/coupons', couponRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

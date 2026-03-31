@@ -17,6 +17,9 @@ export interface Restaurant {
   currency?: string;
   tablesCount?: number;
   isActive?: boolean;
+  isPremium?: boolean;
+  subscriptionExpiresAt?: string;
+  trialActivatedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -142,6 +145,36 @@ export const deleteRestaurant = createAsyncThunk<
 );
 
 /**
+ * Async thunk for upgrading to premium (mock payment)
+ */
+export const upgradeToPremium = createAsyncThunk<
+  Restaurant,
+  void,
+  { rejectValue: RestaurantError; state: RootState }
+>(
+  'restaurant/upgradePremium',
+  async (_, { rejectWithValue, getState }) => {
+    try {
+      const state = getState();
+      const accessToken = (state as any).auth.accessToken;
+      const response = await axios.post(
+        `${API_URL}/subscription/upgrade`,
+        { plan: 'premium' },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        }
+      );
+      return response.data.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<RestaurantError>;
+      return rejectWithValue(axiosError.response?.data || { message: 'Failed to upgrade to premium' });
+    }
+  }
+);
+
+/**
  * Async thunk for fetching restaurant by slug (public)
  */
 export const fetchRestaurantBySlug = createAsyncThunk<
@@ -250,6 +283,21 @@ const restaurantSlice = createSlice({
       .addCase(deleteRestaurant.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Failed to delete restaurant';
+      });
+
+    // Upgrade to Premium
+    builder
+      .addCase(upgradeToPremium.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(upgradeToPremium.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentRestaurant = action.payload;
+      })
+      .addCase(upgradeToPremium.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Failed to upgrade to premium';
       });
 
     // Fetch Restaurant by Slug
