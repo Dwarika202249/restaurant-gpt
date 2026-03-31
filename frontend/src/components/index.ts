@@ -12,3 +12,4 @@ export { default as CustomerAuthModal } from './CustomerAuthModal';
 export { AdminProfileForm } from './AdminProfileForm';
 export { RestaurantSetupForm } from './RestaurantSetupForm';
 export { AiConcierge } from './AiConcierge';
+export { CartSuggestions } from './CartSuggestions';

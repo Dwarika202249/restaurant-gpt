@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { CustomerLayout, OrderStatusWidget, AiConcierge } from '@/components';
+import { CustomerLayout, OrderStatusWidget, AiConcierge, CartSuggestions } from '@/components';
 import { Search, ShoppingCart, Plus, Minus, X, Info, Zap, CheckCircle2, ChefHat, ShieldCheck, Wallet, Clock, ChevronRight, History, User as UserIcon, LogIn, UtensilsCrossed, Bot } from 'lucide-react';
 import { useTabTitle } from '@/hooks';
 import axios from 'axios';
@@ -500,6 +500,13 @@ export const CustomerMenuPage = () => {
 
                 {/* Premium Checkout Zone */}
                 <div className="p-10 bg-slate-50 dark:bg-slate-900/80 backdrop-blur-md border-t dark:border-white/5 space-y-8">
+                  <CartSuggestions 
+                    cartItems={cart} 
+                    restaurantSlug={guestSession?.restaurantSlug || ''} 
+                    onAdd={addToCart} 
+                    themeColor={guestSession?.themeColor}
+                  />
+                  
                   <div className="space-y-4">
                     <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Exclusive Offers</p>
                     <div className="flex gap-3">

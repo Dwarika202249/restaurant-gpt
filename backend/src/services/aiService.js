@@ -141,8 +141,63 @@ const getAiConciergeResponse = async (userMessage, menuContext, history = []) =>
   }
 };
 
+/**
+ * Get AI-powered cart suggestions based on current items
+ * @param {Array} cartItems - Currently selected items [{ name, price }]
+ * @param {Object} menuContext - { categories: [], items: [] }
+ * @param {Object} restaurant - { name, currency }
+ * @returns {Promise<Array>} - List of suggestions [{ itemId, reason }]
+ */
+const getCartSuggestions = async (cartItems, menuContext, restaurant) => {
+  try {
+    const { items } = menuContext;
+    
+    const cartNames = cartItems.map(i => i.name).join(', ');
+    const menuOptions = items
+      .filter(i => !cartItems.some(c => c.name === i.name)) // Don't suggest what's already there
+      .slice(0, 15) // Limit context but keep variety
+      .map(i => `${i._id}: ${i.name} (${i.description})`)
+      .join('\n');
+
+    const prompt = `
+      You are the AI Head Chef at "${restaurant.name}". A guest has added these items to their tray: [${cartNames}].
+      
+      Suggest exactly 2 **additional** items from our menu that would pair perfectly with their current selection to enhance their dining experience.
+      
+      ## Rules:
+      1. Choose items that are complementary (e.g., sides for mains, drinks/desserts for heavy meals).
+      2. Provide a 1-sentence "Chef's Reason" for each why they pair well.
+      3. Output ONLY a raw JSON array in this format: 
+         [{"itemId": "mongoDB_id", "name": "Item Name", "reason": "Reason text"}]
+      
+      ## Available Menu Options to Suggest:
+      ${menuOptions}
+    `.trim();
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: 'system', content: 'You are a culinary expert focused on food pairings and upselling.' },
+        { role: 'user', content: prompt }
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.6,
+      max_tokens: 300,
+      response_format: { type: 'json_object' }
+    });
+
+    const content = completion.choices[0]?.message?.content || '[]';
+    // Handle Groq potentially wrapping in a generic object if it's too helpful
+    const parsed = JSON.parse(content);
+    return Array.isArray(parsed) ? parsed : (parsed.suggestions || []);
+  } catch (error) {
+    console.error('AI Cart Suggestions Error:', error);
+    return [];
+  }
+};
+
 module.exports = {
   generateItemDescription,
   analyzeBusinessInsights,
-  getAiConciergeResponse
+  getAiConciergeResponse,
+  getCartSuggestions
 };
