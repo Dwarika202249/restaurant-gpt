@@ -9,6 +9,7 @@ import CustomerAuthModal from '../components/CustomerAuthModal';
 import OrderStatusWidget from '../components/OrderStatusWidget';
 import { useLocation } from 'react-router-dom';
 import { Shield, CreditCard, Loader2, CheckIcon, PartyPopper } from 'lucide-react';
+import { CategoryIcon } from '@/utils/categoryIcons';
 
 interface MenuItem {
   _id: string;
@@ -334,21 +335,23 @@ export const CustomerMenuPage = () => {
         </section>
 
         {/* Minimalist Category Navigation */}
-        <div className="flex overflow-x-auto no-scrollbar py-2 mb-12 gap-4 sticky top-24 z-30">
+        <div className="flex overflow-x-auto no-scrollbar py-4 mb-12 gap-4 sticky top-24 z-30 px-2">
           <button
             onClick={() => setSelectedCategory('All')}
-            className={`flex-none px-8 py-3.5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest transition-all ${selectedCategory === 'All' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xl scale-105' : 'bg-white dark:bg-slate-900/50 backdrop-blur-md text-slate-400 border border-slate-100 dark:border-white/5'}`}
+            className={`flex-none px-8 py-4 rounded-[2rem] font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-3 ${selectedCategory === 'All' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-[0_15px_30px_rgba(0,0,0,0.2)] scale-105' : 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md text-slate-400 border border-slate-100 dark:border-white/5 hover:border-brand-500/30 font-bold'}`}
             title="Show All"
           >
+            <UtensilsCrossed size={14} className={selectedCategory === 'All' ? 'text-brand-500' : 'opacity-40'} />
             All
           </button>
           {menu?.categories.map(c => (
             <button
               key={c._id}
               onClick={() => setSelectedCategory(c._id)}
-              className={`flex-none px-8 py-3.5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest transition-all ${selectedCategory === c._id ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xl scale-105' : 'bg-white dark:bg-slate-900/50 backdrop-blur-md text-slate-400 border border-slate-100 dark:border-white/5'}`}
+              className={`flex-none px-8 py-4 rounded-[2rem] font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-3 ${selectedCategory === c._id ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-[0_15px_30px_rgba(0,0,0,0.2)] scale-105' : 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md text-slate-400 border border-slate-100 dark:border-white/5 hover:border-brand-500/30'}`}
               title={c.name}
             >
+              <CategoryIcon name={c.icon} size={14} className={selectedCategory === c._id ? 'text-brand-500' : 'opacity-40'} />
               {c.name}
             </button>
           ))}

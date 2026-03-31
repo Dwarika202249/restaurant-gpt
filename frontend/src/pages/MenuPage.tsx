@@ -3,28 +3,29 @@ import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
 import { useTabTitle } from '@/hooks';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { useAPIError } from '@/hooks/useAPIError';
-import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  X, 
-  ChevronDown, 
-  ChevronUp, 
-  Utensils, 
-  Tag, 
-  AlertCircle, 
-  Layers, 
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Utensils,
+  Tag,
+  AlertCircle,
+  Layers,
   Settings2,
-  Trash,
   Check,
   Package,
   Image as ImageIcon,
   Search,
-  Settings, 
+  Minus,
+  Settings,
   HelpCircle,
   Sparkles,
   Loader2
 } from 'lucide-react';
+import { CategoryIcon, CATEGORY_ICONS_LIST } from '@/utils/categoryIcons';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,7 +62,7 @@ interface Menu {
  */
 export const MenuPage = () => {
   const auth = useAppSelector((state) => state.auth);
-  const dispatch = useAppDispatch(); 
+  const dispatch = useAppDispatch();
   const { getErrorMessage } = useAPIError();
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -80,6 +81,12 @@ export const MenuPage = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryForm, setCategoryForm] = useState({ name: '', icon: '' });
+  const [iconSearch, setIconSearch] = useState('');
+
+  const filteredIcons = CATEGORY_ICONS_LIST.filter(icon =>
+    icon.name.toLowerCase().includes(iconSearch.toLowerCase()) ||
+    icon.tags.some(tag => tag.toLowerCase().includes(iconSearch.toLowerCase()))
+  );
 
   // Item management
   const [showItemModal, setShowItemModal] = useState(false);
@@ -246,18 +253,18 @@ export const MenuPage = () => {
 
   const handleMagicWrite = async () => {
     if (!itemForm.name) return;
-    
+
     setAiLoading(true);
     try {
       const accessToken = localStorage.getItem('accessToken');
       const category = categories.find(c => c._id === itemForm.categoryId)?.name;
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/describe-item`,
-        { 
-          name: itemForm.name, 
+        {
+          name: itemForm.name,
           description: itemForm.description,
           category,
-          tags: itemForm.tags.split(',').map((t: string) => t.trim()) 
+          tags: itemForm.tags.split(',').map((t: string) => t.trim())
         },
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
@@ -315,7 +322,7 @@ export const MenuPage = () => {
 
 
   const filteredMenuData = useMemo(() => {
-    return menu?.items.filter(item => 
+    return menu?.items.filter(item =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -323,7 +330,7 @@ export const MenuPage = () => {
   }, [menu, searchTerm]);
 
   const filteredCategories = useMemo(() => {
-    return categories.filter(cat => 
+    return categories.filter(cat =>
       cat.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [categories, searchTerm]);
@@ -347,7 +354,7 @@ export const MenuPage = () => {
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto scrollbar-hide">
       {/* Header section with Tabs and Search */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6"
@@ -359,15 +366,15 @@ export const MenuPage = () => {
           </div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Menu Studio</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Design and manage your digital dining experience.</p>
-          
+
           <div className="flex items-center space-x-1 mt-8 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl w-fit">
-            <button 
+            <button
               onClick={() => { setActiveTab('items'); setSearchTerm(''); }}
               className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'items' ? 'bg-white dark:bg-slate-700 text-brand-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
               Menu Items
             </button>
-            <button 
+            <button
               onClick={() => { setActiveTab('categories'); setSearchTerm(''); }}
               className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'categories' ? 'bg-white dark:bg-slate-700 text-brand-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
@@ -387,7 +394,7 @@ export const MenuPage = () => {
               className="pl-12 pr-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all dark:text-white w-full lg:w-64"
             />
           </div>
-          <button 
+          <button
             onClick={() => activeTab === 'items' ? openItemModal() : openCategoryModal()}
             className="flex items-center space-x-2 bg-brand-500 hover:bg-brand-600 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-brand-500/20 transition-all active:scale-95"
           >
@@ -408,29 +415,29 @@ export const MenuPage = () => {
           >
             {filteredCategories.length > 0 ? (
               filteredCategories.map((category) => (
-                <motion.div 
+                <motion.div
                   key={category._id}
                   whileHover={{ y: -4 }}
                   className="glass dark:glass-dark p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 group"
                 >
                   <div className="flex items-start justify-between mb-6">
-                    <div className="w-14 h-14 bg-brand-500/10 rounded-2xl flex items-center justify-center text-2xl">
-                      {category.icon || '🍴'}
+                    <div className="w-14 h-14 bg-brand-500/10 rounded-2xl flex items-center justify-center text-brand-500">
+                      <CategoryIcon name={category.icon} size={28} />
                     </div>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => openCategoryModal(category)} 
+                      <button
+                        onClick={() => openCategoryModal(category)}
                         title="Edit Category"
                         className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
                       >
                         <Edit2 size={16} className="text-slate-400" />
                       </button>
-                      <button 
-                        onClick={() => deleteCategory(category._id)} 
+                      <button
+                        onClick={() => deleteCategory(category._id)}
                         title="Delete Category"
                         className="p-2 hover:bg-rose-500/10 rounded-xl transition-colors"
                       >
-                        <Trash size={16} className="text-rose-400" />
+                        <Trash2 size={16} className="text-rose-400" />
                       </button>
                     </div>
                   </div>
@@ -448,7 +455,7 @@ export const MenuPage = () => {
                 <Layers size={48} className="text-slate-300 mb-4 opacity-50" />
                 <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">No categories found</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-8">Organize your menu by adding your first category.</p>
-                <button 
+                <button
                   onClick={() => openCategoryModal()}
                   className="px-8 py-3.5 bg-brand-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-brand-500/20 hover:scale-105 active:scale-95 transition-all"
                 >
@@ -511,30 +518,30 @@ export const MenuPage = () => {
                             </div>
 
                             <div className="flex items-center justify-between pt-4">
-                               <div className="flex gap-1">
-                                 <button 
-                                   onClick={() => openItemModal(item)} 
-                                   title="Edit Item"
-                                   className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
-                                 >
-                                   <Edit2 size={16} className="text-slate-400" />
-                                 </button>
-                                 <button 
-                                   onClick={() => toggleItemAvailability(item)} 
-                                   title={item.isAvailable ? "Set Unavailable" : "Set Available"}
-                                   className={`p-2 rounded-xl transition-colors ${item.isAvailable ? 'hover:bg-rose-500/10 text-emerald-500' : 'hover:bg-emerald-500/10 text-rose-500'}`}
-                                 >
-                                   <AlertCircle size={16} />
-                                 </button>
-                                 <button 
-                                   onClick={() => deleteItem(item._id)} 
-                                   title="Delete Item"
-                                   className="p-2 hover:bg-rose-500/10 rounded-xl transition-colors"
-                                 >
-                                   <Trash2 size={16} className="text-rose-400" />
-                                 </button>
-                               </div>
-                               <span className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">{item.ordersCount} Orders</span>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => openItemModal(item)}
+                                  title="Edit Item"
+                                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                >
+                                  <Edit2 size={16} className="text-slate-400" />
+                                </button>
+                                <button
+                                  onClick={() => toggleItemAvailability(item)}
+                                  title={item.isAvailable ? "Set Unavailable" : "Set Available"}
+                                  className={`p-2 rounded-xl transition-colors ${item.isAvailable ? 'hover:bg-rose-500/10 text-emerald-500' : 'hover:bg-emerald-500/10 text-rose-500'}`}
+                                >
+                                  <AlertCircle size={16} />
+                                </button>
+                                <button
+                                  onClick={() => deleteItem(item._id)}
+                                  title="Delete Item"
+                                  className="p-2 hover:bg-rose-500/10 rounded-xl transition-colors"
+                                >
+                                  <Trash2 size={16} className="text-rose-400" />
+                                </button>
+                              </div>
+                              <span className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">{item.ordersCount} Orders</span>
                             </div>
                           </div>
                         </motion.div>
@@ -548,7 +555,7 @@ export const MenuPage = () => {
                 <Utensils size={48} className="text-slate-300 mb-4 opacity-50" />
                 <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">{searchTerm ? 'No items match your search' : 'Your menu is empty'}</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-8">{searchTerm ? 'Try adjusting your filters or search term.' : 'Begin your journey by adding your first signature dish.'}</p>
-                <button 
+                <button
                   onClick={() => openItemModal()}
                   className="px-8 py-3.5 bg-brand-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-brand-500/20 hover:scale-105 active:scale-95 transition-all"
                 >
@@ -563,13 +570,18 @@ export const MenuPage = () => {
       {/* Item Modal */}
       <AnimatePresence>
         {showItemModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 mt-5">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowItemModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
+            >
               <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{editingItem ? 'Edit Item' : 'New Dish Entry'}</h2>
-                <button 
-                  onClick={() => setShowItemModal(false)} 
+                <button
+                  onClick={() => setShowItemModal(false)}
                   title="Close Modal"
                   className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl"
                 >
@@ -577,7 +589,7 @@ export const MenuPage = () => {
                 </button>
               </div>
 
-              <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <div className="p-8 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Catalogue Category *</label>
@@ -616,7 +628,7 @@ export const MenuPage = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between ml-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Experience Description</label>
-                    <button 
+                    <button
                       type="button"
                       onClick={handleMagicWrite}
                       disabled={aiLoading || !itemForm.name}
@@ -693,11 +705,16 @@ export const MenuPage = () => {
         {showCategoryModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowCategoryModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
+            >
               <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{editingCategory ? 'Edit Node' : 'New Category'}</h2>
-                <button 
-                  onClick={() => setShowCategoryModal(false)} 
+                <button
+                  onClick={() => setShowCategoryModal(false)}
                   title="Close Modal"
                   className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl text-slate-400"
                 >
@@ -705,7 +722,7 @@ export const MenuPage = () => {
                 </button>
               </div>
 
-              <div className="p-8 space-y-6">
+              <div className="p-8 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Module Name *</label>
                   <input
@@ -716,15 +733,46 @@ export const MenuPage = () => {
                     placeholder="e.g. Starters"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Icon Multiplier</label>
-                  <input
-                    type="text"
-                    value={categoryForm.icon}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
-                    className="w-full px-5 py-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none dark:text-white"
-                    placeholder="e.g. 🥗"
-                  />
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Icon Signature</label>
+                    {categoryForm.icon && (
+                      <div className="flex items-center gap-2 text-brand-500 font-bold text-[10px] uppercase">
+                        Selected: <CategoryIcon name={categoryForm.icon} size={14} /> {categoryForm.icon}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative mb-4">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                    <input
+                      type="text"
+                      placeholder="Search icons (e.g. Pizza, Coffee, Spicy)..."
+                      value={iconSearch}
+                      onChange={(e) => setIconSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-bold focus:ring-2 focus:ring-brand-500/20 outline-none dark:text-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-6 gap-2 max-h-[200px] overflow-y-auto p-2 rounded-2xl bg-slate-50/30 dark:bg-slate-900/10 custom-scrollbar">
+                    {filteredIcons.map((icon) => (
+                      <button
+                        key={icon.name}
+                        onClick={() => setCategoryForm({ ...categoryForm, icon: icon.name })}
+                        className={`p-3 rounded-xl flex items-center justify-center transition-all ${categoryForm.icon === icon.name
+                          ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20 scale-110'
+                          : 'bg-white dark:bg-slate-800 text-slate-400 hover:text-brand-500 hover:bg-brand-500/5'
+                          }`}
+                        title={icon.name}
+                      >
+                        <icon.component size={20} />
+                      </button>
+                    ))}
+                    {filteredIcons.length === 0 && (
+                      <div className="col-span-6 py-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">No matching icons found</div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -749,7 +797,7 @@ export const MenuPage = () => {
                 </div>
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Delete {deleteTarget.type === 'category' ? 'Category' : 'Menu Item'}?</h2>
                 <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                  Are you sure you want to delete <span className="text-slate-900 dark:text-white font-black italic">"{deleteTarget.name}"</span>? 
+                  Are you sure you want to delete <span className="text-slate-900 dark:text-white font-black italic">"{deleteTarget.name}"</span>?
                   {deleteTarget.type === 'category' && (
                     <span className="block mt-2 text-brand-500 text-xs font-black uppercase tracking-widest bg-brand-500/5 py-2 rounded-xl">
                       Items will be moved to "Others" category
@@ -759,13 +807,13 @@ export const MenuPage = () => {
               </div>
 
               <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex gap-4 bg-slate-50/50 dark:bg-slate-800/30">
-                <button 
+                <button
                   onClick={handleFinalDelete}
                   className="flex-1 py-4 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-rose-500/20 hover:bg-rose-600 transition-all active:scale-95"
                 >
                   Confirm Delete
                 </button>
-                <button 
+                <button
                   onClick={() => setShowDeleteModal(false)}
                   className="flex-1 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
                 >

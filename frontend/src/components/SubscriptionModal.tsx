@@ -114,7 +114,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                          <span>Business Analyst</span>
                       </li>
                     </ul>
-                    <p className="mt-6 text-xl font-black text-slate-900 dark:text-white">FREE <span className="text-xs font-bold text-slate-400 tracking-normal ml-1">Included</span></p>
+                    <p className="mt-6 text-xl font-black text-slate-900 dark:text-white">FREE <span className="text-xs font-bold text-slate-400 ml-1">Included</span></p>
                   </div>
 
                   <div className="p-8 rounded-[2rem] bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-2 border-brand-500 shadow-2xl shadow-brand-500/20 relative overflow-hidden">
@@ -136,7 +136,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                         <span>Menu Profitability Audit</span>
                       </li>
                     </ul>
-                    <p className="mt-6 text-xl font-black italic tracking-tighter uppercase whitespace-nowrap">₹999 <span className="text-[8px] font-black tracking-widest opacity-40 ml-1 italic tracking-normal">/ MONTH</span></p>
+                    <p className="mt-6 text-xl font-black italic tracking-tighter uppercase whitespace-nowrap">₹999 <span className="text-[8px] font-black opacity-40 ml-1 italic">/ MONTH</span></p>
                   </div>
                 </div>
 
