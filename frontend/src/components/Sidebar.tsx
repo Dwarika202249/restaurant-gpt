@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Menu, X, Home, UtensilsCrossed, ShoppingCart, BarChart3, LogOut, QrCode, Settings } from 'lucide-react';
+import { Menu, X, Home, UtensilsCrossed, ShoppingCart, BarChart3, LogOut, QrCode, Settings, Ticket } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
 import { logout } from '@/store/slices/authSlice';
 import { useNavigate, useLocation, NavLink, Link } from 'react-router-dom';
@@ -22,6 +22,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (op
     { icon: ShoppingCart, label: 'Orders', href: '/orders' },
     { icon: QrCode, label: 'QR Codes', href: '/qr-management' },
     { icon: BarChart3, label: 'Analytics', href: '/analytics' },
+    { icon: Ticket, label: 'Marketing', href: '/marketing' },
   ], []);
 
   return (

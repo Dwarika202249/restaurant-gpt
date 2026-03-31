@@ -14,7 +14,8 @@ import {
   PrivacyPage,
   CustomerProfilePage,
   CustomerHistoryPage,
-  CustomerRewardsPage
+  CustomerRewardsPage,
+  MarketingPage
 } from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
@@ -58,6 +59,10 @@ const routes: RouteObject[] = [
       {
         path: 'qr-management',
         element: <QRManagementPage />
+      },
+      {
+        path: 'marketing',
+        element: <MarketingPage />
       },
       // Root redirect to dashboard
       {

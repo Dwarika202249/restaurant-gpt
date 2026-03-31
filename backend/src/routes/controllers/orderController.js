@@ -1,107 +1,122 @@
-const { Order, Menu, Restaurant } = require('../../models');
+const { Order, Menu, Restaurant, User, Coupon } = require('../../models');
 const mongoose = require('mongoose');
 
 /**
  * Create a new order from customer cart
  * POST /api/orders
- * Body: { restaurantId, items[], tableNo, paymentMethod, customerId (optional) }
- * items format: [{ itemId, quantity, customizations: [{key, value}] }]
+ * Body: { restaurantId, items[], tableNo, paymentMethod, customerId, couponCode, pointsRedeemed }
  */
 const createOrder = async (req, res) => {
   try {
-    const { restaurantId, items, tableNo, paymentMethod, customerId, guestSessionId } = req.body;
+    const { 
+      restaurantId, 
+      items, 
+      tableNo, 
+      paymentMethod, 
+      customerId, 
+      guestSessionId,
+      couponCode,
+      pointsRedeemed = 0
+    } = req.body;
 
-    // Validation
+    // 1. Basic Validation
     if (!restaurantId || !items || items.length === 0 || tableNo === undefined) {
-      return res.status(400).json({
-        message: 'Restaurant ID, items, and table number are required'
-      });
+      return res.status(400).json({ message: 'Restaurant ID, items, and table number are required' });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
-      return res.status(400).json({
-        message: 'Invalid restaurant ID'
-      });
-    }
-
-    // Verify restaurant exists
     const restaurant = await Restaurant.findById(restaurantId);
-    if (!restaurant) {
-      return res.status(404).json({
-        message: 'Restaurant not found'
-      });
-    }
+    if (!restaurant) return res.status(404).json({ message: 'Restaurant not found' });
 
-    // Verify table number is valid
-    if (tableNo < 1 || tableNo > restaurant.tablesCount) {
-      return res.status(400).json({
-        message: `Invalid table number. Restaurant has ${restaurant.tablesCount} tables`
-      });
-    }
-
-    // Fetch menu to get item snapshots
+    // 2. Build order items and calculate subtotal
     const menu = await Menu.findOne({ restaurantId });
-    if (!menu) {
-      return res.status(404).json({
-        message: 'Menu not found for this restaurant'
-      });
-    }
+    if (!menu) return res.status(404).json({ message: 'Menu not found' });
 
-    // Build order items with snapshots
     const orderItems = [];
     let subtotal = 0;
 
     for (const cartItem of items) {
-      // Validate item exists
-      if (!mongoose.Types.ObjectId.isValid(cartItem.itemId)) {
-        return res.status(400).json({
-          message: 'Invalid item ID format'
-        });
-      }
+      const menuItem = menu.items.find(i => i._id.toString() === cartItem.itemId.toString());
+      if (!menuItem) return res.status(404).json({ message: `Item ${cartItem.itemId} not found` });
 
-      // Find item in menu
-      const menuItem = menu.items.find(
-        (item) => item._id.toString() === cartItem.itemId.toString()
-      );
-
-      if (!menuItem) {
-        return res.status(404).json({
-          message: `Item ${cartItem.itemId} not found in menu`
-        });
-      }
-
-      // Validate quantity
-      if (!Number.isInteger(cartItem.quantity) || cartItem.quantity < 1) {
-        return res.status(400).json({
-          message: 'Item quantity must be a positive integer'
-        });
-      }
-
-      // Create snapshot of item (price at order time)
       const itemTotal = menuItem.price * cartItem.quantity;
-      const orderItem = {
+      orderItems.push({
         itemId: menuItem._id,
         nameSnapshot: menuItem.name,
         priceSnapshot: menuItem.price,
         quantity: cartItem.quantity,
         customizations: cartItem.customizations || [],
         itemTotal
-      };
-
-      orderItems.push(orderItem);
+      });
       subtotal += itemTotal;
     }
 
-    // Calculate tax (assuming 5% tax, can be configurable)
-    const taxRate = 0.05;
-    const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
-    const total = subtotal + taxAmount;
+    let runningTotal = subtotal;
+    let discountAmount = 0;
+    let couponUsed = null;
 
-    // Generate order number
+    // 3. Apply Coupon (If provided)
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ 
+        code: couponCode.toUpperCase(), 
+        restaurantId,
+        status: 'active'
+      });
+
+      if (coupon) {
+        const isExpired = coupon.expiryDate && new Date() > new Date(coupon.expiryDate);
+        const isMinMet = subtotal >= coupon.minOrderAmount;
+        
+        if (!isExpired && isMinMet) {
+          const couponDiscount = coupon.discountType === 'percentage' 
+            ? (subtotal * coupon.value / 100) 
+            : Math.min(subtotal, coupon.value);
+          
+          discountAmount += couponDiscount;
+          runningTotal -= couponDiscount;
+          couponUsed = coupon._id;
+          
+          // Increment coupon use count
+          coupon.usedCount += 1;
+          await coupon.save();
+        }
+      }
+    }
+
+    // 4. Apply Loyalty Points (If provided & User logged in)
+    let finalPointsRedeemed = 0;
+    if (pointsRedeemed > 0 && customerId && restaurant.loyaltySettings?.enabled) {
+      const user = await User.findById(customerId);
+      if (user) {
+        const userPointsObj = user.loyaltyPoints.find(l => l.restaurantId.toString() === restaurantId.toString());
+        const userBalance = userPointsObj ? userPointsObj.points : 0;
+        
+        // Cap redemption: min(requested, actual balance, 50% of subtotal)
+        const redeemRate = restaurant.loyaltySettings.redeemRate || 1;
+        const maxRedeemableVal = subtotal * (restaurant.loyaltySettings.maxRedemptionPercentage / 100);
+        const requestedVal = pointsRedeemed * redeemRate;
+        
+        const actualRedeemVal = Math.min(requestedVal, userBalance * redeemRate, maxRedeemableVal);
+        finalPointsRedeemed = Math.floor(actualRedeemVal / redeemRate);
+        
+        discountAmount += actualRedeemVal;
+        runningTotal -= actualRedeemVal;
+
+        // Deduct points from user
+        if (userPointsObj) {
+          userPointsObj.points -= finalPointsRedeemed;
+          await user.save();
+        }
+      }
+    }
+
+    // 5. Final Calculations
+    const taxRate = 0.05; // 5%
+    const taxAmount = Math.round(runningTotal * taxRate * 100) / 100;
+    const finalTotal = Math.max(0, runningTotal + taxAmount);
+
     const orderCount = await Order.countDocuments({ restaurantId });
-    const orderNumber = `${restaurant.slug.toUpperCase()}-${Date.now().toString().slice(-6)}-${(orderCount + 1).toString().padStart(4, '0')}`;
+    const orderNumber = `${restaurant.slug.toUpperCase()}-${Date.now().toString().slice(-4)}-${(orderCount + 1).toString().padStart(4, '0')}`;
 
-    // Create order
     const order = new Order({
       restaurantId,
       orderNumber,
@@ -110,7 +125,10 @@ const createOrder = async (req, res) => {
       items: orderItems,
       subtotal,
       taxAmount,
-      total,
+      total: finalTotal,
+      discountAmount,
+      couponUsed,
+      pointsRedeemed: finalPointsRedeemed,
       paymentStatus: 'pending',
       paymentMethod: paymentMethod || 'razorpay',
       customerId: customerId || null,
@@ -119,14 +137,6 @@ const createOrder = async (req, res) => {
     });
 
     await order.save();
-
-    // Update menu item order count
-    for (const orderItem of orderItems) {
-      await Menu.updateOne(
-        { restaurantId, 'items._id': orderItem.itemId },
-        { $inc: { 'items.$.ordersCount': 1 } }
-      );
-    }
 
     return res.status(201).json({
       message: 'Order created successfully',
@@ -138,10 +148,6 @@ const createOrder = async (req, res) => {
     });
   } catch (error) {
     console.error('Create order error:', error);
-    return res.status(500).json({
-      message: 'Failed to create order',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
   }
 };
 
@@ -334,9 +340,33 @@ const updateOrderStatus = async (req, res) => {
     );
 
     if (!order) {
-      return res.status(404).json({
-        message: 'Order not found'
-      });
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // --- Loyalty Points Earning Logic ---
+    if (status === 'completed' && order.customerId) {
+      const restaurant = await Restaurant.findById(restaurantId);
+      if (restaurant && restaurant.loyaltySettings?.enabled) {
+        const earnRate = restaurant.loyaltySettings.earnRate || 10;
+        const pointsEarned = Math.floor((order.subtotal / 100) * earnRate);
+        
+        if (pointsEarned > 0) {
+          order.pointsEarned = pointsEarned;
+          await order.save();
+
+          // Credit to user
+          const user = await User.findById(order.customerId);
+          if (user) {
+            let userPointsObj = user.loyaltyPoints.find(l => l.restaurantId.toString() === restaurantId.toString());
+            if (userPointsObj) {
+              userPointsObj.points += pointsEarned;
+            } else {
+              user.loyaltyPoints.push({ restaurantId, points: pointsEarned });
+            }
+            await user.save();
+          }
+        }
+      }
     }
 
     return res.status(200).json({
@@ -558,6 +588,37 @@ const updatePaymentStatus = async (req, res) => {
       return res.status(404).json({
         message: 'Order not found'
       });
+    }
+
+    // --- Loyalty Point Accrual ---
+    if (paymentStatus === 'completed' && order.customerId && order.total > 0) {
+      try {
+        const restaurant = await Restaurant.findById(restaurantId);
+        if (restaurant && restaurant.loyaltySettings?.enabled) {
+          const earnRate = restaurant.loyaltySettings.earnRate || 10; // Default 10 points per 100
+          const pointsToEarn = Math.floor((order.total / 100) * earnRate);
+          
+          if (pointsToEarn > 0) {
+            const user = await User.findById(order.customerId);
+            if (user) {
+              const lpIndex = user.loyaltyPoints.findIndex(lp => lp.restaurantId.toString() === restaurantId.toString());
+              if (lpIndex !== -1) {
+                user.loyaltyPoints[lpIndex].points += pointsToEarn;
+              } else {
+                user.loyaltyPoints.push({ restaurantId: new mongoose.Types.ObjectId(restaurantId), points: pointsToEarn });
+              }
+              await user.save();
+              
+              // Record earned points on the order snapshot
+              order.pointsEarned = pointsToEarn;
+              await order.save();
+            }
+          }
+        }
+      } catch (loyaltyError) {
+        console.error('Failed to accrue loyalty points:', loyaltyError);
+        // We don't fail the whole request if loyalty point calculation fails
+      }
     }
 
     return res.status(200).json({

@@ -195,9 +195,87 @@ const getCartSuggestions = async (cartItems, menuContext, restaurant) => {
   }
 };
 
+/**
+ * Generate a catchy marketing description for a restaurant coupon
+ * @param {Object} data - { code, discountType, value, minOrderAmount, restaurantName }
+ * @returns {Promise<string>} - The AI-generated coupon text
+ */
+const generateCouponDescription = async (data) => {
+  try {
+    const prompt = `
+      You are a brilliant marketing copywriter for "${data.restaurantName || 'RestaurantGPT Platinum'}".
+      Create a short, punchy, and exciting description for a NEW offer:
+      Coupon Code: ${data.code}
+      Discount: ${data.value}${data.discountType === 'percentage' ? '%' : ' OFF'}
+      Condition: For orders above ₹${data.minOrderAmount || 0}
+      
+      Rules:
+      1. Be persuasive and high-energy (e.g. "Feast mode on!", "Unlock your savings").
+      2. Keep it under 100 characters for mobile display.
+      3. DO NOT use hashtags or excessive emojis.
+      4. Output ONLY the description text.
+    `.trim();
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: 'system', content: 'You are an expert in restaurant promotional copywriting.' },
+        { role: 'user', content: prompt }
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.85,
+      max_tokens: 100,
+    });
+
+    return completion.choices[0]?.message?.content || 'Enjoy this exclusive discount on your next meal!';
+  } catch (error) {
+    console.error('AI Coupon Description Error:', error);
+    throw new Error('Failed to generate coupon description');
+  }
+};
+
+/**
+ * Generate a luxury description for a loyalty perk
+ * @param {Object} data - { title, points, restaurantName }
+ * @returns {Promise<string>} - The AI-generated perk text
+ */
+const generatePerkDescription = async (data) => {
+  try {
+    const prompt = `
+      You are an expert luxury lifestyle copywriter for "${data.restaurantName || 'RestaurantGPT Platinum'}".
+      Create a short, elegant, and alluring description for a LOYALTY REWARD (Perk):
+      Reward Title: ${data.title}
+      Required Points: ${data.points}
+      
+      Rules:
+      1. Use sophisticated and premium language (e.g. "Exclusive access", "Indulgent experience", "Unlock the extraordinary").
+      2. Keep it under 100 characters for mobile display.
+      3. Focus on the value and the feeling of being a VIP.
+      4. Output ONLY the description text.
+      5. DO NOT use emojis.
+    `.trim();
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: 'system', content: 'You are an expert in luxury restaurant loyalty copywriting.' },
+        { role: 'user', content: prompt }
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.8,
+      max_tokens: 100,
+    });
+
+    return completion.choices[0]?.message?.content || 'Unleash your status with this unique reward.';
+  } catch (error) {
+    console.error('AI Perk Description Error:', error);
+    throw new Error('Failed to generate perk description');
+  }
+};
+
 module.exports = {
   generateItemDescription,
   analyzeBusinessInsights,
   getAiConciergeResponse,
-  getCartSuggestions
+  getCartSuggestions,
+  generateCouponDescription,
+  generatePerkDescription
 };

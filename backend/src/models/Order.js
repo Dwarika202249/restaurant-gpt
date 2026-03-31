@@ -11,6 +11,23 @@ const orderSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  discountAmount: {
+    type: Number,
+    default: 0
+  },
+  couponUsed: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Coupon',
+    default: null
+  },
+  pointsEarned: {
+    type: Number,
+    default: 0
+  },
+  pointsRedeemed: {
+    type: Number,
+    default: 0
+  },
   tableNo: {
     type: Number,
     required: true

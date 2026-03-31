@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { CustomerLayout, OrderStatusWidget, AiConcierge, CartSuggestions } from '@/components';
-import { Search, ShoppingCart, Plus, Minus, X, Info, Zap, CheckCircle2, ChefHat, ShieldCheck, Wallet, Clock, ChevronRight, History, User as UserIcon, LogIn, UtensilsCrossed, Bot } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, X, Info, Zap, CheckCircle2, ChefHat, ShieldCheck, Wallet, Clock, ChevronRight, History, User as UserIcon, LogIn, UtensilsCrossed, Bot, Gift } from 'lucide-react';
 import { useTabTitle } from '@/hooks';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,6 +9,7 @@ import CustomerAuthModal from '../components/CustomerAuthModal';
 import { useLocation } from 'react-router-dom';
 import { Shield, CreditCard, Loader2, CheckIcon, PartyPopper } from 'lucide-react';
 import { CategoryIcon } from '@/utils/categoryIcons';
+import { toast } from 'react-hot-toast';
 
 interface MenuItem {
   _id: string;
@@ -75,10 +76,11 @@ export const CustomerMenuPage = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [customerUser, setCustomerUser] = useState<any>(null);
 
-  // Coupon States
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponInfo, setCouponInfo] = useState<any>(null);
+  const [pointsRedeemed, setPointsRedeemed] = useState(0);
+  const [loyaltyData, setLoyaltyData] = useState<{ points: number; settings: any } | null>(null);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -93,10 +95,20 @@ export const CustomerMenuPage = () => {
     }
   }, []);
 
+  const fetchLoyaltyBalance = async (customerId: string, restaurantId: string) => {
+    try {
+      const response = await axios.get(`${API_URL}/marketing/loyalty-balance/${restaurantId}/${customerId}`);
+      setLoyaltyData(response.data.data);
+    } catch (err) {
+      console.error('Failed to fetch loyalty balance');
+    }
+  };
+
   const handleLoginSuccess = (user: any) => {
     setCustomerUser(user);
     if (guestSession) {
       fetchActiveOrders(guestSession.sessionToken);
+      fetchLoyaltyBalance(user.id || user._id, guestSession.restaurantId);
     }
   };
 
@@ -187,14 +199,16 @@ export const CustomerMenuPage = () => {
     if (!couponCode || !guestSession) return;
     setIsApplyingCoupon(true);
     try {
-      const response = await axios.post(`${API_URL}/restaurant/coupons/validate`, {
+      const response = await axios.post(`${API_URL}/marketing/validate-coupon`, {
         code: couponCode,
         restaurantId: guestSession.restaurantId,
-        orderAmount: cartTotal
+        orderAmount: cartTotal,
+        customerId: customerUser?.id || customerUser?._id
       });
       setCouponInfo(response.data.data);
+      toast.success('Coupon applied!');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Invalid coupon code');
+      toast.error(err.response?.data?.message || 'Invalid coupon');
       setCouponInfo(null);
     } finally {
       setIsApplyingCoupon(false);
@@ -240,17 +254,18 @@ export const CustomerMenuPage = () => {
       await new Promise(r => setTimeout(r, 1500)); // Simulating Securing Connection
 
       setOrderStep('submitting');
-      const orderPayload = {
+      const orderData = {
         restaurantId: guestSession.restaurantId,
-        guestSessionId: guestSession.sessionId,
-        customerId: customerUser?.id || null,
-        items: cart.map(item => ({ itemId: item.itemId, quantity: item.quantity, customizations: [] })),
-        tableNo: guestSession.tableNo,
+        items: cart.map(i => ({ itemId: i.itemId, quantity: i.quantity, customizations: [] })),
+        tableNo: parseInt(tableNo || '0'),
         paymentMethod: 'card',
-        couponCode: couponInfo?.code || null
+        customerId: customerUser?.id || customerUser?._id,
+        guestSessionId: guestSession.sessionId,
+        couponCode: couponInfo?.code,
+        pointsRedeemed
       };
 
-      const { data } = await axios.post(`${API_URL}/orders`, orderPayload);
+      const { data } = await axios.post(`${API_URL}/orders`, orderData);
       const order = data.data.order;
 
       setOrderStep('processing');
@@ -525,19 +540,81 @@ export const CustomerMenuPage = () => {
                       </button>
                     </div>
                     {couponInfo && <motion.p initial={{ x: -10 }} animate={{ x: 0 }} className="text-[10px] font-black text-emerald-500 uppercase tracking-widest pl-4 flex items-center gap-2">
-                      <CheckCircle2 size={12} strokeWidth={3} /> {couponInfo.description} Valid!
+                      <CheckCircle2 size={12} strokeWidth={3} /> {couponInfo.description || 'Coupon Applied!'}
                     </motion.p>}
                   </div>
 
+                  {/* Loyalty Points Redemption Section */}
+                  {loyaltyData?.settings?.enabled && customerUser && (
+                    <div className="bg-amber-500/5 border border-amber-500/10 rounded-[2rem] p-6 space-y-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <Gift className="text-amber-500" size={16} />
+                          <span className="text-[10px] font-black uppercase tracking-widest">Loyalty Points</span>
+                        </div>
+                        <span className="text-[10px] font-black text-amber-500 uppercase">{loyaltyData.points} Available</span>
+                      </div>
+                      
+                      {loyaltyData.points > 0 ? (
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-[8px] font-black uppercase text-slate-400 tracking-widest">
+                            <span>Redeem Points</span>
+                            <span>{pointsRedeemed} pts = ₹{(pointsRedeemed * (loyaltyData.settings.redeemRate || 0)).toFixed(2)} Off</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max={Math.min(loyaltyData.points, Math.floor((cartTotal * (loyaltyData.settings.maxRedemptionPercentage / 100)) / (loyaltyData.settings.redeemRate || 1)))} 
+                            value={pointsRedeemed}
+                            onChange={(e) => setPointsRedeemed(parseInt(e.target.value))}
+                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                            title="Redeem points slider"
+                          />
+                          <p className="text-[7px] font-bold text-slate-400 italic">Max redemption: {loyaltyData.settings.maxRedemptionPercentage}% of bill</p>
+                        </div>
+                      ) : (
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">Order to earn points!</p>
+                      )}
+                    </div>
+                  )}
+
+                  {!customerUser && (
+                    <div className="bg-brand-500/5 border border-brand-500/10 rounded-[2rem] p-6 text-center">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Join our Rewards Program</p>
+                      <button 
+                        onClick={() => setIsAuthModalOpen(true)}
+                        className="text-[10px] font-black text-brand-500 uppercase tracking-[0.2em] hover:scale-105 transition-all"
+                      >
+                        Login to earn & redeem points →
+                      </button>
+                    </div>
+                  )}
+
                   <div className="space-y-4">
                     <div className="flex justify-between text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]"><span>Subtotal</span><span>₹{cartTotal.toFixed(2)}</span></div>
-                    {discount > 0 && <div className="flex justify-between text-[11px] font-black text-emerald-500 uppercase tracking-[0.2em]"><span>Member Discount</span><span>-₹{discount.toFixed(2)}</span></div>}
-                    <div className="flex justify-between text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]"><span>Service & Taxes (5%)</span><span>₹{(cartTotal * 0.05).toFixed(2)}</span></div>
+                    
+                    {couponInfo && (
+                      <div className="flex justify-between text-[11px] font-black text-emerald-500 uppercase tracking-[0.2em]">
+                        <span>Coupon: {couponInfo.code}</span>
+                        <span>-₹{couponInfo.discountAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    {pointsRedeemed > 0 && loyaltyData?.settings && (
+                      <div className="flex justify-between text-[11px] font-black text-amber-500 uppercase tracking-[0.2em]">
+                        <span>Points Redeemed ({pointsRedeemed})</span>
+                        <span>-₹{(pointsRedeemed * loyaltyData.settings.redeemRate).toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]"><span>Service & Taxes (5%)</span><span>₹{((cartTotal - (couponInfo?.discountAmount || 0) - (pointsRedeemed * (loyaltyData?.settings?.redeemRate || 0))) * 0.05).toFixed(2)}</span></div>
                     <div className="h-[1px] bg-slate-200 dark:bg-white/10 w-full" />
                     <div className="flex justify-between items-center pt-2">
                       <div>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] block mb-1">Grant Total</span>
-                        <span className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">₹{finalTotal.toFixed(2)}</span>
+                        <span className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">
+                          ₹{Math.max(0, (cartTotal - (couponInfo?.discountAmount || 0) - (pointsRedeemed * (loyaltyData?.settings?.redeemRate || 0))) * 1.05).toFixed(2)}
+                        </span>
                       </div>
                       <button
                         onClick={handlePlaceOrder}
@@ -556,72 +633,95 @@ export const CustomerMenuPage = () => {
           )}
         </AnimatePresence>
 
-        {/* Checkout & Payment Interactive Overlay */}
+        {/* Checkout & Payment Interactive Overlay - Museum Redesign */}
         <AnimatePresence>
           {isOrdering && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6"
+              className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-[100px] flex items-center justify-center p-6"
             >
               <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                className="max-w-md w-full glass dark:glass-dark rounded-[3rem] p-10 text-center relative overflow-hidden"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="max-w-md w-full bg-slate-900/40 border border-white/5 rounded-[4rem] p-16 text-center relative overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]"
               >
-                {/* Background glow based on step */}
-                <div className={`absolute top-0 right-0 w-64 h-64 blur-[100px] rounded-full -mr-32 -mt-32 transition-colors duration-1000 ${orderStep === 'success' ? 'bg-emerald-500/20' : 'bg-brand-500/20'}`} />
+                {/* Dynamic Background Glows */}
+                <motion.div 
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    opacity: [0.1, 0.2, 0.1]
+                  }} 
+                  transition={{ repeat: Infinity, duration: 8 }}
+                  className={`absolute -top-32 -right-32 w-96 h-96 blur-[120px] rounded-full transition-colors duration-2000 ${orderStep === 'success' ? 'bg-emerald-500' : 'bg-brand-500'}`} 
+                />
+                <div className={`absolute -bottom-32 -left-32 w-64 h-64 blur-[100px] rounded-full opacity-10 transition-colors duration-2000 ${orderStep === 'success' ? 'bg-emerald-400' : 'bg-amber-500'}`} />
 
                 <div className="relative z-10 flex flex-col items-center">
                   <AnimatePresence mode="wait">
                     {orderStep === 'validating' && (
-                      <motion.div key="validating" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="flex flex-col items-center">
-                        <div className="w-24 h-24 rounded-[2rem] bg-brand-500/10 flex items-center justify-center mb-8 relative">
-                          <Shield size={40} className="text-brand-500" />
-                          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 3, ease: 'linear' }} className="absolute inset-0 border-4 border-dashed border-brand-500/30 rounded-[2rem]" />
+                      <motion.div key="validating" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 1.1 }} className="flex flex-col items-center">
+                        <div className="w-28 h-28 rounded-[3rem] bg-amber-500/5 flex items-center justify-center mb-14 relative group">
+                          <Shield size={44} className="text-amber-500/80 group-hover:scale-110 transition-transform duration-700" />
+                          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 8, ease: 'linear' }} className="absolute inset-0 border-2 border-dashed border-amber-500/20 rounded-[3rem]" />
+                          <motion.div animate={{ rotate: -360 }} transition={{ repeat: Infinity, duration: 12, ease: 'linear' }} className="absolute -inset-4 border border-amber-500/5 rounded-[4rem]" />
                         </div>
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mb-4">Securing Connection</h3>
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-10 leading-relaxed">Authenticating with your financial provider for secure checkout...</p>
+                        <h3 className="text-4xl font-black text-white uppercase tracking-[-0.05em] italic mb-4 bg-gradient-to-br from-white via-white to-amber-500/50 bg-clip-text text-transparent">Securing</h3>
+                        <p className="text-[9px] font-black text-amber-500/60 uppercase tracking-[0.4em] px-8 leading-loose">Authenticating with your lifestyle financial network</p>
                       </motion.div>
                     )}
 
                     {orderStep === 'submitting' && (
-                      <motion.div key="submitting" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="flex flex-col items-center">
-                        <div className="w-24 h-24 rounded-[2rem] bg-blue-500/10 flex items-center justify-center mb-8 relative">
-                          <CreditCard size={40} className="text-blue-500" />
-                          <Loader2 size={32} className="text-blue-500 absolute -top-2 -right-2 animate-spin" />
+                      <motion.div key="submitting" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 1.1 }} className="flex flex-col items-center">
+                        <div className="w-28 h-28 rounded-[3rem] bg-brand-500/5 flex items-center justify-center mb-14 relative shadow-[0_0_60px_rgba(59,130,246,0.1)]">
+                          <CreditCard size={44} className="text-brand-400/80" />
+                          {/* Sacred Geometry Loader */}
+                          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: 'linear' }} className="absolute -inset-2 border-t-2 border-brand-500/40 rounded-[3.5rem]" />
+                          <motion.div animate={{ rotate: -360 }} transition={{ repeat: Infinity, duration: 3, ease: 'linear' }} className="absolute -inset-4 border-b-2 border-brand-500/10 rounded-[4.5rem]" />
                         </div>
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mb-4">Processing Payment</h3>
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-10 leading-relaxed">Deducting ₹{finalTotal.toFixed(0)} from your digital wallet...</p>
+                        <h3 className="text-4xl font-black text-white uppercase tracking-[-0.05em] italic mb-4 bg-gradient-to-br from-white via-white to-brand-500/50 bg-clip-text text-transparent">Settling</h3>
+                        <p className="text-[9px] font-black text-brand-400/60 uppercase tracking-[0.4em] px-8 leading-loose">Deducting ₹{finalTotal.toFixed(0)} through your digital vault</p>
                       </motion.div>
                     )}
 
                     {orderStep === 'processing' && (
-                      <motion.div key="processing" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="flex flex-col items-center">
-                        <div className="w-24 h-24 rounded-[2rem] bg-emerald-500/10 flex items-center justify-center mb-8">
-                          <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="p-4 bg-emerald-500/20 rounded-full">
-                            <CheckIcon size={32} className="text-emerald-500" />
-                          </motion.div>
+                      <motion.div key="processing" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 1.1 }} className="flex flex-col items-center text-center">
+                        <div className="w-28 h-28 rounded-[3rem] bg-emerald-500/5 flex items-center justify-center mb-14 relative">
+                          <motion.div 
+                            animate={{ 
+                              boxShadow: ['0 0 20px rgba(16,185,129,0)', '0 0 60px rgba(16,185,129,0.2)', '0 0 20px rgba(16,185,129,0)']
+                            }} 
+                            transition={{ repeat: Infinity, duration: 2 }}
+                            className="absolute inset-0 rounded-[3rem] border-2 border-emerald-500/20" 
+                          />
+                          <CheckIcon size={44} className="text-emerald-500/80" />
                         </div>
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mb-4">Verifying Order</h3>
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-10 leading-relaxed">Synchronizing with kitchen cloud network...</p>
+                        <h3 className="text-4xl font-black text-white uppercase tracking-[-0.05em] italic mb-4 bg-gradient-to-br from-white via-white to-emerald-500/50 bg-clip-text text-transparent">Verifying</h3>
+                        <p className="text-[9px] font-black text-emerald-500/60 uppercase tracking-[0.4em] px-8 leading-loose">Locking in your reservation with kitchen HQ</p>
                       </motion.div>
                     )}
 
                     {orderStep === 'success' && (
                       <motion.div key="success" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center">
-                        <div className="w-32 h-32 rounded-[2.5rem] bg-emerald-500 flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(16,185,129,0.4)]">
-                          <PartyPopper size={56} className="text-white" />
+                        <div className="w-36 h-36 rounded-[4rem] bg-emerald-500 flex items-center justify-center mb-14 shadow-[0_0_80px_rgba(16,185,129,0.3)] group">
+                          <PartyPopper size={64} className="text-white group-hover:scale-110 transition-transform duration-700" />
                         </div>
-                        <div className="mb-8">
-                          <span className="inline-block px-4 py-1.5 bg-emerald-500/10 text-emerald-500 rounded-full text-[10px] font-black uppercase tracking-widest mb-3">Order #{finalOrder?.number} Confirmed!</span>
-                          <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-none">Bon Appétit!</h3>
+                        <div className="mb-10 text-center">
+                          <motion.span 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="inline-block px-5 py-2 bg-emerald-500/5 text-emerald-500 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-6"
+                          >
+                            Order #{finalOrder?.number} Confirmed
+                          </motion.span>
+                          <h3 className="text-6xl font-black text-white uppercase tracking-tighter italic leading-none mb-4 bg-gradient-to-br from-white via-emerald-200 to-emerald-500 bg-clip-text text-transparent">Bon Appétit</h3>
                         </div>
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-relaxed mb-10">Your culinary journey has begun. Redirecting to live tracking console...</p>
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] leading-relaxed mb-12">Redirecting to live tracking console</p>
 
-                        <div className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 2 }} className="h-full bg-emerald-500 px-10" />
+                        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-2">
+                          <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 2 }} className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,1)]" />
                         </div>
                       </motion.div>
                     )}
