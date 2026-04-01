@@ -48,6 +48,10 @@ const couponSchema = new mongoose.Schema({
   },
   description: {
     type: String
+  },
+  maxDiscountAmount: {
+    type: Number,
+    default: null // Capping for percentage discounts
   }
 }, {
   timestamps: true

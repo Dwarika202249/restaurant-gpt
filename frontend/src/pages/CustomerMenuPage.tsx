@@ -291,14 +291,22 @@ export const CustomerMenuPage = () => {
   // --- Savings Sync Engine ---
   // Periodically re-validate savings when cart total changes
   useEffect(() => {
-    // 1. Coupon Invalidation
+    // 1. Point-Coupon Mutual Exclusivity: Points win unless coupon is manually applied
+    // If points are moved, we clear any auto-applied coupon
+    if (pointsRedeemed > 0 && couponInfo) {
+      setCouponInfo(null);
+      setCouponCode('');
+      toast.success('Points redeemed: Other offers removed', { id: 'mutual-exclusivity' });
+    }
+
+    // 2. Coupon Invalidation
     if (couponInfo && cartTotal < couponInfo.minOrderAmount) {
       setCouponInfo(null);
       setCouponCode('');
       toast.error(`Coupon removed: ₹${couponInfo.minOrderAmount} min. order required`);
     }
 
-    // 2. Loyalty Points Adjustment (Capping)
+    // 3. Loyalty Points Adjustment (Capping)
     if (loyaltyData?.settings?.enabled && pointsRedeemed > 0) {
       const maxAllowedVal = cartTotal * (loyaltyData.settings.maxRedemptionPercentage / 100);
       const currentRedeemVal = pointsRedeemed * (loyaltyData.settings.redeemRate || 0);
@@ -308,7 +316,40 @@ export const CustomerMenuPage = () => {
         setPointsRedeemed(Math.max(0, Math.min(newMaxPoints, loyaltyData.points)));
       }
     }
-  }, [cartTotal, couponInfo, loyaltyData, pointsRedeemed]);
+
+    // 4. Auto-Apply Best Coupon (Only if no points are redeemed)
+    if (pointsRedeemed === 0 && !couponInfo && availableCoupons.length > 0) {
+      const bestOffer = findBestOffer(availableCoupons, cartTotal);
+      if (bestOffer) {
+         handleApplyCoupon(bestOffer.code);
+      }
+    }
+  }, [cartTotal, couponInfo, loyaltyData, pointsRedeemed, availableCoupons]);
+
+  const findBestOffer = (coupons: any[], total: number) => {
+    let best = null;
+    let maxSaving = 0;
+
+    for (const coupon of coupons) {
+      if (total >= coupon.minOrderAmount) {
+        let currentSaving = 0;
+        if (coupon.discountType === 'percentage') {
+          currentSaving = (total * coupon.value) / 100;
+          if (coupon.maxDiscountAmount) {
+            currentSaving = Math.min(currentSaving, coupon.maxDiscountAmount);
+          }
+        } else {
+          currentSaving = Math.min(coupon.value, total);
+        }
+
+        if (currentSaving > maxSaving) {
+          maxSaving = currentSaving;
+          best = coupon;
+        }
+      }
+    }
+    return best;
+  };
 
   const handleApplyCoupon = async (passedCode?: string) => {
     const codeToApply = passedCode || couponCode;
@@ -323,9 +364,16 @@ export const CustomerMenuPage = () => {
       });
       setCouponInfo(response.data.data);
       if (passedCode) setCouponCode(passedCode);
-      toast.success('Coupon applied!');
+      
+      // Mutual Exclusivity: Clear points if coupon is applied
+      if (pointsRedeemed > 0) {
+         setPointsRedeemed(0);
+         toast.success('Coupon applied: Points cleared', { id: 'mutual-exclusivity' });
+      } else {
+         toast.success('Offer applied!', { id: 'offer-applied' });
+      }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Invalid coupon');
+      if (!passedCode) toast.error(err.response?.data?.message || 'Invalid coupon');
       setCouponInfo(null);
     } finally {
       setIsApplyingCoupon(false);
@@ -335,7 +383,11 @@ export const CustomerMenuPage = () => {
   const calculateDiscount = () => {
     if (!couponInfo) return 0;
     if (couponInfo.discountType === 'percentage') {
-      return (cartTotal * couponInfo.value) / 100;
+       let disc = (cartTotal * couponInfo.value) / 100;
+       if (couponInfo.maxDiscountAmount) {
+         disc = Math.min(disc, couponInfo.maxDiscountAmount);
+       }
+       return disc;
     }
     return Math.min(couponInfo.value, cartTotal);
   };
@@ -675,11 +727,12 @@ export const CustomerMenuPage = () => {
                           title="Coupon Code"
                         />
                         <button
-                          onClick={() => handleApplyCoupon()} disabled={isApplyingCoupon || !couponCode}
+                          onClick={() => handleApplyCoupon()} 
+                          disabled={isApplyingCoupon || !couponCode || (couponInfo && couponCode === couponInfo.code)}
                           className="absolute right-2 top-2 bottom-2 px-8 rounded-full text-[10px] font-black uppercase tracking-widest text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                           style={{ backgroundColor: guestSession?.themeColor || '#000' }}
                         >
-                          Apply
+                          {couponInfo && couponCode === couponInfo.code ? 'Applied' : 'Apply'}
                         </button>
                       </div>
                       {couponInfo && <motion.p initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="text-[10px] font-black text-emerald-500 uppercase tracking-widest pl-4 flex items-center gap-2">

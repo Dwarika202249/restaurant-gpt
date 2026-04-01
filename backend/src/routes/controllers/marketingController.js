@@ -9,7 +9,7 @@ const mongoose = require('mongoose');
 const createCoupon = async (req, res) => {
   try {
     const { restaurantId } = req;
-    const { code, discountType, value, minOrderAmount, expiryDate, maxUses, targetUserId, description } = req.body;
+    const { code, discountType, value, minOrderAmount, expiryDate, maxUses, targetUserId, description, maxDiscountAmount } = req.body;
 
     if (!code || !discountType || value === undefined) {
       return res.status(400).json({ message: 'Code, discount type, and value are required' });
@@ -24,7 +24,8 @@ const createCoupon = async (req, res) => {
       expiryDate,
       maxUses,
       targetUserId: targetUserId ? new mongoose.Types.ObjectId(targetUserId) : null,
-      description
+      description,
+      maxDiscountAmount
     });
 
     await newCoupon.save();
@@ -120,7 +121,8 @@ const validateCoupon = async (req, res) => {
         discountType: coupon.discountType,
         value: coupon.value,
         discountAmount,
-        minOrderAmount: coupon.minOrderAmount, // Return for frontend persistence check
+        minOrderAmount: coupon.minOrderAmount,
+        maxDiscountAmount: coupon.maxDiscountAmount,
         description: coupon.description
       }
     });
@@ -170,7 +172,10 @@ const getPublicCoupons = async (req, res) => {
 
     return res.status(200).json({
       message: 'Available offers retrieved',
-      data: coupons
+      data: coupons.map(c => ({
+        ...c.toObject(),
+        isEligible: true // Simplified for now
+      }))
     });
   } catch (error) {
     console.error('Get public coupons error:', error);
@@ -263,6 +268,74 @@ const getLoyaltyBalance = async (req, res) => {
   } catch (error) {
     console.error('Get loyalty balance error:', error);
     return res.status(500).json({ message: 'Failed to retrieve loyalty balance' });
+  }
+};
+
+/**
+ * [PUBLIC] Claim a loyalty perk (Redeem points)
+ * POST /api/marketing/claim-perk
+ */
+const claimPerk = async (req, res) => {
+  try {
+    const { restaurantId, customerId, perkId } = req.body;
+
+    if (!restaurantId || !customerId || !perkId) {
+      return res.status(400).json({ message: 'Restaurant ID, Customer ID, and Perk ID are required' });
+    }
+
+    const user = await User.findById(customerId);
+    const restaurant = await Restaurant.findById(restaurantId);
+
+    if (!user || !restaurant) {
+      return res.status(404).json({ message: 'User or Restaurant not found' });
+    }
+
+    const perk = restaurant.loyaltySettings.perks.find(p => p.id === perkId);
+    if (!perk) {
+      return res.status(404).json({ message: 'Perk not found' });
+    }
+
+    const userPointsObj = user.loyaltyPoints.find(
+      l => l.restaurantId.toString() === restaurantId.toString()
+    );
+
+    const userBalance = userPointsObj ? userPointsObj.points : 0;
+    if (userBalance < perk.points) {
+      return res.status(400).json({ message: 'Insufficient points capital to claim this experience' });
+    }
+
+    // 1. Deduct Points
+    userPointsObj.points -= perk.points;
+    user.markModified('loyaltyPoints');
+    await user.save();
+
+    // 2. Issue Personalized Coupon
+    const uniqueSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const couponCode = `REWARD-${perk.title.split(' ')[0].toUpperCase()}-${uniqueSuffix}`;
+
+    const newCoupon = new Coupon({
+      code: couponCode,
+      restaurantId: new mongoose.Types.ObjectId(restaurantId),
+      discountType: 'fixed',
+      value: 0, // Perk is a physical reward/experience, not a cash discount
+      targetUserId: user._id,
+      description: `REDEEMED: ${perk.title} (${perk.description || 'Special Member Benefit'})`,
+      maxUses: 1,
+      expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days validity
+    });
+
+    await newCoupon.save();
+
+    return res.status(200).json({
+      message: 'Experience unlocked successfully!',
+      data: {
+        code: couponCode,
+        newBalance: userPointsObj.points
+      }
+    });
+  } catch (error) {
+    console.error('Claim perk error:', error);
+    return res.status(500).json({ message: 'Failed to claim experience' });
   }
 };
 
@@ -403,6 +476,7 @@ module.exports = {
   // Loyalty
   updateLoyaltySettings,
   getLoyaltyBalance,
+  claimPerk,
   addLoyaltyPerk,
   deleteLoyaltyPerk,
   // AI

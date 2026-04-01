@@ -7,6 +7,7 @@ const { authenticateAdmin } = require('../middleware/auth');
 router.post('/validate-coupon', marketingController.validateCoupon);
 router.get('/loyalty-balance/:restaurantId/:customerId', marketingController.getLoyaltyBalance);
 router.get('/public-coupons/:restaurantId', marketingController.getPublicCoupons);
+router.post('/claim-perk', marketingController.claimPerk);
 
 // Admin Marketing Routes
 router.get('/coupons', authenticateAdmin, marketingController.getRestaurantCoupons);

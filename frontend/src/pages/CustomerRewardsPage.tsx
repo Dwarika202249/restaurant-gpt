@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft,
   Star,
@@ -12,8 +12,11 @@ import {
   Flame,
   Medal,
   Gem,
-  Trophy
+  Trophy,
+  CheckCircle2,
+  X
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { CustomerLayout } from '@/components';
 import { useTabTitle } from '@/hooks';
 import axios from 'axios';
@@ -36,6 +39,8 @@ export const CustomerRewardsPage = () => {
   const [customerUser, setCustomerUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loyaltyData, setLoyaltyData] = useState<{ points: number; perks: any[] }>({ points: 0, perks: [] });
+  const [claiming, setClaiming] = useState<string | null>(null);
+  const [claimedReward, setClaimedReward] = useState<any>(null);
 
   useTabTitle('Rewards & Loyalty');
 
@@ -81,6 +86,36 @@ export const CustomerRewardsPage = () => {
       });
     } catch (err) {
       console.error('Failed to fetch loyalty balance');
+    }
+  };
+
+  const handleClaimPerk = async (perk: any) => {
+    if (loyaltyData.points < perk.points) return;
+    
+    setClaiming(perk.id);
+    try {
+      const response = await axios.post(`${API_URL}/marketing/claim-perk`, {
+        restaurantId: guestSession?.restaurantId,
+        customerId: customerUser?.id || customerUser?._id,
+        perkId: perk.id
+      });
+      
+      setClaimedReward({
+        ...perk,
+        code: response.data.data.code
+      });
+      
+      // Update local points
+      setLoyaltyData(prev => ({
+        ...prev,
+        points: response.data.data.newBalance
+      }));
+      
+      toast.success('Experience unlocked!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to claim reward');
+    } finally {
+      setClaiming(null);
     }
   };
 
@@ -195,11 +230,14 @@ export const CustomerRewardsPage = () => {
                       </div>
                       
                       <button 
-                        disabled={loyaltyData.points < reward.points}
-                        className="w-full mt-8 py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-[0.2em] transition-all flex items-center justify-center gap-3 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 bg-brand-500 text-white shadow-xl hover:scale-105"
+                        disabled={loyaltyData.points < reward.points || !!claiming}
+                        onClick={() => handleClaimPerk(reward)}
+                        className="w-full mt-8 py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-[0.2em] transition-all flex items-center justify-center gap-3 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 bg-brand-500 text-white shadow-xl hover:scale-105 active:scale-95"
                       >
-                        {loyaltyData.points >= reward.points ? (
-                          <>Claim Reward <ArrowRight size={14} /></>
+                        {claiming === reward.id ? (
+                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : loyaltyData.points >= reward.points ? (
+                          <>Claim & Unlock <ArrowRight size={14} /></>
                         ) : (
                           <><Flame size={14} /> {(reward.points - loyaltyData.points)} Pts Needed</>
                         )}
@@ -233,6 +271,58 @@ export const CustomerRewardsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <AnimatePresence>
+        {claimedReward && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setClaimedReward(null)}
+              className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[100]"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="fixed inset-0 m-auto w-[90%] max-w-lg h-fit bg-slate-900 border border-white/10 rounded-[4rem] p-12 text-center text-white z-[101] shadow-2xl overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-2 bg-brand-500" />
+              <div className="absolute -top-24 -left-24 w-60 h-60 bg-brand-500/20 blur-[100px] rounded-full" />
+              
+              <div className="relative z-10">
+                <div className="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto mb-10">
+                  <CheckCircle2 size={40} className="text-emerald-500" strokeWidth={3} />
+                </div>
+                
+                <h3 className="text-4xl font-black italic tracking-tighter uppercase mb-2">Experience Unlocked</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-10">Your culinary reward is now ready</p>
+
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-8 mb-10 group transition-all hover:bg-white/10">
+                  <p className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mb-6">Exclusive Reward Code</p>
+                  <div className="text-4xl font-black italic tracking-tighter text-brand-500 mb-3">{claimedReward.code}</div>
+                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">{claimedReward.description}</p>
+                </div>
+
+                <div className="space-y-4">
+                  <button 
+                    onClick={() => navigate(`/r/${restaurantSlug}/menu`)}
+                    className="w-full py-6 bg-brand-500 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-xl shadow-brand-500/20 hover:scale-105 transition-all"
+                  >
+                    Go Use Reward →
+                  </button>
+                  <button 
+                    onClick={() => setClaimedReward(null)}
+                    className="w-full py-6 bg-white/5 text-slate-400 rounded-full text-[10px] font-black uppercase tracking-widest hover:text-white transition-all"
+                  >
+                    Close for now
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </CustomerLayout>
   );
 };
