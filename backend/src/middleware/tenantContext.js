@@ -43,6 +43,12 @@ const attachRestaurantContext = async (req, res, next) => {
       return next();
     }
 
+    // Case 5: Extract from query params
+    if (req.query.restaurantId) {
+      req.restaurantId = req.query.restaurantId;
+      return next();
+    }
+
     return res.status(400).json({
       message: 'Unable to determine restaurant context'
     });

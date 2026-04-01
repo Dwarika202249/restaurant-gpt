@@ -99,7 +99,18 @@ export const CustomerRewardsPage = () => {
       restaurantLogo={guestSession?.restaurantLogo}
       themeColor={guestSession?.themeColor}
       tableNo={guestSession?.tableNo || 0}
-      onLogout={() => { localStorage.removeItem('guestSession'); navigate(`/r/${restaurantSlug}/table/1`); }}
+      onLogout={() => { 
+        const rId = guestSession?.restaurantId;
+        localStorage.removeItem('guestSession'); 
+        localStorage.removeItem('customerUser');
+        localStorage.removeItem('customerToken');
+        if (rId) {
+          localStorage.removeItem(`cart_${rId}`);
+          localStorage.removeItem(`coupon_${rId}`);
+          localStorage.removeItem(`points_${rId}`);
+        }
+        navigate(`/r/${restaurantSlug}/table/1`); 
+      }}
       customerUser={customerUser}
     >
       <div className="max-w-4xl mx-auto px-6 pb-20">

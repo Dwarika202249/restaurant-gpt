@@ -104,6 +104,7 @@ const createOrder = async (req, res) => {
         // Deduct points from user
         if (userPointsObj) {
           userPointsObj.points -= finalPointsRedeemed;
+          user.markModified('loyaltyPoints');
           await user.save();
         }
       }
@@ -607,6 +608,7 @@ const updatePaymentStatus = async (req, res) => {
               } else {
                 user.loyaltyPoints.push({ restaurantId: new mongoose.Types.ObjectId(restaurantId), points: pointsToEarn });
               }
+              user.markModified('loyaltyPoints');
               await user.save();
               
               // Record earned points on the order snapshot
@@ -641,7 +643,7 @@ const updatePaymentStatus = async (req, res) => {
 const getMyOrders = async (req, res) => {
   try {
     const { restaurantId } = req;
-    const guestSessionId = req.guestSession?.sessionId;
+    const guestSessionId = req.guestSession?.sessionId || req.query.sessionId;
     const customerId = req.user?._id;
 
     if (!restaurantId) {

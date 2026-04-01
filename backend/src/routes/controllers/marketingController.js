@@ -50,13 +50,23 @@ const validateCoupon = async (req, res) => {
   try {
     const { code, restaurantId, orderAmount, customerId } = req.body;
 
+    console.log(`[Coupon Validation] Code: ${code}, RestaurantId: ${restaurantId}, Amount: ${orderAmount}, Customer: ${customerId}`);
+
     if (!code || !restaurantId) {
-      return res.status(400).json({ message: 'Code and restaurant ID are required' });
+      return res.status(400).json({ message: 'Coupon code and Restaurant ID are required' });
+    }
+
+    let searchId;
+    try {
+      searchId = new mongoose.Types.ObjectId(restaurantId);
+    } catch (e) {
+      console.error(`[Coupon Error] Invalid RestaurantId format: ${restaurantId}`);
+      return res.status(400).json({ message: 'Invalid Restaurant identification' });
     }
 
     const coupon = await Coupon.findOne({ 
       code: code.toUpperCase(), 
-      restaurantId: new mongoose.Types.ObjectId(restaurantId),
+      restaurantId: searchId,
       status: 'active'
     });
 
@@ -66,37 +76,52 @@ const validateCoupon = async (req, res) => {
 
     // Check expiry
     if (coupon.expiryDate && new Date() > new Date(coupon.expiryDate)) {
-      coupon.status = 'expired';
-      await coupon.save();
-      return res.status(400).json({ message: 'Coupon has expired' });
+      if (coupon.status !== 'expired') {
+        coupon.status = 'expired';
+        await coupon.save();
+      }
+      return res.status(400).json({ message: 'This special offer has expired' });
     }
 
     // Check usage limits
     if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
-      return res.status(400).json({ message: 'Coupon usage limit reached' });
+      return res.status(400).json({ message: 'Coupon usage limit reached for this campaign' });
     }
 
-    // Check target user
-    if (coupon.targetUserId && (!customerId || customerId.toString() !== coupon.targetUserId.toString())) {
-      return res.status(403).json({ message: 'This coupon is not valid for your account' });
+    // Check target user (Safe check for guest users)
+    if (coupon.targetUserId) {
+      if (!customerId) {
+        return res.status(403).json({ message: 'This is an exclusive offer. Please login to claim.' });
+      }
+      if (customerId.toString() !== coupon.targetUserId.toString()) {
+        return res.status(403).json({ message: 'This coupon is not valid for your account' });
+      }
     }
 
-    // Check minimum order amount
+    // Check minimum order amount (The most likely 400 cause)
     if (orderAmount < coupon.minOrderAmount) {
-      return res.status(400).json({ message: `Minimum order amount of ${coupon.minOrderAmount} required for this coupon` });
+      return res.status(400).json({ 
+        message: `Min. order amount of ₹${coupon.minOrderAmount} required (Current: ₹${orderAmount.toFixed(0)})`,
+        requiredAmount: coupon.minOrderAmount,
+        currentAmount: orderAmount
+      });
     }
 
     const discountAmount = coupon.discountType === 'percentage' 
       ? (orderAmount * coupon.value / 100) 
       : Math.min(orderAmount, coupon.value);
 
+    console.log(`[Coupon] Successfully validated ${code} for order ₹${orderAmount}`);
+
     return res.status(200).json({
-      message: 'Coupon is valid',
+      message: 'Coupon successfully applied',
       data: {
         code: coupon.code,
         discountType: coupon.discountType,
         value: coupon.value,
-        discountAmount
+        discountAmount,
+        minOrderAmount: coupon.minOrderAmount, // Return for frontend persistence check
+        description: coupon.description
       }
     });
   } catch (error) {
@@ -120,6 +145,36 @@ const getRestaurantCoupons = async (req, res) => {
   } catch (error) {
     console.error('Get coupons error:', error);
     return res.status(500).json({ message: 'Failed to retrieve coupons' });
+  }
+};
+
+/**
+ * [PUBLIC] Get all available coupons for a restaurant
+ * GET /api/marketing/coupons/public/:restaurantId
+ */
+const getPublicCoupons = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const { customerId } = req.query;
+
+    const query = {
+      restaurantId: new mongoose.Types.ObjectId(restaurantId),
+      status: 'active',
+      $or: [
+        { targetUserId: null }, // Public coupons
+        { targetUserId: customerId ? new mongoose.Types.ObjectId(customerId) : null } // Exclusive coupons
+      ]
+    };
+
+    const coupons = await Coupon.find(query).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      message: 'Available offers retrieved',
+      data: coupons
+    });
+  } catch (error) {
+    console.error('Get public coupons error:', error);
+    return res.status(500).json({ message: 'Failed to retrieve available offers' });
   }
 };
 
@@ -343,6 +398,7 @@ module.exports = {
   createCoupon,
   validateCoupon,
   getRestaurantCoupons,
+  getPublicCoupons,
   deleteCoupon,
   // Loyalty
   updateLoyaltySettings,

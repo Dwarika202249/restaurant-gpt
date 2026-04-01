@@ -69,9 +69,15 @@ export const CustomerProfilePage = () => {
     setMessage({ type: '', text: '' });
 
     try {
+      const customerToken = localStorage.getItem('customerToken');
+      
       const response = await axios.put(`${API_URL}/auth/customer/profile`, 
         { name, email },
-        { headers: { Authorization: `Bearer ${guestSession.sessionToken}` } }
+        { 
+          headers: { 
+            Authorization: `Bearer ${customerToken || guestSession.sessionToken}` 
+          } 
+        }
       );
 
       const updatedUser = response.data.data.user;

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { CustomerLayout, OrderStatusWidget, AiConcierge, CartSuggestions } from '@/components';
-import { Search, ShoppingCart, Plus, Minus, X, Info, Zap, CheckCircle2, ChefHat, ShieldCheck, Wallet, Clock, ChevronRight, History, User as UserIcon, LogIn, UtensilsCrossed, Bot, Gift } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, X, Info, Zap, CheckCircle2, ChefHat, ShieldCheck, Wallet, Clock, ChevronRight, History, User as UserIcon, LogIn, UtensilsCrossed, Bot, Gift, ArrowRight, Tag } from 'lucide-react';
 import { useTabTitle } from '@/hooks';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -81,6 +81,8 @@ export const CustomerMenuPage = () => {
   const [couponInfo, setCouponInfo] = useState<any>(null);
   const [pointsRedeemed, setPointsRedeemed] = useState(0);
   const [loyaltyData, setLoyaltyData] = useState<{ points: number; settings: any } | null>(null);
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+  const [isOffersDrawerOpen, setIsOffersDrawerOpen] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -93,7 +95,30 @@ export const CustomerMenuPage = () => {
         console.error('Failed to parse customer user');
       }
     }
+
+    // Real-time Sync across tabs/pages
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'customerUser') {
+        if (e.newValue) {
+          try {
+            setCustomerUser(JSON.parse(e.newValue));
+          } catch {}
+        } else {
+          setCustomerUser(null);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Fetch loyalty balance on mount if user already logged in
+  useEffect(() => {
+    if (customerUser && guestSession?.restaurantId) {
+      fetchLoyaltyBalance(customerUser.id || customerUser._id, guestSession.restaurantId);
+    }
+  }, [customerUser?.id, customerUser?._id, guestSession?.restaurantId]);
 
   const fetchLoyaltyBalance = async (customerId: string, restaurantId: string) => {
     try {
@@ -104,13 +129,74 @@ export const CustomerMenuPage = () => {
     }
   };
 
+  const fetchAvailableCoupons = async (restaurantId: string) => {
+    try {
+      const customerId = customerUser?.id || customerUser?._id;
+      const response = await axios.get(`${API_URL}/marketing/public-coupons/${restaurantId}`, {
+        params: { customerId }
+      });
+      setAvailableCoupons(response.data.data);
+    } catch (err) {
+      console.error('Failed to fetch available coupons');
+    }
+  };
+
+  useEffect(() => {
+    if (guestSession?.restaurantId) {
+      fetchAvailableCoupons(guestSession.restaurantId);
+    }
+  }, [guestSession?.restaurantId, customerUser?.id]);
+
   const handleLoginSuccess = (user: any) => {
     setCustomerUser(user);
+    const token = localStorage.getItem('customerToken') || guestSession?.sessionToken;
+    if (token) {
+      fetchActiveOrders(token);
+    }
     if (guestSession) {
-      fetchActiveOrders(guestSession.sessionToken);
       fetchLoyaltyBalance(user.id || user._id, guestSession.restaurantId);
     }
   };
+
+  useEffect(() => {
+    if (guestSession?.restaurantId) {
+      const savedCart = localStorage.getItem(`cart_${guestSession.restaurantId}`);
+      if (savedCart) {
+        try {
+          const parsed = JSON.parse(savedCart);
+          setCart(parsed);
+        } catch (e) {
+          console.error('Failed to restore cart', e);
+        }
+      }
+
+      const savedCoupon = localStorage.getItem(`coupon_${guestSession.restaurantId}`);
+      if (savedCoupon) {
+        try {
+          const parsed = JSON.parse(savedCoupon);
+          setCouponInfo(parsed);
+          setCouponCode(parsed.code);
+        } catch (e) { }
+      }
+
+      const savedPoints = localStorage.getItem(`points_${guestSession.restaurantId}`);
+      if (savedPoints) {
+        setPointsRedeemed(parseInt(savedPoints));
+      }
+    }
+  }, [guestSession?.restaurantId]);
+
+  useEffect(() => {
+    if (guestSession?.restaurantId) {
+      localStorage.setItem(`cart_${guestSession.restaurantId}`, JSON.stringify(cart));
+      localStorage.setItem(`points_${guestSession.restaurantId}`, pointsRedeemed.toString());
+      if (couponInfo) {
+        localStorage.setItem(`coupon_${guestSession.restaurantId}`, JSON.stringify(couponInfo));
+      } else {
+        localStorage.removeItem(`coupon_${guestSession.restaurantId}`);
+      }
+    }
+  }, [cart, pointsRedeemed, couponInfo, guestSession?.restaurantId]);
 
   useEffect(() => {
     const fetchMenu = async () => {
@@ -169,8 +255,11 @@ export const CustomerMenuPage = () => {
 
   const fetchActiveOrders = async (token: string) => {
     try {
+      const restaurantId = guestSession?.restaurantId;
+      const sessionId = guestSession?.sessionId;
       const response = await axios.get(`${API_URL}/orders/my-orders`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        params: { restaurantId, sessionId } // Ensure context for global customer tokens
       });
       setActiveOrders(response.data.data);
     } catch (err) {
@@ -188,24 +277,52 @@ export const CustomerMenuPage = () => {
 
   useEffect(() => {
     if (!guestSession) return;
-    fetchActiveOrders(guestSession.sessionToken);
-    const interval = setInterval(() => fetchActiveOrders(guestSession.sessionToken), 10000);
+    
+    // Check for customer token periodically to handle seamless account switching
+    const getBestToken = () => localStorage.getItem('customerToken') || guestSession.sessionToken;
+    
+    fetchActiveOrders(getBestToken());
+    const interval = setInterval(() => fetchActiveOrders(getBestToken()), 10000);
     return () => clearInterval(interval);
-  }, [guestSession, API_URL]);
+  }, [guestSession, customerUser, API_URL]);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode || !guestSession) return;
+  // --- Savings Sync Engine ---
+  // Periodically re-validate savings when cart total changes
+  useEffect(() => {
+    // 1. Coupon Invalidation
+    if (couponInfo && cartTotal < couponInfo.minOrderAmount) {
+      setCouponInfo(null);
+      setCouponCode('');
+      toast.error(`Coupon removed: ₹${couponInfo.minOrderAmount} min. order required`);
+    }
+
+    // 2. Loyalty Points Adjustment (Capping)
+    if (loyaltyData?.settings?.enabled && pointsRedeemed > 0) {
+      const maxAllowedVal = cartTotal * (loyaltyData.settings.maxRedemptionPercentage / 100);
+      const currentRedeemVal = pointsRedeemed * (loyaltyData.settings.redeemRate || 0);
+      
+      if (currentRedeemVal > maxAllowedVal) {
+        const newMaxPoints = Math.floor(maxAllowedVal / (loyaltyData.settings.redeemRate || 1));
+        setPointsRedeemed(Math.max(0, Math.min(newMaxPoints, loyaltyData.points)));
+      }
+    }
+  }, [cartTotal, couponInfo, loyaltyData, pointsRedeemed]);
+
+  const handleApplyCoupon = async (passedCode?: string) => {
+    const codeToApply = passedCode || couponCode;
+    if (!codeToApply || !guestSession) return;
     setIsApplyingCoupon(true);
     try {
       const response = await axios.post(`${API_URL}/marketing/validate-coupon`, {
-        code: couponCode,
+        code: codeToApply,
         restaurantId: guestSession.restaurantId,
         orderAmount: cartTotal,
         customerId: customerUser?.id || customerUser?._id
       });
       setCouponInfo(response.data.data);
+      if (passedCode) setCouponCode(passedCode);
       toast.success('Coupon applied!');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Invalid coupon');
@@ -282,7 +399,11 @@ export const CustomerMenuPage = () => {
       setCart([]);
       setCouponInfo(null);
       setCouponCode('');
-      fetchActiveOrders(guestSession.sessionToken);
+      const token = localStorage.getItem('customerToken') || guestSession.sessionToken;
+      fetchActiveOrders(token);
+      if (customerUser?.id || customerUser?._id) {
+        fetchLoyaltyBalance(customerUser.id || customerUser._id, guestSession.restaurantId);
+      }
 
       // Finish experience
       setTimeout(() => {
@@ -317,7 +438,18 @@ export const CustomerMenuPage = () => {
       restaurantLogo={guestSession?.restaurantLogo}
       themeColor={guestSession?.themeColor}
       tableNo={guestSession?.tableNo || 0}
-      onLogout={() => { localStorage.removeItem('guestSession'); window.location.reload(); }}
+      onLogout={() => { 
+        const rId = guestSession?.restaurantId;
+        localStorage.removeItem('guestSession'); 
+        localStorage.removeItem('customerUser');
+        localStorage.removeItem('customerToken');
+        if (rId) {
+          localStorage.removeItem(`cart_${rId}`);
+          localStorage.removeItem(`coupon_${rId}`);
+          localStorage.removeItem(`points_${rId}`);
+        }
+        window.location.reload(); 
+      }}
       onLoginClick={() => setIsAuthModalOpen(true)}
       customerUser={customerUser}
     >
@@ -411,8 +543,8 @@ export const CustomerMenuPage = () => {
 
                   <div className="absolute top-5 right-5 flex flex-col gap-2">
                     {item.tags.map(tag => (
-                      <span 
-                        key={tag} 
+                      <span
+                        key={tag}
                         style={{ backgroundColor: guestSession?.themeColor ? `${guestSession.themeColor}dd` : undefined, color: 'white' }}
                         className="px-3 py-1.5 backdrop-blur rounded-full text-[8px] font-black uppercase border border-white/10 shadow-lg"
                       >
@@ -431,8 +563,8 @@ export const CustomerMenuPage = () => {
                     onClick={() => item.isAvailable && addToCart(item)}
                     disabled={!item.isAvailable}
                     className={`w-full py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-[0.2em] transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 theme-btn-hover ${item.isAvailable
-                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
                       }`}
                     style={{ '--theme-hover': guestSession?.themeColor } as any}
                     title={item.isAvailable ? `Select ${item.name}` : "Currently Unavailable"}
@@ -489,143 +621,161 @@ export const CustomerMenuPage = () => {
                   <button onClick={() => setShowCartPreview(false)} className="w-12 h-12 bg-white dark:bg-slate-800 shadow-lg rounded-2xl flex items-center justify-center hover:rotate-90 transition-transform" title="Close"><X size={24} /></button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-10 space-y-8 scrollbar-hide">
-                  {cart.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-300 opacity-50 space-y-6">
-                      <ShoppingCart size={80} strokeWidth={1} />
-                      <p className="font-black uppercase tracking-widest text-[10px]">Your tray is empty</p>
-                    </div>
-                  ) : cart.map(item => (
-                    <motion.div layout key={item.itemId} className="flex gap-6 items-center group">
-                      <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-[2rem] overflow-hidden shrink-0 border border-slate-100 dark:border-white/5 shadow-inner">
-                        {item.imageUrl && <img src={item.imageUrl} alt={item.name} title={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />}
+                <div className="flex-1 overflow-y-auto p-10 space-y-12 scrollbar-hide">
+                  <div className="space-y-8">
+                    {cart.length === 0 ? (
+                      <div className="h-40 flex flex-col items-center justify-center text-slate-300 opacity-50 space-y-6">
+                        <ShoppingCart size={80} strokeWidth={1} />
+                        <p className="font-black uppercase tracking-widest text-[10px]">Your tray is empty</p>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-black uppercase italic text-sm tracking-tight text-slate-900 dark:text-white">{item.name}</p>
-                        <p className="text-xs text-brand-500 font-black mt-1">₹{item.price}</p>
-                      </div>
-                      <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900/80 p-3 rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm">
-                        <button onClick={() => updateQuantity(item.itemId, item.quantity - 1)} className="p-1.5 hover:text-brand-500 transition-colors" title="Remove"><Minus size={16} /></button>
-                        <span className="font-black text-sm min-w-[24px] text-center">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.itemId, item.quantity + 1)} className="p-1.5 hover:text-brand-500 transition-colors" title="Add"><Plus size={16} /></button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Premium Checkout Zone */}
-                <div className="p-10 bg-slate-50 dark:bg-slate-900/80 backdrop-blur-md border-t dark:border-white/5 space-y-8">
-                  <CartSuggestions 
-                    cartItems={cart} 
-                    restaurantSlug={guestSession?.restaurantSlug || ''} 
-                    onAdd={addToCart} 
-                    themeColor={guestSession?.themeColor}
-                  />
-                  
-                  <div className="space-y-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Exclusive Offers</p>
-                    <div className="flex gap-3">
-                      <input
-                        type="text" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                        className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/5 rounded-[2rem] px-8 py-5 text-xs font-black uppercase tracking-[0.2em] focus:ring-4 focus:ring-brand-500/10 focus:outline-none placeholder:text-slate-300"
-                        placeholder="REWARD CODE"
-                        title="Code Input"
-                      />
-                      <button
-                        onClick={handleApplyCoupon} disabled={isApplyingCoupon || !couponCode}
-                        className="px-10 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 disabled:opacity-50 transition-all shadow-xl"
-                        title="Redeem"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                    {couponInfo && <motion.p initial={{ x: -10 }} animate={{ x: 0 }} className="text-[10px] font-black text-emerald-500 uppercase tracking-widest pl-4 flex items-center gap-2">
-                      <CheckCircle2 size={12} strokeWidth={3} /> {couponInfo.description || 'Coupon Applied!'}
-                    </motion.p>}
+                    ) : cart.map(item => (
+                      <motion.div layout key={item.itemId} className="flex gap-6 items-center group">
+                        <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-[2rem] overflow-hidden shrink-0 border border-slate-100 dark:border-white/5 shadow-sm">
+                          {item.imageUrl && <img src={item.imageUrl} alt={item.name} title={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-black uppercase italic text-sm tracking-tight text-slate-900 dark:text-white">{item.name}</p>
+                          <p className="text-xs text-brand-500 font-black mt-1">₹{item.price}</p>
+                        </div>
+                        <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900/80 p-3 rounded-3xl border border-slate-100 dark:border-white/5">
+                          <button onClick={() => updateQuantity(item.itemId, item.quantity - 1)} className="p-1.5 hover:text-brand-500 transition-colors" title="Remove"><Minus size={16} /></button>
+                          <span className="font-black text-sm min-w-[24px] text-center">{item.quantity}</span>
+                          <button onClick={() => updateQuantity(item.itemId, item.quantity + 1)} className="p-1.5 hover:text-brand-500 transition-colors" title="Add"><Plus size={16} /></button>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
 
-                  {/* Loyalty Points Redemption Section */}
-                  {loyaltyData?.settings?.enabled && customerUser && (
-                    <div className="bg-amber-500/5 border border-amber-500/10 rounded-[2rem] p-6 space-y-4">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <Gift className="text-amber-500" size={16} />
-                          <span className="text-[10px] font-black uppercase tracking-widest">Loyalty Points</span>
-                        </div>
-                        <span className="text-[10px] font-black text-amber-500 uppercase">{loyaltyData.points} Available</span>
-                      </div>
-                      
-                      {loyaltyData.points > 0 ? (
-                        <div className="space-y-3">
-                          <div className="flex justify-between text-[8px] font-black uppercase text-slate-400 tracking-widest">
-                            <span>Redeem Points</span>
-                            <span>{pointsRedeemed} pts = ₹{(pointsRedeemed * (loyaltyData.settings.redeemRate || 0)).toFixed(2)} Off</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max={Math.min(loyaltyData.points, Math.floor((cartTotal * (loyaltyData.settings.maxRedemptionPercentage / 100)) / (loyaltyData.settings.redeemRate || 1)))} 
-                            value={pointsRedeemed}
-                            onChange={(e) => setPointsRedeemed(parseInt(e.target.value))}
-                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                            title="Redeem points slider"
-                          />
-                          <p className="text-[7px] font-bold text-slate-400 italic">Max redemption: {loyaltyData.settings.maxRedemptionPercentage}% of bill</p>
-                        </div>
-                      ) : (
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">Order to earn points!</p>
-                      )}
-                    </div>
-                  )}
+                  {/* Contextual Recommendations & Controls */}
+                  <div className="space-y-12 pt-10 border-t border-slate-100 dark:border-white/5">
+                    <CartSuggestions
+                      cartItems={cart}
+                      restaurantSlug={guestSession?.restaurantSlug || ''}
+                      onAdd={addToCart}
+                      themeColor={guestSession?.themeColor}
+                    />
 
-                  {!customerUser && (
-                    <div className="bg-brand-500/5 border border-brand-500/10 rounded-[2rem] p-6 text-center">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Join our Rewards Program</p>
-                      <button 
-                        onClick={() => setIsAuthModalOpen(true)}
-                        className="text-[10px] font-black text-brand-500 uppercase tracking-[0.2em] hover:scale-105 transition-all"
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center px-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Apply Savings</p>
+                        <button 
+                          onClick={() => setIsOffersDrawerOpen(true)}
+                          className="text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
+                          style={{ color: guestSession?.themeColor }}
+                        >
+                          View Offers <ArrowRight size={12} />
+                        </button>
+                      </div>
+                      <div className="relative group">
+                        <input
+                          type="text" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          className="w-full bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-white/5 rounded-[2rem] px-8 py-5 text-xs font-black uppercase tracking-[0.2em] focus:ring-8 focus:outline-none placeholder:text-slate-300 transition-all"
+                          style={{ '--tw-ring-color': `${guestSession?.themeColor}10` } as React.CSSProperties}
+                          placeholder="Enter Promo Code"
+                          title="Coupon Code"
+                        />
+                        <button
+                          onClick={() => handleApplyCoupon()} disabled={isApplyingCoupon || !couponCode}
+                          className="absolute right-2 top-2 bottom-2 px-8 rounded-full text-[10px] font-black uppercase tracking-widest text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                          style={{ backgroundColor: guestSession?.themeColor || '#000' }}
+                        >
+                          Apply
+                        </button>
+                      </div>
+                      {couponInfo && <motion.p initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="text-[10px] font-black text-emerald-500 uppercase tracking-widest pl-4 flex items-center gap-2">
+                        <CheckCircle2 size={12} strokeWidth={3} /> {couponInfo.description || 'Coupon Applied!'}
+                      </motion.p>}
+                    </div>
+
+                    {loyaltyData?.settings?.enabled && customerUser && (
+                      <div 
+                        className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-white/5 rounded-[2rem] p-5 space-y-4 relative overflow-hidden group/loyalty transition-all hover:border-amber-500/20"
                       >
-                        Login to earn & redeem points →
-                      </button>
+                        <div className="flex justify-between items-center relative z-10">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: guestSession?.themeColor || '#000' }}>
+                              <Gift size={18} strokeWidth={2.5} />
+                            </div>
+                            <div>
+                               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Reward Wallet</p>
+                               <p className="text-sm font-black text-slate-900 dark:text-white italic tracking-tighter">{loyaltyData.points} <span className="text-[10px] text-slate-400 not-italic">Pts</span></p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Saving</p>
+                             <p className="text-sm font-black italic tracking-tighter" style={{ color: guestSession?.themeColor }}>₹{(pointsRedeemed * (loyaltyData.settings.redeemRate || 0)).toFixed(0)}</p>
+                          </div>
+                        </div>
+
+                        {loyaltyData.points > 0 && (
+                          <div className="relative pt-2">
+                              <input
+                                type="range" 
+                                min="0" 
+                                max={Math.min(loyaltyData.points, Math.floor((cartTotal * (loyaltyData.settings.maxRedemptionPercentage / 100)) / (loyaltyData.settings.redeemRate || 1)))}
+                                value={pointsRedeemed} 
+                                onChange={(e) => setPointsRedeemed(parseInt(e.target.value))}
+                                className="w-full h-1.5 bg-slate-100 dark:bg-white/5 rounded-full appearance-none cursor-pointer relative z-10 accent-current"
+                                style={{ color: guestSession?.themeColor } as any}
+                                title="Redeem points slider"
+                              />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {!customerUser && (
+                      <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-[2.5rem] p-8 text-center group transition-colors hover:bg-indigo-500/10" onClick={() => setIsAuthModalOpen(true)}>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-500 mb-3">Loyalty Passport</p>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase leading-relaxed mb-6">Login to earn points & unlock exclusive tier rewards on this visit.</p>
+                        <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest group-hover:underline cursor-pointer">Verify Identity →</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Final Sticky Checkout Footer */}
+                <div className="p-10 bg-white/80 dark:bg-slate-950/80 backdrop-blur-3xl border-t border-slate-100 dark:border-white/5 space-y-8 shadow-[0_-20px_40px_rgba(0,0,0,0.05)]">
+                  <div className="grid grid-cols-2 gap-y-4">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Subtotal</span>
+                      <span className="text-sm font-black text-slate-900 dark:text-white">₹{cartTotal.toFixed(2)}</span>
                     </div>
-                  )}
-
-                  <div className="space-y-4">
-                    <div className="flex justify-between text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]"><span>Subtotal</span><span>₹{cartTotal.toFixed(2)}</span></div>
-                    
                     {couponInfo && (
-                      <div className="flex justify-between text-[11px] font-black text-emerald-500 uppercase tracking-[0.2em]">
-                        <span>Coupon: {couponInfo.code}</span>
-                        <span>-₹{couponInfo.discountAmount.toFixed(2)}</span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Coupon</span>
+                        <span className="text-sm font-black text-emerald-500">-₹{couponInfo.discountAmount.toFixed(2)}</span>
                       </div>
                     )}
-
                     {pointsRedeemed > 0 && loyaltyData?.settings && (
-                      <div className="flex justify-between text-[11px] font-black text-amber-500 uppercase tracking-[0.2em]">
-                        <span>Points Redeemed ({pointsRedeemed})</span>
-                        <span>-₹{(pointsRedeemed * loyaltyData.settings.redeemRate).toFixed(2)}</span>
+                      <div className="flex flex-col col-span-2 mt-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Points Redeemed ({pointsRedeemed})</span>
+                          <span className="text-sm font-black text-amber-500">-₹{(pointsRedeemed * loyaltyData.settings.redeemRate).toFixed(2)}</span>
+                        </div>
                       </div>
                     )}
+                  </div>
 
-                    <div className="flex justify-between text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]"><span>Service & Taxes (5%)</span><span>₹{((cartTotal - (couponInfo?.discountAmount || 0) - (pointsRedeemed * (loyaltyData?.settings?.redeemRate || 0))) * 0.05).toFixed(2)}</span></div>
-                    <div className="h-[1px] bg-slate-200 dark:bg-white/10 w-full" />
-                    <div className="flex justify-between items-center pt-2">
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] block mb-1">Grant Total</span>
-                        <span className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">
+                  <div className="h-[1px] bg-slate-100 dark:bg-white/10 w-full" />
+
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] block mb-1">Grant Total</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">
                           ₹{Math.max(0, (cartTotal - (couponInfo?.discountAmount || 0) - (pointsRedeemed * (loyaltyData?.settings?.redeemRate || 0))) * 1.05).toFixed(2)}
                         </span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase">Incl. Tax</span>
                       </div>
-                      <button
-                        onClick={handlePlaceOrder}
-                        disabled={cart.length === 0}
-                        className="px-12 py-6 bg-brand-500 text-white rounded-[2.5rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl shadow-brand-500/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 disabled:opacity-50 disabled:grayscale"
-                        title="Checkout"
-                      >
-                        <Zap size={18} fill="currentColor" />
-                        Finalize
-                      </button>
                     </div>
+                    <button
+                      onClick={handlePlaceOrder}
+                      disabled={cart.length === 0}
+                      className="px-12 py-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[2.5rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl hover:scale-105 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-3"
+                    >
+                      Finalize Order <ArrowRight size={16} />
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -648,13 +798,13 @@ export const CustomerMenuPage = () => {
                 className="max-w-md w-full bg-slate-900/40 border border-white/5 rounded-[4rem] p-16 text-center relative overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]"
               >
                 {/* Dynamic Background Glows */}
-                <motion.div 
-                  animate={{ 
+                <motion.div
+                  animate={{
                     scale: [1, 1.2, 1],
                     opacity: [0.1, 0.2, 0.1]
-                  }} 
+                  }}
                   transition={{ repeat: Infinity, duration: 8 }}
-                  className={`absolute -top-32 -right-32 w-96 h-96 blur-[120px] rounded-full transition-colors duration-2000 ${orderStep === 'success' ? 'bg-emerald-500' : 'bg-brand-500'}`} 
+                  className={`absolute -top-32 -right-32 w-96 h-96 blur-[120px] rounded-full transition-colors duration-2000 ${orderStep === 'success' ? 'bg-emerald-500' : 'bg-brand-500'}`}
                 />
                 <div className={`absolute -bottom-32 -left-32 w-64 h-64 blur-[100px] rounded-full opacity-10 transition-colors duration-2000 ${orderStep === 'success' ? 'bg-emerald-400' : 'bg-amber-500'}`} />
 
@@ -688,12 +838,12 @@ export const CustomerMenuPage = () => {
                     {orderStep === 'processing' && (
                       <motion.div key="processing" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 1.1 }} className="flex flex-col items-center text-center">
                         <div className="w-28 h-28 rounded-[3rem] bg-emerald-500/5 flex items-center justify-center mb-14 relative">
-                          <motion.div 
-                            animate={{ 
+                          <motion.div
+                            animate={{
                               boxShadow: ['0 0 20px rgba(16,185,129,0)', '0 0 60px rgba(16,185,129,0.2)', '0 0 20px rgba(16,185,129,0)']
-                            }} 
+                            }}
                             transition={{ repeat: Infinity, duration: 2 }}
-                            className="absolute inset-0 rounded-[3rem] border-2 border-emerald-500/20" 
+                            className="absolute inset-0 rounded-[3rem] border-2 border-emerald-500/20"
                           />
                           <CheckIcon size={44} className="text-emerald-500/80" />
                         </div>
@@ -708,7 +858,7 @@ export const CustomerMenuPage = () => {
                           <PartyPopper size={64} className="text-white group-hover:scale-110 transition-transform duration-700" />
                         </div>
                         <div className="mb-10 text-center">
-                          <motion.span 
+                          <motion.span
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}
@@ -744,9 +894,9 @@ export const CustomerMenuPage = () => {
         />
       </div>
 
-      <AiConcierge 
-        restaurantSlug={guestSession?.restaurantSlug || ''} 
-        restaurantName={guestSession?.restaurantName || 'Restaurant'} 
+      <AiConcierge
+        restaurantSlug={guestSession?.restaurantSlug || ''}
+        restaurantName={guestSession?.restaurantName || 'Restaurant'}
         themeColor={guestSession?.themeColor}
       />
 
@@ -760,6 +910,99 @@ export const CustomerMenuPage = () => {
           box-shadow: 0 20px 40px -15px var(--theme-hover);
         }
       `}} />
+      {/* Offers Drawer */}
+      <AnimatePresence>
+        {isOffersDrawerOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOffersDrawerOpen(false)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-white dark:bg-slate-900 rounded-t-[3rem] p-10 z-[101] max-h-[85vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-10">
+                <div>
+                  <h3 className="text-3xl font-black italic tracking-tighter uppercase">Exclusive Offers</h3>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Unlock hand-picked deals from {guestSession?.restaurantName}</p>
+                </div>
+                <button 
+                  onClick={() => setIsOffersDrawerOpen(false)}
+                  className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-900 dark:text-white"
+                  title="Close offers"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {availableCoupons.length === 0 ? (
+                  <div className="py-20 text-center opacity-40">
+                    <Tag size={40} className="mx-auto mb-4" />
+                    <p className="text-[10px] font-black uppercase tracking-widest">No active offers available</p>
+                  </div>
+                ) : availableCoupons.map((coupon) => {
+                  const isEligible = cartTotal >= coupon.minOrderAmount;
+                  const discountText = coupon.discountType === 'percentage' 
+                    ? `${coupon.value}% OFF` 
+                    : `₹${coupon.value} FLAT OFF`;
+
+                  return (
+                    <div 
+                      key={coupon._id}
+                      className={`p-8 rounded-[2.5rem] border-2 transition-all ${isEligible ? 'border-slate-100 dark:border-white/5 bg-slate-50/30' : 'border-slate-100 dark:border-white/5 opacity-60'}`}
+                    >
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className="text-[10px] font-black px-4 py-1.5 rounded-full border-2 border-dashed border-slate-300 dark:border-white/10 uppercase tracking-widest">{coupon.code}</span>
+                            <span className="text-xs font-black italic uppercase tracking-tight" style={{ color: guestSession?.themeColor }}>{discountText}</span>
+                          </div>
+                          <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight mb-2">{coupon.description}</p>
+                        </div>
+                        <button
+                          disabled={!isEligible}
+                          onClick={() => {
+                            setCouponCode(coupon.code);
+                            handleApplyCoupon(coupon.code);
+                            setIsOffersDrawerOpen(false);
+                          }}
+                          className={`px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isEligible ? 'text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}
+                          style={isEligible ? { backgroundColor: guestSession?.themeColor } : {}}
+                        >
+                          {isEligible ? 'Apply' : 'Locked'}
+                        </button>
+                      </div>
+                      
+                      {!isEligible && (
+                        <div className="flex items-center gap-3 pt-6 border-t border-slate-100 dark:border-white/5">
+                           <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full" 
+                                style={{ 
+                                  backgroundColor: guestSession?.themeColor, 
+                                  width: `${Math.min(100, (cartTotal / coupon.minOrderAmount) * 100)}%` 
+                                }} 
+                              />
+                           </div>
+                           <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Add ₹{(coupon.minOrderAmount - cartTotal).toFixed(0)} more</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </CustomerLayout>
   );
 };
