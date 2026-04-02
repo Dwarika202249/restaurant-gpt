@@ -15,7 +15,8 @@ import {
   CustomerProfilePage,
   CustomerHistoryPage,
   CustomerRewardsPage,
-  MarketingPage
+  MarketingPage,
+  AllOrdersPage
 } from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
@@ -51,6 +52,10 @@ const routes: RouteObject[] = [
       {
         path: 'orders',
         element: <OrdersPage />
+      },
+      {
+        path: 'orders/all',
+        element: <AllOrdersPage />
       },
       {
         path: 'analytics',

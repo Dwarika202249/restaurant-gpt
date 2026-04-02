@@ -42,7 +42,7 @@ export const DashboardLayout = () => {
         <Navbar />
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 relative z-10">
+        <main className="flex-1 relative">
           <Outlet context={{ sidebarOpen, setSidebarOpen }} />
         </main>
       </div>

@@ -11,19 +11,29 @@ export interface OrderItem {
   priceSnapshot: number;
   quantity: number;
   itemTotal: number;
+  customizations?: Array<{ key: string; value: string }>;
 }
 
 export interface Order {
   _id: string;
   orderNumber: string;
-  tableNo: string;
+  tableNo: number | string;
   status: 'new' | 'preparing' | 'ready' | 'completed';
   items: OrderItem[];
   subtotal: number;
+  taxAmount?: number;
+  discountAmount?: number;
+  pointsEarned?: number;
+  pointsRedeemed?: number;
   total: number;
   paymentStatus: 'pending' | 'completed' | 'failed';
   paymentMethod: string;
   orderedAt: string;
+  customerId?: {
+    _id: string;
+    name: string;
+    phone: string;
+  } | null;
 }
 
 export interface OrderStatsSummary {
@@ -60,7 +70,7 @@ const initialState: OrderState = {
  */
 export const fetchOrders = createAsyncThunk<
   Order[],
-  { status?: string; limit?: number; date?: string; startDate?: string; endDate?: string },
+  { status?: string; limit?: number; date?: string; startDate?: string; endDate?: string; searchTerm?: string; paymentStatus?: string },
   { state: RootState }
 >('orders/fetchAll', async (filters, { rejectWithValue, getState }) => {
   try {

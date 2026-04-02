@@ -160,7 +160,7 @@ const createOrder = async (req, res) => {
 const getOrders = async (req, res) => {
   try {
     const { restaurantId } = req;
-    const { status, date, page = 1, limit = 20 } = req.query;
+    const { status, date, page = 1, limit = 20, searchTerm, paymentStatus } = req.query;
 
     if (!restaurantId) {
       return res.status(400).json({
@@ -174,6 +174,22 @@ const getOrders = async (req, res) => {
     // Filter by status if provided
     if (status && ['new', 'preparing', 'ready', 'completed'].includes(status)) {
       filter.status = status;
+    }
+
+    // Filter by paymentStatus if provided
+    if (paymentStatus && ['pending', 'completed', 'failed'].includes(paymentStatus)) {
+      filter.paymentStatus = paymentStatus;
+    }
+
+    // Advanced search by Order Number or Table Number
+    if (searchTerm) {
+      const searchRegex = new RegExp(searchTerm, 'i');
+      const tableNum = parseInt(searchTerm);
+      
+      filter.$or = [
+        { orderNumber: searchRegex },
+        { tableNo: !isNaN(tableNum) ? tableNum : -1 }
+      ];
     }
 
     // Filter by date range
@@ -222,6 +238,7 @@ const getOrders = async (req, res) => {
 
     // Fetch orders
     const orders = await Order.find(filter)
+      .populate('customerId', 'name phone')
       .sort({ orderedAt: -1 })
       .skip(skip)
       .limit(pageSize)
