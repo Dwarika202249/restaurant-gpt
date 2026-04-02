@@ -85,11 +85,11 @@ export const Navbar = () => {
               className="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
               title="User Profile"
             >
-              <div className="w-9 h-9 rounded-xl orange-gradient flex items-center justify-center text-white font-bold shadow-glow-orange transition-transform hover:scale-105">
-                {user?.phone?.slice(-1).toUpperCase() || 'A'}
+              <div className="w-9 h-9 rounded-xl orange-gradient flex items-center justify-center text-white font-bold shadow-glow-orange transition-transform hover:scale-105 uppercase">
+                {user?.name ? user.name.charAt(0) : (user?.phone ? user.phone.slice(-1) : 'A')}
               </div>
               <div className="hidden sm:block text-left pr-2">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white leading-none mb-1">{user?.phone || 'Admin'}</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white leading-none mb-1">{user?.name || user?.phone || 'Admin'}</p>
                 <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{restaurant?.name || 'Restaurant'}</p>
               </div>
             </button>
@@ -98,7 +98,8 @@ export const Navbar = () => {
             {isProfileOpen && (
               <div className="absolute right-0 mt-3 w-56 bg-surface-light dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">
                 <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">{user?.phone}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{user?.name || 'Admin'}</p>
+                  {user?.name && <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{user.phone}</p>}
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Prime {user?.role}</p>
                 </div>
 
