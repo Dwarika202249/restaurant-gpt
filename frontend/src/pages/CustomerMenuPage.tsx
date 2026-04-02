@@ -83,6 +83,7 @@ export const CustomerMenuPage = () => {
   const [loyaltyData, setLoyaltyData] = useState<{ points: number; settings: any } | null>(null);
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
   const [isOffersDrawerOpen, setIsOffersDrawerOpen] = useState(false);
+  const [isCallingWaiter, setIsCallingWaiter] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -99,13 +100,7 @@ export const CustomerMenuPage = () => {
     // Real-time Sync across tabs/pages
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'customerUser') {
-        if (e.newValue) {
-          try {
-            setCustomerUser(JSON.parse(e.newValue));
-          } catch {}
-        } else {
-          setCustomerUser(null);
-        }
+        setCustomerUser(e.newValue ? JSON.parse(e.newValue) : null);
       }
     };
 
@@ -113,6 +108,33 @@ export const CustomerMenuPage = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  const handleCallWaiter = async () => {
+    if (!guestSession) return;
+    setIsCallingWaiter(true);
+    try {
+      await axios.post(`${API_URL}/notifications/call-waiter`, {
+        restaurantId: guestSession.restaurantId,
+        tableNo: guestSession.tableNo
+      });
+      toast.success('Waiter is on the way!', {
+        icon: '🔔',
+        style: {
+          borderRadius: '20px',
+          background: '#334155',
+          color: '#fff',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em'
+        },
+      });
+    } catch (err) {
+      console.error('Call waiter error:', err);
+      toast.error('Failed to call waiter');
+    } finally {
+      setIsCallingWaiter(false);
+    }
+  };
   // Fetch loyalty balance on mount if user already logged in
   useEffect(() => {
     if (customerUser && guestSession?.restaurantId) {
@@ -418,6 +440,7 @@ export const CustomerMenuPage = () => {
   const handlePlaceOrder = async () => {
     if (cart.length === 0 || !guestSession) return;
     try {
+      setShowCartPreview(false);
       setIsOrdering(true);
       setOrderStep('validating');
       await new Promise(r => setTimeout(r, 1500)); // Simulating Securing Connection
@@ -460,7 +483,6 @@ export const CustomerMenuPage = () => {
       // Finish experience
       setTimeout(() => {
         setIsOrdering(false);
-        setShowCartPreview(false);
         // Scroll to status
         setTimeout(() => {
           statusRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -504,6 +526,8 @@ export const CustomerMenuPage = () => {
       }}
       onLoginClick={() => setIsAuthModalOpen(true)}
       customerUser={customerUser}
+      cartCount={cart.length}
+      onCartClick={() => setShowCartPreview(true)}
     >
       <div className="max-w-4xl mx-auto pb-40 px-4">
         {/* Subtle Branding Hero */}
@@ -641,7 +665,7 @@ export const CustomerMenuPage = () => {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0, y: 100 }}
               onClick={() => setShowCartPreview(true)}
-              className="fixed bottom-10 right-10 z-[70] bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-8 py-6 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:scale-110 active:scale-95 transition-all flex items-center gap-6 group"
+              className="fixed bottom-10 left-10 z-[70] hidden sm:flex bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-8 py-6 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:scale-110 active:scale-95 transition-all items-center gap-6 group"
               title="View Cart"
             >
               <div className="relative">
@@ -663,8 +687,8 @@ export const CustomerMenuPage = () => {
         <AnimatePresence>
           {showCartPreview && (
             <>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCartPreview(false)} className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[80]" />
-              <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25 }} className="fixed right-0 top-0 bottom-0 w-full max-w-xl bg-white dark:bg-slate-950 z-[90] shadow-3xl flex flex-col">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCartPreview(false)} className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[120]" />
+              <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', damping: 25 }} className="fixed left-0 top-0 bottom-0 w-full max-w-xl bg-white dark:bg-slate-950 z-[130] shadow-3xl flex flex-col">
                 <div className="p-10 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
                   <div>
                     <h2 className="text-3xl font-black uppercase tracking-tighter italic">Your Curation</h2>
@@ -972,14 +996,14 @@ export const CustomerMenuPage = () => {
               animate={{ opacity: 1 }} 
               exit={{ opacity: 0 }}
               onClick={() => setIsOffersDrawerOpen(false)}
-              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]"
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[140]"
             />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-white dark:bg-slate-900 rounded-t-[3rem] p-10 z-[101] max-h-[85vh] overflow-y-auto"
+              className="fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-white dark:bg-slate-900 rounded-t-[3rem] p-10 z-[150] max-h-[85vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-10">
                 <div>
@@ -1056,6 +1080,50 @@ export const CustomerMenuPage = () => {
           </>
         )}
       </AnimatePresence>
+
+      {/* AI Concierge */}
+      {guestSession && (
+        <AiConcierge 
+          restaurantSlug={restaurantSlug!} 
+          restaurantName={guestSession.restaurantName}
+          themeColor={guestSession.themeColor}
+        />
+      )}
+
+      {/* Order Status Widget */}
+      {activeOrders.length > 0 && (
+        <OrderStatusWidget 
+          orders={activeOrders} 
+          onRefresh={() => {
+            const token = localStorage.getItem('customerToken') || guestSession?.sessionToken;
+            if (token) fetchActiveOrders(token);
+          }} 
+        />
+      )}
+
+      {/* Call Waiter Floating Button */}
+      {!loading && guestSession && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.5, y: 50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          whileHover={{ scale: 1.1, rotate: -5 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={handleCallWaiter}
+          disabled={isCallingWaiter}
+          className="fixed bottom-24 right-6 z-[100] bg-white dark:bg-slate-800 p-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-slate-100 dark:border-white/5 text-brand-500 flex items-center justify-center group backdrop-blur-md"
+          title="Call Waiter"
+        >
+          <UtensilsCrossed size={22} className={isCallingWaiter ? 'animate-spin' : 'group-hover:rotate-12 transition-transform'} />
+          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-3 transition-all duration-300 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 whitespace-nowrap">
+            {isCallingWaiter ? 'Calling...' : 'Call Waiter'}
+          </span>
+          
+          {/* Subtle pulse effect */}
+          {!isCallingWaiter && (
+            <span className="absolute inset-0 rounded-full bg-brand-500/20 animate-ping -z-10"></span>
+          )}
+        </motion.button>
+      )}
     </CustomerLayout>
   );
 };

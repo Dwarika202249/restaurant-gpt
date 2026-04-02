@@ -24,6 +24,15 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const http = require('http');
+const socketService = require('./src/services/socketService');
+
+// Create HTTP Server
+const httpServer = http.createServer(app);
+
+// Initialize Socket.io
+socketService.init(httpServer);
+
 // Routes
 const authRoutes = require('./src/routes/auth');
 const restaurantRoutes = require('./src/routes/restaurant');
@@ -35,6 +44,7 @@ const couponRoutes = require('./src/routes/coupons');
 const aiRoutes = require('./src/routes/ai');
 const subscriptionRoutes = require('./src/routes/subscription');
 const marketingRoutes = require('./src/routes/marketing');
+const notificationRoutes = require('./src/routes/notifications');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/restaurant', restaurantRoutes);
@@ -46,6 +56,7 @@ app.use('/api/restaurant/coupons', couponRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/marketing', marketingRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
@@ -74,7 +85,7 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`RestaurantGPT Backend listening on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

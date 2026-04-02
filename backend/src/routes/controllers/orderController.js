@@ -1,5 +1,6 @@
-const { Order, Menu, Restaurant, User, Coupon } = require('../../models');
+const { Order, Menu, Restaurant, User, Coupon, Notification } = require('../../models');
 const mongoose = require('mongoose');
+const socketService = require('../../services/socketService');
 
 /**
  * Create a new order from customer cart
@@ -138,6 +139,26 @@ const createOrder = async (req, res) => {
     });
 
     await order.save();
+
+    // --- NEW: Real-time Notification ---
+    try {
+      const notification = await Notification.create({
+        restaurantId,
+        type: 'NEW_ORDER',
+        title: 'New Order Received!',
+        message: `Table #${tableNo} placed an order of ₹${order.total.toFixed(2)}`,
+        metadata: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          tableNo: tableNo,
+          amount: order.total
+        }
+      });
+      // Emit via Socket.io
+      socketService.emitToRestaurant(restaurantId, 'new-notification', notification);
+    } catch (notifErr) {
+      console.error('Failed to create order notification:', notifErr);
+    }
 
     return res.status(201).json({
       message: 'Order created successfully',
@@ -637,6 +658,28 @@ const updatePaymentStatus = async (req, res) => {
       } catch (loyaltyError) {
         console.error('Failed to accrue loyalty points:', loyaltyError);
         // We don't fail the whole request if loyalty point calculation fails
+      }
+    }
+
+    // --- NEW: Real-time Notification for Payment ---
+    if (paymentStatus === 'completed') {
+      try {
+        const notification = await Notification.create({
+          restaurantId,
+          type: 'PAYMENT_SUCCESS',
+          title: 'Payment Confirmed!',
+          message: `Order ${order.orderNumber} (Table #${order.tableNo}) has been PAID (₹${order.total.toFixed(2)})`,
+          metadata: {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            tableNo: order.tableNo,
+            amount: order.total
+          }
+        });
+        // Emit via Socket.io
+        socketService.emitToRestaurant(restaurantId, 'new-notification', notification);
+      } catch (notifErr) {
+        console.error('Failed to create payment notification:', notifErr);
       }
     }
 

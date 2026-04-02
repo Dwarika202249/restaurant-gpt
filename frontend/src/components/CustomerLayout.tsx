@@ -11,7 +11,8 @@ import {
   LogIn,
   UserPlus, 
   Settings,
-  Star
+  Star,
+  ShoppingCart
 } from 'lucide-react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 
@@ -24,6 +25,8 @@ interface CustomerLayoutProps {
   onLogout: () => void;
   onLoginClick?: () => void;
   customerUser?: any;
+  cartCount?: number;
+  onCartClick?: () => void;
 }
 
 export const CustomerLayout: React.FC<CustomerLayoutProps> = ({ 
@@ -34,7 +37,9 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({
   tableNo,
   onLogout,
   onLoginClick,
-  customerUser
+  customerUser,
+  cartCount = 0,
+  onCartClick
 }) => {
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const { restaurantSlug } = useParams<{ restaurantSlug: string }>();
@@ -84,34 +89,50 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({
           </div>
         </Link>
 
-        {/* Profile / Auth Section */}
-        <div className="relative">
-          <button 
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-2 px-3 py-2 bg-slate-100/50 dark:bg-white/5 rounded-2xl border border-white/20 hover:bg-white dark:hover:bg-white/10 transition-all group"
-            title="Account Information"
-          >
-            <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20 group-hover:scale-110 transition-transform">
-               <UserIcon size={16} strokeWidth={3} />
-            </div>
-            <ChevronDown size={14} className={`text-slate-400 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} />
-          </button>
+        {/* Actions Section */}
+        <div className="flex items-center gap-3">
+          {/* Mobile Cart Button - Visible only on small screens */}
+          {cartCount > 0 && (
+            <button
+              onClick={onCartClick}
+              className="sm:hidden relative p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-white/20 text-brand-500 transition-all active:scale-95 shadow-sm"
+              title="View Cart"
+            >
+              <ShoppingCart size={20} className="fill-current animate-pulse" />
+              <span className="absolute -top-2 -right-2 w-5 h-5 bg-brand-500 text-white rounded-full flex items-center justify-center text-[8px] font-black border-2 border-white dark:border-slate-900 shadow-lg">
+                {cartCount}
+              </span>
+            </button>
+          )}
 
-          <AnimatePresence>
-            {isProfileOpen && (
-              <>
-                <motion.div 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsProfileOpen(false)}
-                  className="fixed inset-0 z-[-1]" 
-                />
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 mt-4 w-72 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-white/5 p-4 overflow-hidden"
+          {/* Profile Section */}
+          <div className="relative">
+            <button 
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="flex items-center gap-2 px-3 py-2 bg-slate-100/50 dark:bg-white/5 rounded-2xl border border-white/20 hover:bg-white dark:hover:bg-white/10 transition-all group"
+              title="Account Information"
+            >
+              <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20 group-hover:scale-110 transition-transform">
+                 <UserIcon size={16} strokeWidth={3} />
+              </div>
+              <ChevronDown size={14} className={`text-slate-400 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            <AnimatePresence>
+              {isProfileOpen && (
+                <>
+                  <motion.div 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }}
+                    onClick={() => setIsProfileOpen(false)}
+                    className="fixed inset-0 z-[-1]" 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-4 w-72 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-white/5 p-4 overflow-hidden"
                 >
                   <div className="px-4 py-6 border-b border-slate-50 dark:border-white/5 mb-2">
                     {customerUser ? (
@@ -213,7 +234,8 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({
             )}
           </AnimatePresence>
         </div>
-      </nav>
+      </div>
+    </nav>
 
       <main className="pt-24 min-h-screen">
         {children}
