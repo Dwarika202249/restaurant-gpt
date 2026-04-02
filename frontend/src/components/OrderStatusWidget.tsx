@@ -41,10 +41,10 @@ const OrderStatusWidget: React.FC<OrderStatusWidgetProps> = ({ orders, onRefresh
                 {activeOrders.length} Order{activeOrders.length > 1 ? 's' : ''} in progress
               </p>
               <h4 className="text-white text-xs font-black uppercase tracking-widest">
-                 {mainOrder.status === 'new' && 'Order Received'}
-                 {mainOrder.status === 'preparing' && 'In the Kitchen'}
-                 {mainOrder.status === 'ready' && 'Ready for Service'}
-                 {mainOrder.status === 'completed' && 'Deliciously Done'}
+                  {mainOrder.status === 'new' && 'Order Placed'}
+                  {mainOrder.status === 'preparing' && 'In the Kitchen'}
+                  {mainOrder.status === 'ready' && 'Ready for Service'}
+                  {mainOrder.status === 'completed' && 'Deliciously Done'}
               </h4>
             </div>
           </div>
@@ -68,7 +68,12 @@ const OrderStatusWidget: React.FC<OrderStatusWidgetProps> = ({ orders, onRefresh
                          <p className="text-white text-[10px] font-black uppercase tracking-widest mb-1">Order #{order.orderNumber?.split('-').pop()}</p>
                          <div className="flex items-center gap-2">
                             <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${order.status === 'ready' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{order.status}</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                               {order.status === 'new' ? 'Placed' : 
+                                order.status === 'preparing' ? 'Cooking' :
+                                order.status === 'ready' ? 'Served' : 
+                                order.status}
+                             </span>
                           </div>
                       </div>
                       <div className="text-right">

@@ -569,7 +569,7 @@ const updatePaymentStatus = async (req, res) => {
 
     // Auto-update order status to preparing if payment completed
     if (paymentStatus === 'completed') {
-      updateData.status = 'preparing';
+      // updateData.status = 'preparing'; // Removed: Keep in 'new' for admin confirmed flow
     }
 
     const filter = { _id: orderId, restaurantId };

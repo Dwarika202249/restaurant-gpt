@@ -35,10 +35,10 @@ export const OrdersPage = () => {
   useTabTitle('Live Orders');
 
   useEffect(() => {
-    dispatch(fetchOrders({}));
+    dispatch(fetchOrders({ date: 'today' }));
     // Poll for new orders every 30 seconds
     const interval = setInterval(() => {
-      dispatch(fetchOrders({}));
+      dispatch(fetchOrders({ date: 'today' }));
     }, 30000);
     return () => clearInterval(interval);
   }, [dispatch]);
@@ -51,8 +51,12 @@ export const OrdersPage = () => {
 
   const filteredOrders = ordersList.filter(
     (order) => {
-      const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.tableNo.toLowerCase().includes(searchTerm.toLowerCase());
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = 
+        order.orderNumber.toLowerCase().includes(searchLower) ||
+        String(order.tableNo).toLowerCase().includes(searchLower) ||
+        order.items.some(item => item.nameSnapshot.toLowerCase().includes(searchLower));
+        
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
       return matchesSearch && matchesStatus;
     }
