@@ -1,4 +1,4 @@
-const { Restaurant } = require('../../models');
+const { Restaurant, Table } = require('../../models');
 const { buildRestaurantFilter } = require('../../middleware/tenantContext');
 
 /**
@@ -95,11 +95,43 @@ const updateRestaurantProfile = async (req, res) => {
 
     updateData.updatedAt = new Date();
 
+    const currentRestaurant = await Restaurant.findById(restaurantId);
+    if (!currentRestaurant) {
+      return res.status(404).json({
+        message: 'Restaurant not found'
+      });
+    }
+
+    // Capture tablesCount change
+    const oldTablesCount = currentRestaurant.tablesCount;
+    const newTablesCount = updateData.tablesCount;
+
     const restaurant = await Restaurant.findByIdAndUpdate(
       restaurantId,
       updateData,
       { new: true, runValidators: true }
     );
+
+    // Sync Tables if count increased
+    if (newTablesCount !== undefined && newTablesCount > oldTablesCount) {
+      const tablesToCreate = [];
+      for (let i = oldTablesCount + 1; i <= newTablesCount; i++) {
+        // Check if table record already exists (to avoid duplicates if previously manually added)
+        const existingTable = await Table.findOne({ restaurantId, tableNo: i });
+        if (!existingTable) {
+          tablesToCreate.push({
+            restaurantId,
+            tableNo: i,
+            label: `Table ${i}`,
+            status: 'active'
+          });
+        }
+      }
+      
+      if (tablesToCreate.length > 0) {
+        await Table.insertMany(tablesToCreate);
+      }
+    }
 
     if (!restaurant) {
       return res.status(404).json({

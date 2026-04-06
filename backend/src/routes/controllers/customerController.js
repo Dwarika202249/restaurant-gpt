@@ -1,4 +1,4 @@
-const { Restaurant, Session } = require('../../models');
+const { Restaurant, Session, Table } = require('../../models');
 const { generateGuestToken } = require('../../utils/tokenGenerator');
 const mongoose = require('mongoose');
 
@@ -35,11 +35,27 @@ const createGuestSession = async (req, res) => {
 
     const { _id: restaurantId, tablesCount } = restaurant;
 
-    // Verify table exists
-    if (tableNo > tablesCount) {
-      return res.status(400).json({
-        message: `Invalid table number. This restaurant has ${tablesCount} tables`
-      });
+    // Verify table exists and its status
+    const tableInfo = await Table.findOne({ restaurantId, tableNo: parseInt(tableNo, 10) });
+    
+    if (tableInfo) {
+      if (tableInfo.status === 'maintenance') {
+        return res.status(403).json({
+          message: 'TABLE_UNDER_MAINTENANCE'
+        });
+      }
+      if (tableInfo.status === 'inactive' || tableInfo.isActive === false) {
+        return res.status(403).json({
+          message: 'TABLE_INACTIVE'
+        });
+      }
+    } else {
+      // Fallback for legacy tables not explicitly in Table collection yet
+      if (tableNo > tablesCount) {
+        return res.status(400).json({
+          message: `Invalid table number. This restaurant has ${tablesCount} tables`
+        });
+      }
     }
 
     // 1. If a sessionId was provided, try to resume it

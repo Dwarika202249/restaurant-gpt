@@ -5,6 +5,7 @@ import { useTabTitle } from '@/hooks';
 import { Loading, Error } from '@/components';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Wrench, ShieldAlert, Store, Clock } from 'lucide-react';
 
 /**
  * Customer Landing Page (QR Scan Entry Point)
@@ -21,6 +22,8 @@ export const CustomerLandingPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [restaurantData, setRestaurantData] = useState<any>(null);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [inactiveMode, setInactiveMode] = useState(false);
 
     const API_URL = VITE_API_URL;
 
@@ -31,6 +34,8 @@ export const CustomerLandingPage = () => {
       try {
         setLoading(true);
         setError(null);
+        setMaintenanceMode(false);
+        setInactiveMode(false);
 
         if (!restaurantSlug || !tableNo) {
           setError('Invalid QR code context');
@@ -76,7 +81,14 @@ export const CustomerLandingPage = () => {
           navigate(`/customer/${restaurantSlug}/table/${table}`, { replace: true });
         }, 1500);
       } catch (err: any) {
-        setError(err.response?.data?.message || 'Failed to connect to restaurant');
+        const msg = err.response?.data?.message;
+        if (msg === 'TABLE_UNDER_MAINTENANCE') {
+          setMaintenanceMode(true);
+        } else if (msg === 'TABLE_INACTIVE') {
+          setInactiveMode(true);
+        } else {
+          setError(msg || 'Failed to connect to restaurant');
+        }
       } finally {
         setLoading(false);
       }
@@ -84,6 +96,55 @@ export const CustomerLandingPage = () => {
 
     initializeCustomerSession();
   }, [restaurantSlug, tableNo, navigate]);
+
+  const themeColor = restaurantData?.themeColor || '#6366f1';
+
+  // Maintenance View
+  if (maintenanceMode || inactiveMode) {
+    return (
+      <div 
+        className="min-h-screen flex items-center justify-center bg-[#fcfaf8] p-6 relative overflow-hidden"
+        style={{ ['--brand-color' as any]: themeColor }}
+      >
+        <div className="absolute inset-0 opacity-[0.05] bg-[radial-gradient(circle_at_center,var(--brand-color)_0%,transparent_70%)]" />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-10 max-w-sm w-full text-center"
+        >
+          <div className="glass p-10 rounded-[3rem] shadow-2xl border border-white/50 backdrop-blur-xl">
+            <div className="w-20 h-20 bg-brand-500/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8 text-brand-500">
+               {maintenanceMode ? <Wrench size={40} /> : <ShieldAlert size={40} />}
+            </div>
+            
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-4">
+              {maintenanceMode ? 'Table Servicing' : 'Table Unavailable'}
+            </h2>
+            <p className="text-sm font-medium text-slate-500 leading-relaxed mb-8">
+              {maintenanceMode 
+                ? "This table is currently being serviced to ensure the best experience. Please choose another table or consult our staff."
+                : "This table is currently not accepting orders. Please reach out to our team for assistance."}
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => window.location.reload()}
+                style={{ backgroundColor: themeColor }}
+                className="w-full py-4 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg hover:scale-[1.02] transition-transform"
+              >
+                Refresh Status
+              </button>
+              <div className="flex items-center justify-center gap-2 py-4 bg-slate-50 rounded-2xl">
+                 <Store size={14} className="text-slate-400" />
+                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{restaurantData?.name || 'Restaurant'}</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -106,8 +167,6 @@ export const CustomerLandingPage = () => {
       </div>
     );
   }
-
-  const themeColor = restaurantData?.themeColor || '#6366f1';
 
   return (
     <div 

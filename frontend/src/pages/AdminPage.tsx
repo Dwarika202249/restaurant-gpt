@@ -61,7 +61,8 @@ const AdminPage: React.FC = () => {
     name: '',
     logoUrl: '',
     themeColor: '#ff9500',
-    currency: 'INR'
+    currency: 'INR',
+    tablesCount: 10
   });
 
   const API_URL = VITE_API_URL;
@@ -89,7 +90,8 @@ const AdminPage: React.FC = () => {
         name: data.name || '',
         logoUrl: data.logoUrl || '',
         themeColor: data.themeColor || '#ff9500',
-        currency: data.currency || 'INR'
+        currency: data.currency || 'INR',
+        tablesCount: data.tablesCount || 10
       });
     } catch (err) {
       console.error('Failed to fetch restaurant profile');
@@ -104,14 +106,12 @@ const AdminPage: React.FC = () => {
     setError(null);
     setSuccess(null);
     try {
-      const token = localStorage.getItem('accessToken');
-      await axios.put(`${API_URL}/restaurant/profile`, brandingForm, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSuccess('Restaurant branding updated successfully!');
+      const { updateRestaurantProfile } = await import('@/store/slices/restaurantSlice');
+      await dispatch(updateRestaurantProfile(brandingForm) as any).unwrap();
+      setSuccess('Restaurant branding and fleet capacity updated successfully!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update branding');
+      setError(err.message || 'Failed to update branding');
     } finally {
       setLoading(false);
     }
@@ -410,6 +410,21 @@ const AdminPage: React.FC = () => {
                       <option value="EUR">EUR (€)</option>
                       <option value="GBP">GBP (£)</option>
                     </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="brand-tables" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                      <Users size={12} /> Total Tables
+                    </label>
+                    <input
+                      id="brand-tables"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={brandingForm.tablesCount}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, tablesCount: parseInt(e.target.value) || 1 })}
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
+                      title="Total Number of Tables"
+                    />
                   </div>
                 </div>
 
