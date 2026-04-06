@@ -24,12 +24,18 @@ interface AiConciergeProps {
   restaurantSlug: string;
   restaurantName: string;
   themeColor?: string;
+  cartItems?: any[];
+  loyaltyData?: any;
+  coupons?: any[];
 }
 
 export const AiConcierge: React.FC<AiConciergeProps> = ({
   restaurantSlug,
   restaurantName,
-  themeColor = '#f97316'
+  themeColor = '#f97316',
+  cartItems = [],
+  loyaltyData = null,
+  coupons = []
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -59,7 +65,10 @@ export const AiConcierge: React.FC<AiConciergeProps> = ({
     try {
       const response = await axios.post(`${VITE_API_URL}/ai/chat/${restaurantSlug}`, {
         message: userMsg,
-        history: history.slice(-6) // Send small history context
+        history: history.slice(-6), // Send small history context
+        cart: cartItems,
+        loyalty: loyaltyData,
+        offers: coupons
       });
 
       const aiResponse = response.data.data.response;
@@ -75,7 +84,7 @@ export const AiConcierge: React.FC<AiConciergeProps> = ({
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100]">
+    <div className="fixed bottom-6 right-6 z-[110]">
       <AnimatePresence mode="wait">
         {!isOpen ? (
           /* Floating Toggle Button - Only shown when closed */

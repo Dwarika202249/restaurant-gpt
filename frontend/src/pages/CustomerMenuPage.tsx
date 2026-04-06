@@ -1088,6 +1088,9 @@ export const CustomerMenuPage = () => {
           restaurantSlug={restaurantSlug!} 
           restaurantName={guestSession.restaurantName}
           themeColor={guestSession.themeColor}
+          cartItems={cart}
+          loyaltyData={loyaltyData}
+          coupons={availableCoupons}
         />
       )}
 

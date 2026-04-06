@@ -9,7 +9,7 @@ const aiService = require("../../services/aiService");
 const chat = async (req, res) => {
   try {
     const { restaurantSlug } = req.params;
-    const { message, history = [] } = req.body;
+    const { message, history = [], cart = [], loyalty = null, offers = [] } = req.body;
 
     if (!message) {
       return res.status(400).json({ message: "Message is required" });
@@ -37,6 +37,11 @@ const chat = async (req, res) => {
       restaurant: {
         name: restaurant.name,
         currency: restaurant.currency
+      },
+      userSession: {
+        cart,
+        loyalty,
+        offers
       }
     };
 

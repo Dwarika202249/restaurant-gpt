@@ -98,11 +98,34 @@ const analyzeBusinessInsights = async (orders, stats, restaurant, dateRange) => 
  */
 const getAiConciergeResponse = async (userMessage, menuContext, history = []) => {
   try {
-    const { categories, items, restaurant } = menuContext;
+    const { categories, items, restaurant, userSession } = menuContext;
+    const { cart = [], loyalty = null, offers = [] } = userSession || {};
     
+    // Personalization logic
+    const customerName = loyalty?.customerName || "Guest";
+    const isLoggedIn = !!loyalty;
+
+    const cartContext = cart.length > 0 
+      ? `Current Cart: ${cart.map(i => `${i.name} (x${i.quantity})`).join(', ')}. Total: ${restaurant.currency}${cart.reduce((sum, i) => sum + (i.price * i.quantity), 0)}.`
+      : "The guest's cart is currently empty.";
+
+    const loyaltyContext = isLoggedIn 
+      ? `Loyalty Status: ${customerName} has ${loyalty.points} points available.`
+      : "Guest status: Not logged in. Suggest logging in to view points and personalized offers.";
+
+    const offersContext = offers.length > 0
+      ? `Available Offers: ${offers.map(o => `${o.code} (${o.discountType === 'percentage' ? o.value + '%' : restaurant.currency + o.value} OFF)`).join('; ')}.`
+      : "No specific coupons revealed yet. Suggest logging in or checking the offers section.";
+
     const systemPrompt = `
       You are "RestaurantGPT's AI Concierge", a sophisticated and welcoming digital Maître d' for "${restaurant.name}". 
-      Your goal is to help guests navigate the menu, make flavor-accurate recommendations, and answer dietary questions.
+      Your goal is to help guests navigate the menu, make recommendations, and answer session-related questions.
+
+      ## Guest Session Context (REAL-TIME):
+      - Guest Name: ${customerName}
+      - ${cartContext}
+      - ${loyaltyContext}
+      - ${offersContext}
 
       ## Restaurant Context:
       - Name: ${restaurant.name}
@@ -111,14 +134,13 @@ const getAiConciergeResponse = async (userMessage, menuContext, history = []) =>
       - Full Menu Base: ${items.map(i => `${i.name} (${restaurant.currency}${i.price}) - ${i.description}. Tags: [${i.tags?.join(', ')}]. Allergens: [${i.allergens?.join(', ')}]`).join('; ')}
 
       ## Conversational Rules:
-      1. Be polite, warm, and professional. Use "Namaste" occasionally.
-      2. If asked for recommendations, suggest 2-3 specific dishes with a reason (e.g., "Our Butter Chicken is a guest favorite because of its velvet-smooth tomato gravy").
-      3. Be 100% accurate about allergens. If unsure, tell the guest to consult the staff directly.
-      4. Speak enthusiastically about the flavors (aromatic, spice-infused, etc.).
-      5. Keep responses concise (max 3-4 sentences total) for quick mobile reading.
-      6. Use clean Markdown for headers or lists if needed.
-      7. NEVER mention competitors or other restaurants.
-      8. Do not talk about politics, religion, or off-topic subjects.
+      1. Be polite, warm, and professional. Address the guest as "${customerName}". Use "Namaste" occasionally.
+      2. If asked about their cart, loyalty points, or deals, use the "Guest Session Context" provided above.
+      3. **CRITICAL**: If a guest asks about points or rewards but is not logged in (${isLoggedIn ? 'User is logged in' : 'User is GUEST'}), politely suggest they "Login or Sign Up" using the profile icon to unlock their loyalty benefits.
+      4. If asked for recommendations, suggest 2-3 specific dishes based on their current cart if possible (pairing suggestions).
+      5. Be 100% accurate about allergens. If unsure, tell the guest to consult the staff directly.
+      6. Keep responses concise (max 3-4 sentences total) for quick mobile reading.
+      7. Use clean Markdown for headers or lists if needed.
     `.trim();
 
     const messages = [

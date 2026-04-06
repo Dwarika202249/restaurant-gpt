@@ -6,13 +6,12 @@ import { useTabTitle } from '@/hooks';
 import { updateAdminProfile } from '@/store/slices/authSlice';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Edit3, 
-  Save, 
-  X, 
+import {
+  User,
+  Mail,
+  Phone,
+  Edit3,
+  Save,
   ShieldCheck,
   UserCheck,
   Users,
@@ -50,7 +49,7 @@ const AdminPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'customers' | 'coupons' | 'branding'>('profile');
-  
+
   // CRM & Branding Data
   const [customers, setCustomers] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
@@ -65,7 +64,7 @@ const AdminPage: React.FC = () => {
     currency: 'INR'
   });
 
-    const API_URL = VITE_API_URL;
+  const API_URL = VITE_API_URL;
 
   useEffect(() => {
     if (activeTab === 'customers') {
@@ -186,14 +185,13 @@ const AdminPage: React.FC = () => {
     );
   }
 
-  const tabClass = (tab: typeof activeTab) => `px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-    activeTab === tab ? 'bg-white dark:bg-slate-700 text-brand-500 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-  }`;
+  const tabClass = (tab: typeof activeTab) => `px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white dark:bg-slate-700 text-brand-500 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+    }`;
 
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto scrollbar-hide">
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6"
@@ -233,7 +231,7 @@ const AdminPage: React.FC = () => {
               </div>
               <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1 uppercase tracking-tight">{user.name}</h3>
               <p className="text-[10px] font-black text-brand-500 uppercase tracking-[0.2em]">Verified Administrator</p>
-              
+
               <div className="w-full mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 space-y-4 text-left">
                 <div className="flex items-center space-x-3 text-slate-500">
                   <Mail size={14} className="text-brand-500" />
@@ -298,7 +296,7 @@ const AdminPage: React.FC = () => {
                     </div>
                     <div className="flex items-center space-x-4 pt-6">
                       <button type="submit" disabled={loading} className="flex-1 py-4 bg-brand-500 text-white rounded-2xl font-black uppercase text-xs shadow-xl shadow-brand-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
-                         <Save size={16} /> Sync Changes
+                        <Save size={16} /> Sync Changes
                       </button>
                       <button type="button" onClick={() => setEditMode(false)} className="px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black uppercase text-xs hover:bg-slate-200 transition-all">Cancel</button>
                     </div>
@@ -315,11 +313,11 @@ const AdminPage: React.FC = () => {
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="lg:col-span-1">
             <div className="glass dark:glass-dark p-8 rounded-[2.5rem] flex flex-col items-center text-center">
               <h3 className="text-[10px] font-black text-brand-500 uppercase tracking-[0.2em] mb-8">Live Visual Preview</h3>
-              <div 
+              <div
                 className="w-full aspect-video rounded-3xl mb-6 shadow-2xl relative overflow-hidden flex items-center justify-center border-4 border-white dark:border-slate-800"
                 style={{ backgroundColor: brandingForm.themeColor + '10' }}
               >
-                <div 
+                <div
                   className="absolute inset-0 opacity-20"
                   style={{ background: `linear-gradient(45deg, ${brandingForm.themeColor}, transparent)` }}
                 />
@@ -330,8 +328,8 @@ const AdminPage: React.FC = () => {
                 )}
               </div>
               <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">{brandingForm.name || 'Your Brand'}</h4>
-              <button 
-                disabled 
+              <button
+                disabled
                 style={{ backgroundColor: brandingForm.themeColor }}
                 className="mt-6 w-full py-4 text-white rounded-2xl font-black uppercase text-[10px] shadow-lg opacity-80"
               >
@@ -341,89 +339,89 @@ const AdminPage: React.FC = () => {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-2">
-             <div className="glass dark:glass-dark p-8 md:p-10 rounded-[2.5rem]">
-                <form onSubmit={handleUpdateBranding} className="space-y-6">
-                   <div className="space-y-2">
-                      <label htmlFor="brand-name" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                        <Store size={12} /> Restaurant Name
-                      </label>
-                      <input 
-                        id="brand-name"
-                        value={brandingForm.name} 
-                        onChange={(e) => setBrandingForm({...brandingForm, name: e.target.value})}
-                        className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
-                        placeholder="e.g. Dwar Da Dhaba"
-                        title="Enter Restaurant Name"
-                        required
+            <div className="glass dark:glass-dark p-8 md:p-10 rounded-[2.5rem]">
+              <form onSubmit={handleUpdateBranding} className="space-y-6">
+                <div className="space-y-2">
+                  <label htmlFor="brand-name" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                    <Store size={12} /> Restaurant Name
+                  </label>
+                  <input
+                    id="brand-name"
+                    value={brandingForm.name}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, name: e.target.value })}
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
+                    placeholder="e.g. Dwar Da Dhaba"
+                    title="Enter Restaurant Name"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="brand-logo" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                    <ImageIcon size={12} /> Logo URL
+                  </label>
+                  <input
+                    id="brand-logo"
+                    value={brandingForm.logoUrl}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, logoUrl: e.target.value })}
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
+                    placeholder="https://example.com/logo.png"
+                    title="Enter Logo URL"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label htmlFor="brand-color-picker" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                      <Palette size={12} /> Brand Color
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="brand-color-picker"
+                        type="color"
+                        value={brandingForm.themeColor}
+                        onChange={(e) => setBrandingForm({ ...brandingForm, themeColor: e.target.value })}
+                        className="w-14 h-14 bg-transparent border-none p-0 cursor-pointer rounded-xl overflow-hidden"
+                        title="Pick Theme Color"
                       />
-                   </div>
-
-                   <div className="space-y-2">
-                      <label htmlFor="brand-logo" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                        <ImageIcon size={12} /> Logo URL
-                      </label>
-                      <input 
-                        id="brand-logo"
-                        value={brandingForm.logoUrl} 
-                        onChange={(e) => setBrandingForm({...brandingForm, logoUrl: e.target.value})}
-                        className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
-                        placeholder="https://example.com/logo.png"
-                        title="Enter Logo URL"
+                      <input
+                        id="brand-color-text"
+                        value={brandingForm.themeColor}
+                        onChange={(e) => setBrandingForm({ ...brandingForm, themeColor: e.target.value })}
+                        className="flex-1 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-black uppercase tracking-widest text-xs focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
+                        placeholder="#FF9500"
+                        title="Enter Hex Color Code"
                       />
-                   </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="brand-currency" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                      <TrendingUp size={12} /> Currency
+                    </label>
+                    <select
+                      id="brand-currency"
+                      value={brandingForm.currency}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, currency: e.target.value })}
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
+                      title="Select Currency"
+                    >
+                      <option value="INR">INR (₹)</option>
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="GBP">GBP (£)</option>
+                    </select>
+                  </div>
+                </div>
 
-                   <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label htmlFor="brand-color-picker" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                          <Palette size={12} /> Brand Color
-                        </label>
-                        <div className="flex gap-2">
-                           <input 
-                             id="brand-color-picker"
-                             type="color"
-                             value={brandingForm.themeColor}
-                             onChange={(e) => setBrandingForm({...brandingForm, themeColor: e.target.value})}
-                             className="w-14 h-14 bg-transparent border-none p-0 cursor-pointer rounded-xl overflow-hidden"
-                             title="Pick Theme Color"
-                           />
-                           <input 
-                              id="brand-color-text"
-                              value={brandingForm.themeColor}
-                              onChange={(e) => setBrandingForm({...brandingForm, themeColor: e.target.value})}
-                              className="flex-1 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-black uppercase tracking-widest text-xs focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
-                              placeholder="#FF9500"
-                              title="Enter Hex Color Code"
-                           />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label htmlFor="brand-currency" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                          <TrendingUp size={12} /> Currency
-                        </label>
-                        <select 
-                          id="brand-currency"
-                          value={brandingForm.currency}
-                          onChange={(e) => setBrandingForm({...brandingForm, currency: e.target.value})}
-                          className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
-                          title="Select Currency"
-                        >
-                           <option value="INR">INR (₹)</option>
-                           <option value="USD">USD ($)</option>
-                           <option value="EUR">EUR (€)</option>
-                           <option value="GBP">GBP (£)</option>
-                        </select>
-                      </div>
-                   </div>
-
-                   <button 
-                     type="submit" 
-                     disabled={loading}
-                     className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
-                   >
-                     {loading ? <div className="w-5 h-5 border-2 border-white dark:border-slate-900 border-t-transparent rounded-full animate-spin" /> : <><Save size={18} /> Update Visual Identity</>}
-                   </button>
-                </form>
-             </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
+                >
+                  {loading ? <div className="w-5 h-5 border-2 border-white dark:border-slate-900 border-t-transparent rounded-full animate-spin" /> : <><Save size={18} /> Update Visual Identity</>}
+                </button>
+              </form>
+            </div>
           </motion.div>
         </div>
       )}
@@ -472,8 +470,8 @@ const AdminPage: React.FC = () => {
 
           <div className="glass dark:glass-dark rounded-[2.5rem] overflow-hidden">
             <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-               <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Member Registry</h3>
-               <button onClick={fetchCustomers} className="text-xs font-black text-brand-500 uppercase tracking-widest hover:underline">Refresh List</button>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Member Registry</h3>
+              <button onClick={fetchCustomers} className="text-xs font-black text-brand-500 uppercase tracking-widest hover:underline">Refresh List</button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
@@ -499,25 +497,25 @@ const AdminPage: React.FC = () => {
                               {customer.name?.charAt(0) || 'C'}
                             </div>
                             <div>
-                               <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight">{customer.name}</p>
-                               <p className="text-[10px] font-bold text-slate-500">{customer.phone}</p>
+                              <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight">{customer.name}</p>
+                              <p className="text-[10px] font-bold text-slate-500">{customer.phone}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-8 py-6 text-center">
-                           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase">
-                             <Clock size={10} />
-                             {customer.orderCount} Orders
-                           </div>
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase">
+                            <Clock size={10} />
+                            {customer.orderCount} Orders
+                          </div>
                         </td>
                         <td className="px-8 py-6 text-center font-black text-slate-900 dark:text-white tracking-tight">₹{customer.totalSpent.toLocaleString()}</td>
                         <td className="px-8 py-6 text-right">
-                           <button 
-                             title="Award Coupon"
-                             className="p-2 text-slate-400 hover:text-brand-500 transition-colors"
-                           >
-                              <Ticket size={18} />
-                           </button>
+                          <button
+                            title="Award Coupon"
+                            className="p-2 text-slate-400 hover:text-brand-500 transition-colors"
+                          >
+                            <Ticket size={18} />
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -531,54 +529,54 @@ const AdminPage: React.FC = () => {
 
       {activeTab === 'coupons' && (
         <div className="space-y-6">
-           {/* Coupons Content (Keeping existing logic but slightly polished) */}
-           <div className="flex justify-between items-center bg-brand-500 p-8 rounded-[2.5rem] text-white overflow-hidden relative shadow-2xl shadow-brand-500/20">
-              <div className="relative z-10">
-                <h3 className="text-3xl font-black uppercase tracking-tight mb-2">Campaign Manager</h3>
-                <p className="text-white/80 font-bold max-w-md">Create high-impact discount codes for global or targeted loyalty campaigns.</p>
-                <Link 
-                  to="/marketing?action=new"
-                  className="mt-6 inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-xl"
-                >
-                  <Plus size={16} />
-                  New Campaign
-                </Link>
-              </div>
-              <Ticket className="absolute -right-8 -bottom-8 text-white/10 w-64 h-64 rotate-12" />
-           </div>
+          {/* Coupons Content (Keeping existing logic but slightly polished) */}
+          <div className="flex justify-between items-center bg-brand-500 p-8 rounded-[2.5rem] text-white overflow-hidden relative shadow-2xl shadow-brand-500/20">
+            <div className="relative z-10">
+              <h3 className="text-3xl font-black uppercase tracking-tight mb-2">Campaign Manager</h3>
+              <p className="text-white/80 font-bold max-w-md">Create high-impact discount codes for global or targeted loyalty campaigns.</p>
+              <Link
+                to="/marketing?action=new"
+                className="mt-6 inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-xl"
+              >
+                <Plus size={16} />
+                New Campaign
+              </Link>
+            </div>
+            <Ticket className="absolute -right-8 -bottom-8 text-white/10 w-64 h-64 rotate-12" />
+          </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {isLoadingCrm ? (
-                <div className="col-span-full p-20 text-center text-slate-400 font-bold uppercase tracking-widest">Syncing active campaigns...</div>
-              ) : coupons.length === 0 ? (
-                <div className="col-span-full p-20 text-center text-slate-400 font-bold uppercase tracking-widest bg-slate-50 dark:bg-slate-800/20 rounded-[2.5rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
-                   No active campaigns. Start one to boost sales!
-                </div>
-              ) : (
-                coupons.map((coupon) => (
-                  <motion.div key={coupon._id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass dark:glass-dark p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 group hover:border-brand-500 transition-all">
-                    <div className="flex justify-between items-start mb-4">
-                       <span className="px-3 py-1 bg-brand-500/10 text-brand-500 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                         {coupon.discountType === 'percentage' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}
-                       </span>
-                       <span className={`text-[10px] font-black uppercase tracking-widest ${coupon.status === 'active' ? 'text-emerald-500' : 'text-slate-400'}`}>
-                         {coupon.status}
-                       </span>
-                    </div>
-                    <div className="space-y-1 mb-6">
-                       <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{coupon.code}</h4>
-                       <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-tight">
-                         {coupon.description || `Valid on orders above ₹${coupon.minOrderAmount}`}
-                       </p>
-                    </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                       <div className="flex items-center gap-1"><Users size={12} /> {coupon.usedCount || 0} Uses</div>
-                       <div className="flex items-center gap-1"><Clock size={12} /> {coupon.expiryDate ? new Date(coupon.expiryDate).toLocaleDateString() : 'Forever'}</div>
-                    </div>
-                  </motion.div>
-                ))
-              )}
-           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {isLoadingCrm ? (
+              <div className="col-span-full p-20 text-center text-slate-400 font-bold uppercase tracking-widest">Syncing active campaigns...</div>
+            ) : coupons.length === 0 ? (
+              <div className="col-span-full p-20 text-center text-slate-400 font-bold uppercase tracking-widest bg-slate-50 dark:bg-slate-800/20 rounded-[2.5rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
+                No active campaigns. Start one to boost sales!
+              </div>
+            ) : (
+              coupons.map((coupon) => (
+                <motion.div key={coupon._id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass dark:glass-dark p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 group hover:border-brand-500 transition-all">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="px-3 py-1 bg-brand-500/10 text-brand-500 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                      {coupon.discountType === 'percentage' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}
+                    </span>
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${coupon.status === 'active' ? 'text-emerald-500' : 'text-slate-400'}`}>
+                      {coupon.status}
+                    </span>
+                  </div>
+                  <div className="space-y-1 mb-6">
+                    <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{coupon.code}</h4>
+                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-tight">
+                      {coupon.description || `Valid on orders above ₹${coupon.minOrderAmount}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <div className="flex items-center gap-1"><Users size={12} /> {coupon.usedCount || 0} Uses</div>
+                    <div className="flex items-center gap-1"><Clock size={12} /> {coupon.expiryDate ? new Date(coupon.expiryDate).toLocaleDateString() : 'Forever'}</div>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
