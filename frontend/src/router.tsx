@@ -16,12 +16,19 @@ import {
   CustomerHistoryPage,
   CustomerRewardsPage,
   MarketingPage,
-  AllOrdersPage
+  AllOrdersPage,
+  HomePage
 } from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
 
 const routes: RouteObject[] = [
+  // Public Home Page
+  {
+    path: '/',
+    element: <HomePage />
+  },
+
   // Public route - Login
   {
     path: '/login',
@@ -30,7 +37,6 @@ const routes: RouteObject[] = [
 
   // Protected Admin Routes (Grouped under DashboardLayout)
   {
-    path: '/',
     element: (
       <ProtectedRoute requiredRole="admin">
         <DashboardLayout />
@@ -68,11 +74,6 @@ const routes: RouteObject[] = [
       {
         path: 'marketing',
         element: <MarketingPage />
-      },
-      // Root redirect to dashboard
-      {
-        index: true,
-        element: <Navigate to="/dashboard" replace />
       }
     ]
   },

@@ -118,12 +118,13 @@ export const LoginPage = () => {
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center space-x-3"
+            className="flex items-center space-x-3 cursor-pointer hover:scale-105 transition-transform origin-left"
+            onClick={() => navigate('/')}
           >
             <div className="w-12 h-12 rounded-2xl orange-gradient flex items-center justify-center shadow-glow-orange">
               <Utensils className="text-white" size={24} />
             </div>
-            <span className="text-2xl font-black text-white tracking-tight">RestaurantGPT</span>
+            <span className="text-2xl font-black italic text-white tracking-tighter">Dine<span className="text-brand-500">OS</span></span>
           </motion.div>
 
           <div className="space-y-6">
@@ -182,11 +183,14 @@ export const LoginPage = () => {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               >
-                <div className="mb-10 lg:hidden flex items-center space-x-3">
+                <div 
+                  className="mb-10 lg:hidden flex items-center space-x-3 cursor-pointer hover:scale-105 transition-transform origin-left w-fit"
+                  onClick={() => navigate('/')}
+                >
                   <div className="w-10 h-10 rounded-xl orange-gradient flex items-center justify-center">
                     <Utensils className="text-white" size={20} />
                   </div>
-                  <span className="text-xl font-black text-slate-950 dark:text-white tracking-tight">RestaurantGPT</span>
+                  <span className="text-xl font-black italic text-slate-950 dark:text-white tracking-tighter">Dine<span className="text-brand-500">OS</span></span>
                 </div>
 
                 <div className="mb-10">

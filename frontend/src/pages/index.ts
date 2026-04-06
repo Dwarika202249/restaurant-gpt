@@ -14,3 +14,4 @@ export { CustomerHistoryPage } from "./CustomerHistoryPage";
 export { CustomerRewardsPage } from "./CustomerRewardsPage";
 export { MarketingPage } from "./MarketingPage";
 export { AllOrdersPage } from "./AllOrdersPage";
+export { HomePage } from "./HomePage";
