@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { CustomerLayout } from '@/components';
+import { VITE_API_URL } from '@/config/env';
 import { useTabTitle } from '@/hooks';
 import axios from 'axios';
 
@@ -44,7 +45,7 @@ export const CustomerRewardsPage = () => {
 
   useTabTitle('Rewards & Loyalty');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = VITE_API_URL;
 
   useEffect(() => {
     const init = async () => {

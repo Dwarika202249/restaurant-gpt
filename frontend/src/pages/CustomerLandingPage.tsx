@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAppDispatch } from '@/hooks/useRedux';
+import { VITE_API_URL } from '@/config/env';
 import { useTabTitle } from '@/hooks';
 import { Loading, Error } from '@/components';
 import axios from 'axios';
@@ -22,7 +22,7 @@ export const CustomerLandingPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [restaurantData, setRestaurantData] = useState<any>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = VITE_API_URL;
 
   useTabTitle('Welcome & Verify', restaurantData?.name ? ` | ${restaurantData.name}` : undefined);
 

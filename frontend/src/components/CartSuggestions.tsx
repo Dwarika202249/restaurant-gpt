@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { VITE_API_URL } from '@/config/env';
 import { Sparkles, Plus, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
@@ -40,8 +41,7 @@ export const CartSuggestions: React.FC<CartSuggestionsProps> = ({
     const fetchSuggestions = async () => {
       setLoading(true);
       try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const response = await axios.post(`${API_URL}/ai/cart-suggestions/${restaurantSlug}`, {
+        const response = await axios.post(`${VITE_API_URL}/ai/cart-suggestions/${restaurantSlug}`, {
           cartItems: cartItems.map(i => ({ name: i.name, price: i.price }))
         });
         setSuggestions(response.data.data.suggestions || []);

@@ -2,11 +2,12 @@ import { fetchAdminUser } from "./fetchAdminUser";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import type { AxiosError } from "axios";
 import axios from "axios";
+import { VITE_API_URL } from '@/config/env';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = VITE_API_URL;
 
 // Type definitions
-interface User {
+export interface User {
   id?: string;
   name?: string;
   email?: string;

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { VITE_API_URL } from '@/config/env';
 import {
   Bot,
   X,
@@ -56,8 +57,7 @@ export const AiConcierge: React.FC<AiConciergeProps> = ({
     setIsLoading(true);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const response = await axios.post(`${API_URL}/ai/chat/${restaurantSlug}`, {
+      const response = await axios.post(`${VITE_API_URL}/ai/chat/${restaurantSlug}`, {
         message: userMsg,
         history: history.slice(-6) // Send small history context
       });

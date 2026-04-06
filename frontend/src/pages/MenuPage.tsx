@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
-import { useTabTitle } from '@/hooks';
+import { VITE_API_URL } from '@/config/env';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { useAPIError } from '@/hooks/useAPIError';
 import {
@@ -29,6 +29,7 @@ import { CategoryIcon, CATEGORY_ICONS_LIST } from '@/utils/categoryIcons';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTabTitle } from '@/hooks/useTabTitle';
 
 interface Category {
   _id: string;
@@ -65,7 +66,7 @@ export const MenuPage = () => {
   const dispatch = useAppDispatch();
   const { getErrorMessage } = useAPIError();
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API_URL = VITE_API_URL;
 
   // State
   const [menu, setMenu] = useState<Menu | null>(null);
@@ -259,7 +260,7 @@ export const MenuPage = () => {
       const accessToken = localStorage.getItem('accessToken');
       const category = categories.find(c => c._id === itemForm.categoryId)?.name;
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/describe-item`,
+        `${VITE_API_URL}/ai/analyze-stats`,
         {
           name: itemForm.name,
           description: itemForm.description,

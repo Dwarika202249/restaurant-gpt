@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
+import { VITE_API_URL } from '@/config/env';
 import { useTabTitle } from '@/hooks';
 import { fetchOrderStats } from '@/store/slices/orderSlice';
 import { motion } from 'framer-motion';
@@ -79,7 +80,7 @@ export const AnalyticsPage = () => {
       const accessToken = localStorage.getItem('accessToken');
       // For AI, we'll use a slightly longer window if not custom
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/analyze-stats`,
+        `${VITE_API_URL}/ai/analyze-stats`,
         { dateRange },
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );

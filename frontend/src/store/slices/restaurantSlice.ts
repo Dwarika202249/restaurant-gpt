@@ -2,8 +2,9 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { AxiosError } from 'axios';
 import axios from 'axios';
 import type { RootState } from '../store';
+import { VITE_API_URL } from '@/config/env';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = VITE_API_URL;
 
 // Type definitions
 export interface Restaurant {

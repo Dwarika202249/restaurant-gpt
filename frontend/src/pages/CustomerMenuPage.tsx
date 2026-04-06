@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { CustomerLayout, OrderStatusWidget, AiConcierge, CartSuggestions } from '@/components';
 import { Search, ShoppingCart, Plus, Minus, X, Info, Zap, CheckCircle2, ChefHat, ShieldCheck, Wallet, Clock, ChevronRight, History, User as UserIcon, LogIn, UtensilsCrossed, Bot, Gift, ArrowRight, Tag } from 'lucide-react';
+import { VITE_API_URL } from '@/config/env';
 import { useTabTitle } from '@/hooks';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -85,7 +86,7 @@ export const CustomerMenuPage = () => {
   const [isOffersDrawerOpen, setIsOffersDrawerOpen] = useState(false);
   const [isCallingWaiter, setIsCallingWaiter] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = VITE_API_URL;
 
   useEffect(() => {
     const storedUser = localStorage.getItem('customerUser');

@@ -29,6 +29,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { VITE_API_URL } from '@/config/env';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { useTabTitle } from '@/hooks';
@@ -105,7 +106,7 @@ export const MarketingPage = () => {
 
   const fetchData = async () => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = VITE_API_URL;
       const token = localStorage.getItem('accessToken');
       const headers = { Authorization: `Bearer ${token}` };
 
@@ -132,7 +133,7 @@ export const MarketingPage = () => {
   const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = VITE_API_URL;
       const token = localStorage.getItem('accessToken');
       await axios.post(`${API_URL}/marketing/coupons/create`, newCoupon, {
         headers: { Authorization: `Bearer ${token}` }
@@ -153,7 +154,7 @@ export const MarketingPage = () => {
   const confirmDeleteCoupon = async () => {
     if (!deleteTarget) return;
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = VITE_API_URL;
       const token = localStorage.getItem('accessToken');
       await axios.delete(`${API_URL}/marketing/coupons/${deleteTarget._id}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -170,7 +171,7 @@ export const MarketingPage = () => {
   const handleSaveLoyaltySettings = async () => {
     setIsSavingLoyalty(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = VITE_API_URL;
       const token = localStorage.getItem('accessToken');
       await axios.put(`${API_URL}/marketing/loyalty-settings`, loyaltySettings, {
         headers: { Authorization: `Bearer ${token}` }
@@ -189,7 +190,7 @@ export const MarketingPage = () => {
       return;
     }
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = VITE_API_URL;
       const token = localStorage.getItem('accessToken');
       const response = await axios.post(`${API_URL}/marketing/perks`, newPerk, {
         headers: { Authorization: `Bearer ${token}` }
@@ -217,7 +218,7 @@ export const MarketingPage = () => {
   const confirmDeletePerk = async () => {
     if (!perkDeleteTarget) return;
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = VITE_API_URL;
       const token = localStorage.getItem('accessToken');
       await axios.delete(`${API_URL}/marketing/perks/${perkDeleteTarget.id}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -239,7 +240,7 @@ export const MarketingPage = () => {
     
     setIsGeneratingAI(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = VITE_API_URL;
       const token = localStorage.getItem('accessToken');
       const { data } = await axios.post(`${API_URL}/marketing/generate-description`, {
         code: newCoupon.code,
@@ -266,7 +267,7 @@ export const MarketingPage = () => {
     
     setIsGeneratingPerkAI(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = VITE_API_URL;
       const token = localStorage.getItem('accessToken');
       const { data } = await axios.post(`${API_URL}/marketing/generate-perk-description`, {
         title: newPerk.title,

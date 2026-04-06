@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAppSelector } from '@/hooks/useRedux';
+import { VITE_API_URL } from '@/config/env';
 import { useTabTitle } from '@/hooks';
 import {
   Eye,
@@ -49,7 +50,7 @@ export const QRManagementPage = () => {
 
   useTabTitle('QR Assets', restaurant?.name ? ` | ${restaurant.name}` : undefined);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = VITE_API_URL;
 
   useEffect(() => {
     fetchTables();

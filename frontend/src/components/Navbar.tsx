@@ -6,8 +6,9 @@ import { logout } from '@/store/slices/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import axios from 'axios';
+import { VITE_API_URL, VITE_SOCKET_URL } from '@/config/env';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = VITE_API_URL;
 
 export const Navbar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -71,7 +72,7 @@ export const Navbar = () => {
       fetchInitialNotifs();
 
       // 2. Setup Socket
-      const socket = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000');
+      const socket = io(VITE_SOCKET_URL);
       
       socket.on('connect', () => {
         socket.emit('join-restaurant', restaurant._id);

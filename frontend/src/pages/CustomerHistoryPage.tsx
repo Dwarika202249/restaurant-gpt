@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { VITE_API_URL } from '@/config/env';
 import { 
   ChevronLeft, 
   History, 
@@ -53,7 +54,7 @@ export const CustomerHistoryPage = () => {
 
   useTabTitle('Order History');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = VITE_API_URL;
 
   useEffect(() => {
     const init = async () => {

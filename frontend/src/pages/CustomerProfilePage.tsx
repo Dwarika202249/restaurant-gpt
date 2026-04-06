@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, ShieldCheck, ArrowRight, Save, ChevronLeft, Loader2 } from 'lucide-react';
 import { CustomerLayout } from '@/components';
+import { VITE_API_URL } from '@/config/env';
 import { useTabTitle } from '@/hooks';
 import axios from 'axios';
 
@@ -32,7 +33,7 @@ export const CustomerProfilePage = () => {
 
   useTabTitle('My Profile');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = VITE_API_URL;
 
   useEffect(() => {
     const init = async () => {

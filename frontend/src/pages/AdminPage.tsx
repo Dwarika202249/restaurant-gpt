@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
+import { VITE_API_URL } from '@/config/env';
 import { useTabTitle } from '@/hooks';
 import { updateAdminProfile } from '@/store/slices/authSlice';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
@@ -64,7 +65,7 @@ const AdminPage: React.FC = () => {
     currency: 'INR'
   });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = VITE_API_URL;
 
   useEffect(() => {
     if (activeTab === 'customers') {

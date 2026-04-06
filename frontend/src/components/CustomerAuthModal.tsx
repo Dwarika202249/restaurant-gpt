@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, Lock, ArrowRight, X, CheckCircle } from 'lucide-react';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+import { X, Phone, Lock, ArrowRight, CheckCircle } from 'lucide-react';
+import { VITE_API_URL } from '../config/env';
+
+const API_URL = VITE_API_URL;
 
 interface CustomerAuthModalProps {
   isOpen: boolean;
@@ -10,8 +13,6 @@ interface CustomerAuthModalProps {
   guestSessionId: string;
   onLoginSuccess: (user: any) => void;
 }
-
-const API_URL = 'http://localhost:5000/api';
 
 const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ 
   isOpen, 

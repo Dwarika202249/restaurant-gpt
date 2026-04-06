@@ -2,10 +2,11 @@ import axios from 'axios';
 import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import store from '../store/store';
 import { refreshAccessToken, resetAuth } from '../store/slices/authSlice';
+import { VITE_API_URL } from '../config/env';
 
 // Create axios instance with base URL
 const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: VITE_API_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'

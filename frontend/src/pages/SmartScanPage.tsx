@@ -5,7 +5,9 @@ import { motion } from 'framer-motion';
 import { QrCode, Loader2, AlertCircle } from 'lucide-react';
 import { useTabTitle } from '@/hooks';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { VITE_API_URL } from '@/config/env';
+
+const API_URL = VITE_API_URL;
 
 export const SmartScanPage = () => {
   const { qrId } = useParams<{ qrId: string }>();
