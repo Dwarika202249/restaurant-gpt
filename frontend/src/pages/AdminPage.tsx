@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '@/hooks/useRedux';
 import { VITE_API_URL } from '@/config/env';
 import { useTabTitle } from '@/hooks';
@@ -55,7 +56,6 @@ const AdminPage: React.FC = () => {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [restaurantProfile, setRestaurantProfile] = useState<any>(null);
   const [isLoadingCrm, setIsLoadingCrm] = useState(false);
-  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
 
   // Branding Form
   const [brandingForm, setBrandingForm] = useState({
@@ -536,13 +536,13 @@ const AdminPage: React.FC = () => {
               <div className="relative z-10">
                 <h3 className="text-3xl font-black uppercase tracking-tight mb-2">Campaign Manager</h3>
                 <p className="text-white/80 font-bold max-w-md">Create high-impact discount codes for global or targeted loyalty campaigns.</p>
-                <button 
-                  onClick={() => setIsCouponModalOpen(true)}
-                  className="mt-6 flex items-center gap-2 px-8 py-4 bg-white text-brand-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-xl"
+                <Link 
+                  to="/marketing?action=new"
+                  className="mt-6 inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-xl"
                 >
                   <Plus size={16} />
                   New Campaign
-                </button>
+                </Link>
               </div>
               <Ticket className="absolute -right-8 -bottom-8 text-white/10 w-64 h-64 rotate-12" />
            </div>
@@ -582,42 +582,6 @@ const AdminPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modals & Overlays (keeping existing logic) */}
-      <AnimatePresence>
-        {isCouponModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] p-8 shadow-3xl">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">New Campaign</h3>
-                <button title="Close Modal" onClick={() => setIsCouponModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"><X size={20} /></button>
-              </div>
-              <form className="space-y-4" onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const data = Object.fromEntries(formData.entries());
-                try {
-                  const token = localStorage.getItem('accessToken');
-                  await axios.post(`${API_URL}/restaurant/coupons`, { ...data, value: Number(data.value), minOrderAmount: Number(data.minOrderAmount) }, { headers: { Authorization: `Bearer ${token}` } });
-                  setIsCouponModalOpen(false); fetchCoupons();
-                } catch (err) { alert('Failed to create coupon'); }
-              }}>
-                {/* Form fields same as before but styled with 2rem rounding */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label htmlFor="coupon-code" className="text-[10px] font-black uppercase text-slate-400 ml-1">Coupon Code</label>
-                    <input id="coupon-code" name="code" className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-none font-bold uppercase tracking-widest text-xs" placeholder="LUCKY10" title="Enter Coupon Code" required />
-                  </div>
-                  <div className="space-y-1">
-                    <label htmlFor="modalDiscountType" className="text-[10px] font-black uppercase text-slate-400 ml-1">Type</label>
-                    <select id="modalDiscountType" name="discountType" className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-none font-bold text-xs" title="Select Discount Type"><option value="percentage">Percentage (%)</option><option value="fixed">Fixed (₹)</option></select>
-                  </div>
-                </div>
-                <button type="submit" className="w-full py-5 bg-brand-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs mt-6 shadow-xl">Launch Campaign</button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

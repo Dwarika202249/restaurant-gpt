@@ -28,6 +28,7 @@ import {
   Save,
   ArrowRight
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VITE_API_URL } from '@/config/env';
 import axios from 'axios';
@@ -126,9 +127,16 @@ export const MarketingPage = () => {
     }
   };
 
+  const [searchParams] = useSearchParams();
+
   useEffect(() => {
     fetchData();
-  }, []);
+    
+    // Auto-open modal if redirected from Admin with action=new
+    if (searchParams.get('action') === 'new') {
+      setShowCouponModal(true);
+    }
+  }, [searchParams]);
 
   const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
