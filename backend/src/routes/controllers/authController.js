@@ -76,41 +76,48 @@ const verifyOTP = async (req, res) => {
       });
     }
 
-    // Verify OTP from store
-    if (!global.otpStore || !global.otpStore[phone]) {
-      return res.status(400).json({
-        message: 'OTP not found or expired'
-      });
-    }
+    // Bypass for Demo Phone Number
+    const DEMO_PHONE = '9999999999';
+    const DEMO_OTP = '123456';
+    const isDemo = phone.replace(/\D/g, '') === DEMO_PHONE && otp === DEMO_OTP;
 
-    const otpData = global.otpStore[phone];
+    if (!isDemo) {
+      // Verify OTP from store
+      if (!global.otpStore || !global.otpStore[phone]) {
+        return res.status(400).json({
+          message: 'OTP not found or expired'
+        });
+      }
 
-    // Check expiry
-    if (new Date() > otpData.expiresAt) {
+      const otpData = global.otpStore[phone];
+
+      // Check expiry
+      if (new Date() > otpData.expiresAt) {
+        delete global.otpStore[phone];
+        return res.status(400).json({
+          message: 'OTP expired'
+        });
+      }
+
+      // Check max attempts
+      if (otpData.attempts >= 3) {
+        delete global.otpStore[phone];
+        return res.status(400).json({
+          message: 'Maximum OTP verification attempts exceeded'
+        });
+      }
+
+      // Verify OTP
+      if (otpData.otp !== otp) {
+        otpData.attempts += 1;
+        return res.status(400).json({
+          message: 'Invalid OTP'
+        });
+      }
+
+      // OTP verified - clear from store
       delete global.otpStore[phone];
-      return res.status(400).json({
-        message: 'OTP expired'
-      });
     }
-
-    // Check max attempts
-    if (otpData.attempts >= 3) {
-      delete global.otpStore[phone];
-      return res.status(400).json({
-        message: 'Maximum OTP verification attempts exceeded'
-      });
-    }
-
-    // Verify OTP
-    if (otpData.otp !== otp) {
-      otpData.attempts += 1;
-      return res.status(400).json({
-        message: 'Invalid OTP'
-      });
-    }
-
-    // OTP verified - clear from store
-    delete global.otpStore[phone];
 
     // Find or create user
     const userRole = req.path.includes('customer') ? 'customer' : 'admin';
