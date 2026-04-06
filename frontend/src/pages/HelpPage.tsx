@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { HelpCircle, Book, MessageCircle, Settings, QrCode, ShoppingBag, BarChart3, ChevronLeft, ArrowRight, Mail, Phone, ExternalLink } from 'lucide-react';
+import { HelpCircle, Book, MessageCircle, Settings, QrCode, ShoppingBag, BarChart3, ArrowRight, Mail, Phone, ExternalLink } from 'lucide-react';
 import { useTabTitle } from '@/hooks';
 
 export const HelpPage = () => {
