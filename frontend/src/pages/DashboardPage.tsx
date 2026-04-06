@@ -343,7 +343,7 @@ export const DashboardPage = () => {
 
               <h3 className="text-2xl font-black mb-4 leading-tight tracking-tight">AI Insights Available</h3>
               <p className="text-white/80 text-sm font-medium mb-8 flex-grow">
-                RestaurantGPT AI has noticed that your <span className="font-bold underline decoration-white/40 italic">Margherita Pizza</span> sales are 24% higher on weekends.
+                DineOS AI has noticed that your <span className="font-bold underline decoration-white/40 italic">Margherita Pizza</span> sales are 24% higher on weekends.
               </p>
 
               <button className="w-full bg-white text-brand-500 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all">

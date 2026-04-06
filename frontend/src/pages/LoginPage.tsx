@@ -330,10 +330,11 @@ export const LoginPage = () => {
           </AnimatePresence>
 
           <div className="mt-12 pt-8 border-t border-slate-50 dark:border-slate-900 flex justify-between items-center">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">© 2026 ResGPT.ai</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">© 2026 DineOS</p>
             <div className="flex space-x-4">
                <button onClick={() => navigate('/help')} className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest outline-none">Help</button>
                <button onClick={() => navigate('/privacy')} className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest outline-none">Privacy</button>
+               <button onClick={() => navigate('/terms')} className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest outline-none">Terms</button>
             </div>
           </div>
         </div>

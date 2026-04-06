@@ -1,5 +1,5 @@
 import { createBrowserRouter, RouteObject, Navigate } from 'react-router-dom';
-import { ProtectedRoute, DashboardLayout } from './components';
+import { ProtectedRoute, DashboardLayout, PublicLayout } from './components';
 import {
   LoginPage,
   DashboardPage,
@@ -10,23 +10,56 @@ import {
   OrdersPage,
   AnalyticsPage,
   SmartScanPage,
-  HelpPage,
-  PrivacyPage,
   CustomerProfilePage,
   CustomerHistoryPage,
   CustomerRewardsPage,
   MarketingPage,
   AllOrdersPage,
-  HomePage
+  HomePage,
+  ServicesPage,
+  AboutPage,
+  ContactPage,
+  TermsPage,
+  PrivacyPage,
+  HelpPage
 } from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
 
 const routes: RouteObject[] = [
-  // Public Home Page
+  // Public Marketing Routes
   {
-    path: '/',
-    element: <HomePage />
+    element: <PublicLayout />,
+    children: [
+      {
+        path: '/',
+        element: <HomePage />
+      },
+      {
+        path: '/services',
+        element: <ServicesPage />
+      },
+      {
+        path: '/about',
+        element: <AboutPage />
+      },
+      {
+        path: '/contact',
+        element: <ContactPage />
+      },
+      {
+        path: '/help',
+        element: <HelpPage />
+      },
+      {
+        path: '/privacy',
+        element: <PrivacyPage />
+      },
+      {
+        path: '/terms',
+        element: <TermsPage />
+      }
+    ]
   },
 
   // Public route - Login
@@ -118,17 +151,6 @@ const routes: RouteObject[] = [
   {
     path: '/customer/:restaurantSlug/table/:tableNo',
     element: <CustomerMenuPage />
-  },
-
-  // Public Support Routes
-  {
-    path: '/help',
-    element: <HelpPage />
-  },
-
-  {
-    path: '/privacy',
-    element: <PrivacyPage />
   },
 
   // 404 - Not found

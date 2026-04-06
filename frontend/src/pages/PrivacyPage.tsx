@@ -17,7 +17,7 @@ export const PrivacyPage = () => {
     {
       icon: Eye,
       title: "How We Use Data",
-      content: "Your data is used strictly to provide the RestaurantGPT services, including processing orders, generating analytics, and personalizing AI-driven menu recommendations. We do not sell your personal data or your customers' data to third-party advertisers."
+      content: "Your data is used strictly to provide the DineOS services, including processing orders, generating analytics, and personalizing AI-driven menu recommendations. We do not sell your personal data or your customers' data to third-party advertisers."
     },
     {
       icon: Lock,
@@ -37,18 +37,8 @@ export const PrivacyPage = () => {
       <div className="fixed bottom-0 left-0 w-[600px] h-[600px] bg-brand-500/5 blur-[120px] rounded-full -ml-48 -mb-48 pointer-events-none" />
 
       <div className="relative z-10 max-w-4xl mx-auto px-6 py-12 md:py-24">
-        {/* Navigation */}
-        <div className="flex items-center justify-between mb-20">
-          <button 
-            onClick={() => navigate('/login')}
-            className="flex items-center space-x-2 text-slate-500 hover:text-brand-500 font-bold transition-all group"
-          >
-            <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-xl shadow-sm group-hover:-translate-x-1 transition-transform">
-              <ChevronLeft size={20} />
-            </div>
-            <span>Back to Login</span>
-          </button>
-          
+        {/* Navigation - Removed Back to Login as Navbar is present */}
+        <div className="flex items-center justify-end mb-20">
           <div className="flex items-center space-x-3">
              <div className="w-10 h-10 rounded-xl bg-slate-950 dark:bg-white flex items-center justify-center">
                <ShieldCheck className="text-white dark:text-slate-950" size={20} />
@@ -83,7 +73,7 @@ export const PrivacyPage = () => {
             transition={{ delay: 0.1 }}
             className="text-xl text-slate-500 dark:text-slate-400 font-medium max-w-2xl leading-relaxed"
           >
-            Last updated: October 2026. This policy outlines how RestaurantGPT handles your sensitive restaurant data and customer information with absolute transparency.
+            Last updated: October 2026. This policy outlines how DineOS handles your sensitive restaurant data and customer information with absolute transparency.
           </motion.p>
         </div>
 
@@ -130,7 +120,7 @@ export const PrivacyPage = () => {
             
             <h3 className="text-3xl font-black mb-6 tracking-tight">Full Legal Framework</h3>
             <p className="text-white/60 font-medium mb-10 leading-relaxed max-w-xl">
-              By using our platform, you also agree to our Terms of Service and Data Processing Agreement (DPA). These documents form the complete legal framework governing your usage of the RestaurantGPT platform.
+              By using our platform, you also agree to our Terms of Service and Data Processing Agreement (DPA). These documents form the complete legal framework governing your usage of the DineOS platform.
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -155,7 +145,7 @@ export const PrivacyPage = () => {
         {/* Contact info support */}
         <div className="mt-24 text-center">
           <p className="text-slate-400 font-bold mb-4 uppercase tracking-[0.2em] text-[10px]">Concerns or Questions?</p>
-          <a href="mailto:privacy@restaurantgpt.ai" className="text-2xl font-black text-slate-950 dark:text-white hover:text-brand-500 transition-colors">privacy@restaurantgpt.ai</a>
+          <a href="mailto:privacy@dineos.app" className="text-2xl font-black text-slate-950 dark:text-white hover:text-brand-500 transition-colors">privacy@dineos.app</a>
         </div>
       </div>
     </div>

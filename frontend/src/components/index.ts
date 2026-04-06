@@ -13,3 +13,4 @@ export { AdminProfileForm } from './AdminProfileForm';
 export { RestaurantSetupForm } from './RestaurantSetupForm';
 export { AiConcierge } from './AiConcierge';
 export { CartSuggestions } from './CartSuggestions';
+export { PublicLayout } from './PublicLayout';

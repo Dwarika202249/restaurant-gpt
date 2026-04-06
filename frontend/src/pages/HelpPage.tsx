@@ -42,7 +42,7 @@ export const HelpPage = () => {
     {
       icon: MessageCircle,
       title: "AI Integration",
-      description: "Maximize the potential of RestaurantGPT's AI features for smarter operations.",
+      description: "Maximize the potential of DineOS's AI features for smarter operations.",
       links: ["AI Personalized Menu", "Smart Notifications", "Data Insights"]
     }
   ];
@@ -54,41 +54,31 @@ export const HelpPage = () => {
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-12 md:py-20">
         {/* Header */}
-        <div className="flex justify-between items-center mb-16">
-          <button 
-            onClick={() => navigate('/login')}
-            className="flex items-center space-x-2 text-slate-500 hover:text-brand-500 font-bold transition-all group"
-          >
-            <div className="p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 group-hover:-translate-x-1 transition-transform">
-              <ChevronLeft size={20} />
-            </div>
-            <span>Back to Login</span>
-          </button>
-          
+        <div className="flex justify-end items-center mb-16">
           <div className="flex items-center space-x-3">
-             <div className="w-10 h-10 rounded-xl orange-gradient flex items-center justify-center shadow-lg shadow-brand-500/20">
-               <HelpCircle className="text-white" size={20} />
-             </div>
-             <span className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Help Center</span>
+            <div className="w-10 h-10 rounded-xl orange-gradient flex items-center justify-center shadow-lg shadow-brand-500/20">
+              <HelpCircle className="text-white" size={20} />
+            </div>
+            <span className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Help Center</span>
           </div>
         </div>
 
         {/* Hero */}
         <div className="text-center mb-20">
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 tracking-tight"
           >
             How can we <span className="text-brand-500">help</span> you?
           </motion.h1>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto font-medium"
           >
-            Search our documentation, tutorials, and community resources to make the most of your RestaurantGPT experience.
+            Search our documentation, tutorials, and community resources to make the most of your DineOS experience.
           </motion.p>
         </div>
 
@@ -124,12 +114,12 @@ export const HelpPage = () => {
         {/* Contact Section */}
         <div className="glass dark:glass-dark rounded-[3rem] p-10 md:p-16 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 blur-[100px] rounded-full -mr-32 -mt-32" />
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">Need specialized assistance?</h2>
               <p className="text-lg text-slate-500 dark:text-slate-400 font-medium mb-8"> Our dedicated support team is available 24/7 to help you with technical or operational queries.</p>
-              
+
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-brand-500">
@@ -137,7 +127,7 @@ export const HelpPage = () => {
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Support</p>
-                    <p className="text-slate-900 dark:text-white font-bold">support@restaurantgpt.ai</p>
+                    <p className="text-slate-900 dark:text-white font-bold">support@dineos.app</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
@@ -146,35 +136,26 @@ export const HelpPage = () => {
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Direct Line</p>
-                    <p className="text-slate-900 dark:text-white font-bold">+1 (800) RES-GPT-AI</p>
+                    <p className="text-slate-900 dark:text-white font-bold">+1 (800) DINE-OS-PRO</p>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="bg-slate-950 rounded-[2.5rem] p-10 text-white relative group overflow-hidden">
-               <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-transparent" />
-               <div className="relative z-10">
-                 <div className="w-20 h-20 rounded-[2rem] orange-gradient flex items-center justify-center mb-8 shadow-glow-orange">
-                   <MessageCircle size={32} />
-                 </div>
-                 <h3 className="text-2xl font-black mb-4 tracking-tight">Enterprise Success</h3>
-                 <p className="text-slate-400 font-medium mb-8 text-sm">Facing complex scaling challenges? Our enterprise consultants are ready to build a custom solution for your chain.</p>
-                 <button className="w-full bg-white text-slate-950 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center space-x-2">
-                   <span>Book a Session</span>
-                   <ExternalLink size={14} />
-                 </button>
-               </div>
+              <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-transparent" />
+              <div className="relative z-10">
+                <div className="w-20 h-20 rounded-[2rem] orange-gradient flex items-center justify-center mb-8 shadow-glow-orange">
+                  <MessageCircle size={32} />
+                </div>
+                <h3 className="text-2xl font-black mb-4 tracking-tight">Enterprise Success</h3>
+                <p className="text-slate-400 font-medium mb-8 text-sm">Facing complex scaling challenges? Our enterprise consultants are ready to build a custom solution for your chain.</p>
+                <button className="w-full bg-white text-slate-950 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center space-x-2">
+                  <span>Book a Session</span>
+                  <ExternalLink size={14} />
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Footer info */}
-        <div className="mt-20 pt-10 border-t border-slate-200 dark:border-slate-900 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">© 2026 ResGPT AI Technologies</p>
-          <div className="flex space-x-6">
-            <button onClick={() => navigate('/privacy')} className="text-xs font-bold text-slate-400 hover:text-brand-500 uppercase tracking-widest transition-colors">Privacy Policy</button>
-            <a href="#" className="text-xs font-bold text-slate-400 hover:text-brand-500 uppercase tracking-widest transition-colors">Term of Service</a>
           </div>
         </div>
       </div>

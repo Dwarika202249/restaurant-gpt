@@ -122,7 +122,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (op
             <span className="uppercase font-bold tracking-widest">v1.2.0</span>
             <span className="bg-slate-800 px-1.5 py-0.5 rounded uppercase">{restaurant?.slug || 'PRIME'}</span>
           </div>
-          <p className="opacity-50">Powered by RestaurantGPT AI</p>
+          <p className="opacity-50">Powered by DineOS AI</p>
         </div>
       </aside>
     </>

@@ -108,7 +108,7 @@ export const AllOrdersPage = () => {
     
     try {
       // 1. Prepare Header (Branded)
-      const restaurantName = restaurant?.name || 'RestaurantGPT';
+      const restaurantName = restaurant?.name || 'DineOS';
       const headerLines = [
         `"RESTAURANT ORDER REPORT"`,
         `"Restaurant","${restaurantName.replace(/"/g, '""')}"`,

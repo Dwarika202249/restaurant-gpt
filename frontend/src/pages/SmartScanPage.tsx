@@ -64,7 +64,7 @@ export const SmartScanPage = () => {
                  </div>
               </div>
               
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-2 uppercase">RestaurantGPT</h1>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-2 uppercase">DineOS</h1>
               <div className="flex items-center justify-center space-x-2 mb-4">
                 <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Syncing Table Identity...</p>

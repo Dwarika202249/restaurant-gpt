@@ -7,7 +7,7 @@ import { useEffect } from 'react';
  */
 export const useTabTitle = (title: string, suffix?: string) => {
   useEffect(() => {
-    const finalSuffix = suffix !== undefined ? suffix : ' | RestaurantGPT Admin';
+    const finalSuffix = suffix !== undefined ? suffix : ' | DineOS Admin';
     document.title = `${title}${finalSuffix}`;
   }, [title, suffix]);
 };

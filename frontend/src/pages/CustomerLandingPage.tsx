@@ -193,7 +193,7 @@ export const CustomerLandingPage = () => {
          <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center">
             <span className="text-white text-[10px] font-black">AI</span>
          </div>
-         <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">RestaurantGPT</span>
+         <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">DineOS</span>
       </div>
     </div>
   );

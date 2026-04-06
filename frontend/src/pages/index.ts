@@ -15,3 +15,8 @@ export { CustomerRewardsPage } from "./CustomerRewardsPage";
 export { MarketingPage } from "./MarketingPage";
 export { AllOrdersPage } from "./AllOrdersPage";
 export { HomePage } from "./HomePage";
+export { ServicesPage } from "./ServicesPage";
+export { AboutPage } from "./AboutPage";
+export { ContactPage } from "./ContactPage";
+export { TermsPage } from "./TermsPage";
+

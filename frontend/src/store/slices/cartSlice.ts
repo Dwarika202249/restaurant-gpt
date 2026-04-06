@@ -54,7 +54,7 @@ const calculateTotals = (items: CartItem[]) => {
  */
 const loadCartFromStorage = (): CartState => {
   try {
-    const stored = localStorage.getItem('restaurantGPT_cart');
+    const stored = localStorage.getItem('dineOS_cart');
     if (stored) {
       return JSON.parse(stored);
     }
@@ -69,7 +69,7 @@ const loadCartFromStorage = (): CartState => {
  */
 const saveCartToStorage = (state: CartState) => {
   try {
-    localStorage.setItem('restaurantGPT_cart', JSON.stringify(state));
+    localStorage.setItem('dineOS_cart', JSON.stringify(state));
   } catch (error) {
     console.warn('Failed to save cart to localStorage:', error);
   }
