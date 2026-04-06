@@ -260,7 +260,7 @@ export const MenuPage = () => {
       const accessToken = localStorage.getItem('accessToken');
       const category = categories.find(c => c._id === itemForm.categoryId)?.name;
       const response = await axios.post(
-        `${VITE_API_URL}/ai/analyze-stats`,
+        `${VITE_API_URL}/ai/describe-item`,
         {
           name: itemForm.name,
           description: itemForm.description,
