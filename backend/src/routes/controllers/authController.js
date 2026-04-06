@@ -17,6 +17,10 @@ const sendOTP = async (req, res) => {
       });
     }
 
+    // Check for Demo Phone Number
+    const DEMO_PHONE = '9999999999';
+    const isDemo = phone.replace(/\D/g, '') === DEMO_PHONE;
+
     // Validate phone format (basic validation)
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phone.replace(/\D/g, ''))) {
@@ -26,7 +30,7 @@ const sendOTP = async (req, res) => {
     }
 
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = isDemo ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // TODO: In production, store in Redis with TTL or database
@@ -47,8 +51,8 @@ const sendOTP = async (req, res) => {
 
     return res.status(200).json({
       message: 'OTP sent successfully',
-      // Development only - remove in production
-      ...(process.env.NODE_ENV === 'development' && { otp })
+      // Send OTP in response for demo number OR in development mode
+      ...((isDemo || process.env.NODE_ENV === 'development') && { otp })
     });
   } catch (error) {
     console.error('Send OTP error:', error);

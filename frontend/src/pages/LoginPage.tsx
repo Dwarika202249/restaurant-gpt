@@ -235,6 +235,22 @@ export const LoginPage = () => {
                       </>
                     )}
                   </button>
+
+                  {/* Demo Access Info */}
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                    className="mt-8 p-4 rounded-2xl bg-brand-500/5 border border-brand-500/10 flex items-start space-x-3"
+                  >
+                    <div className="mt-1 p-1 bg-brand-500/10 rounded-lg">
+                      <Sparkles className="text-brand-500" size={14} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-brand-600 dark:text-brand-400 mb-1">Demo Access Available</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Use <span className="font-bold text-slate-900 dark:text-white">99999 99999</span> with OTP <span className="font-bold text-slate-900 dark:text-white">123456</span> to explore all premium features instantly.</p>
+                    </div>
+                  </motion.div>
                 </form>
               </motion.div>
             ) : (

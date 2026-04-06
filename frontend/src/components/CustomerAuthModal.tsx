@@ -152,16 +152,19 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
                   <span className="text-sm font-medium">+91</span>
                 </div>
-                <input
-                  type="tel"
-                  maxLength={10}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                  className="block w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl text-lg font-medium focus:ring-2 focus:ring-orange-500 transition-all"
-                  placeholder="Enter phone number"
-                  disabled={isLoading}
-                />
-              </div>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                    className="block w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl text-lg font-medium focus:ring-2 focus:ring-orange-500 transition-all"
+                    placeholder="Enter phone number"
+                    disabled={isLoading}
+                  />
+                  <p className="mt-4 text-[10px] text-center text-gray-400 dark:text-gray-500 font-medium">
+                    Testing? Use <span className="font-bold text-gray-600 dark:text-gray-300">9999999999</span> with OTP <span className="font-bold text-gray-600 dark:text-gray-300">123456</span>
+                  </p>
+                </div>
             ) : (
               <div className="relative">
                 <input
