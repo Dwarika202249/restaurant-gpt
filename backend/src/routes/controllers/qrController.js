@@ -25,7 +25,7 @@ const generateTableQRCodes = async (req, res) => {
       return res.status(400).json({ message: 'No tables found. Please add tables first.' });
     }
 
-    const baseUrl = process.env.CUSTOMER_BASE_URL || 'http://localhost:5173';
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const qrCodes = [];
 
     for (const table of tables) {
