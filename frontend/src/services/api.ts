@@ -188,7 +188,8 @@ export const API = {
     getGlobalConfig: () => apiClient.get('/superadmin/config'),
     updateGlobalConfig: (data: any) => apiClient.patch('/superadmin/config', data),
     generateAIBroadcast: (data: { context: string, type: string, target: string }) => 
-      apiClient.post('/superadmin/generate-broadcast', data)
+      apiClient.post('/superadmin/generate-broadcast', data),
+    changePassword: (data: any) => apiClient.post('/auth/superadmin/change-password', data)
   }
 };
 

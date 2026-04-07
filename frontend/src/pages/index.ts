@@ -26,3 +26,4 @@ export { SuperAdminRestaurantsPage } from "./SuperAdminRestaurantsPage";
 export { SuperAdminSubscribersPage } from "./SuperAdminSubscribersPage";
 export { SuperAdminSettingsPage } from "./SuperAdminSettingsPage";
 export { SuperAdminSignupPage } from "./SuperAdminSignupPage";
+export { SuperAdminProfilePage } from "./SuperAdminProfilePage";

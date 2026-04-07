@@ -9,6 +9,7 @@ const API_URL = VITE_API_URL;
 // Type definitions
 export interface User {
   id?: string;
+  _id?: string;
   name?: string;
   email?: string;
   phone: string;
@@ -16,6 +17,7 @@ export interface User {
   restaurantId?: string;
   loyaltyPoints?: number;
   profileComplete?: boolean;
+  createdAt?: string;
 }
 
 interface AuthError {
@@ -149,6 +151,32 @@ export const updateAdminProfile = createAsyncThunk<
     const axiosError = error as AxiosError<AuthError>;
     return rejectWithValue(
       axiosError.response?.data || { message: "Failed to update profile" }
+    );
+  }
+});
+
+/**
+ * Async thunk for changing SuperAdmin password
+ */
+export const changeSuperAdminPassword = createAsyncThunk<
+  { message: string },
+  { currentPassword: string; newPassword: string },
+  { rejectValue: AuthError }
+>("auth/changeSuperAdminPassword", async (passwords, { rejectWithValue }) => {
+  try {
+    const accessToken = localStorage.getItem("accessToken");
+    const response = await axios.post(
+      `${API_URL}/auth/superadmin/change-password`,
+      passwords,
+      accessToken
+        ? { headers: { Authorization: `Bearer ${accessToken}` } }
+        : undefined
+    );
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<AuthError>;
+    return rejectWithValue(
+      axiosError.response?.data || { message: "Password update failed" }
     );
   }
 });

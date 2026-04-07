@@ -10,9 +10,10 @@ const {
   logout,
   generateGuestSession,
   superAdminLogin,
-  superAdminSignup
+  superAdminSignup,
+  changeSuperAdminPassword
 } = require('./controllers/authController');
-const { authenticateAdmin, authenticateAny, verifyRefresh } = require('../middleware/auth');
+const { authenticateAdmin, authenticateAny, verifyRefresh, authenticateSuperAdmin } = require('../middleware/auth');
 
 /**
  * @route   GET /api/auth/admin/me
@@ -76,6 +77,13 @@ router.post('/admin/refresh', verifyRefresh, refreshAccessToken);
  * @access  Private (requires valid access token)
  */
 router.post('/admin/logout', authenticateAdmin, logout);
+
+/**
+ * @route   POST /api/auth/superadmin/change-password
+ * @desc    Change Supreme Admin password
+ * @access  Private (superadmin only)
+ */
+router.post('/superadmin/change-password', authenticateSuperAdmin, changeSuperAdminPassword);
 
 /**
  * @route   POST /api/auth/superadmin/login

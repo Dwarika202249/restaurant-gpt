@@ -21,9 +21,9 @@ const authenticateAdmin = async (req, res, next) => {
     // Fetch user from database
     const user = await User.findById(decoded.userId);
     
-    if (!user || user.role !== 'admin') {
+    if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
       return res.status(403).json({
-        message: 'Unauthorized: Admin access required'
+        message: 'Unauthorized: Administrative access required'
       });
     }
 

@@ -11,8 +11,8 @@ const updateAdminProfile = async (req, res) => {
     }
 
     const user = await User.findById(userId);
-    if (!user || user.role !== 'admin') {
-      return res.status(404).json({ message: 'Admin user not found' });
+    if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+      return res.status(404).json({ message: 'User not found or insufficient privileges' });
     }
 
     user.name = name;
@@ -24,11 +24,13 @@ const updateAdminProfile = async (req, res) => {
       message: 'Profile updated',
       user: {
         id: user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         phone: user.phone,
         role: user.role,
-        profileComplete: user.profileComplete
+        profileComplete: user.profileComplete,
+        createdAt: user.createdAt
       }
     });
   } catch (error) {

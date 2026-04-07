@@ -34,7 +34,7 @@ export const SuperAdminSignupPage = () => {
     try {
       await API.superAdmin.signup({ name, email, password });
       setSuccess(true);
-      setTimeout(() => navigate('/supreme/login'), 5000);
+      setTimeout(() => navigate('/supremeadmin'), 5000);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Supreme profile initialization failed');
     } finally {

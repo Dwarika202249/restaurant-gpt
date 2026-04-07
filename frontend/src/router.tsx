@@ -27,7 +27,8 @@ import {
   SuperAdminRestaurantsPage,
   SuperAdminSubscribersPage,
   SuperAdminSettingsPage,
-  SuperAdminSignupPage
+  SuperAdminSignupPage,
+  SuperAdminProfilePage
 } from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
@@ -105,6 +106,10 @@ const routes: RouteObject[] = [
       {
         path: 'settings',
         element: <SuperAdminSettingsPage />
+      },
+      {
+        path: 'profile',
+        element: <SuperAdminProfilePage />
       }
     ]
   },

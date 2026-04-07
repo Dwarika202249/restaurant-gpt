@@ -443,6 +443,52 @@ const superAdminSignup = async (req, res) => {
   }
 };
 
+/**
+ * Change Supreme Admin password
+ */
+const changeSuperAdminPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user._id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        message: 'Current and new passwords are required'
+      });
+    }
+
+    // Find user with password
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({
+        message: 'Current password key is incorrect'
+      });
+    }
+
+    // Set and save new password
+    user.password = newPassword;
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Supreme Security Vault re-encrypted. Password updated successfully.'
+    });
+  } catch (error) {
+    console.error('Change password error:', error);
+    return res.status(500).json({
+      message: 'Password synchronization failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   sendOTP,
   verifyOTP,
@@ -450,5 +496,6 @@ module.exports = {
   logout,
   generateGuestSession,
   superAdminLogin,
-  superAdminSignup
+  superAdminSignup,
+  changeSuperAdminPassword
 };
