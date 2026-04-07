@@ -23,6 +23,13 @@ export interface Restaurant {
   trialActivatedAt?: string;
   createdAt?: string;
   updatedAt?: string;
+  loyaltySettings?: {
+    enabled: boolean;
+    earnRate: number;
+    redeemRate: number;
+    minPointsToRedeem: number;
+    maxRedemptionPercentage: number;
+  };
 }
 
 interface RestaurantError {
@@ -61,7 +68,7 @@ export const fetchRestaurantProfile = createAsyncThunk<
  */
 export const updateRestaurantProfile = createAsyncThunk<
   Restaurant,
-  Partial<Restaurant>,
+  Partial<Restaurant> & { loyaltyEnabled?: boolean },
   { rejectValue: RestaurantError; state: RootState }
 >(
   'restaurant/updateProfile',

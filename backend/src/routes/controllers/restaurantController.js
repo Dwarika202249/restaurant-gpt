@@ -37,7 +37,7 @@ const getRestaurantProfile = async (req, res) => {
 const updateRestaurantProfile = async (req, res) => {
   try {
     const restaurantId = req.restaurantId;
-    const { name, logoUrl, themeColor, currency, tablesCount, isActive } = req.body;
+    const { name, logoUrl, themeColor, currency, tablesCount, isActive, loyaltyEnabled } = req.body;
 
     // Validate input
     const updateData = {};
@@ -91,6 +91,15 @@ const updateRestaurantProfile = async (req, res) => {
         });
       }
       updateData.isActive = isActive;
+    }
+
+    if (loyaltyEnabled !== undefined) {
+      if (typeof loyaltyEnabled !== 'boolean') {
+        return res.status(400).json({
+          message: 'loyaltyEnabled must be a boolean'
+        });
+      }
+      updateData['loyaltySettings.enabled'] = loyaltyEnabled;
     }
 
     updateData.updatedAt = new Date();

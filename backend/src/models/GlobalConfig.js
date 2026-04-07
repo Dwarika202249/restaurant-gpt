@@ -8,7 +8,8 @@ const globalConfigSchema = new mongoose.Schema({
   announcement: {
     enabled: { type: Boolean, default: false },
     message: { type: String, default: '' },
-    type: { type: String, enum: ['info', 'warning', 'critical'], default: 'info' }
+    type: { type: String, enum: ['info', 'warning', 'critical'], default: 'info' },
+    target: { type: String, enum: ['owners', 'customers', 'both'], default: 'owners' }
   },
   features: {
     aiChatEnabled: { type: Boolean, default: true },

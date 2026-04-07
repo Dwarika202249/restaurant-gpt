@@ -27,6 +27,10 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Platform Configuration & Maintenance Middleware
+const platformConfigMiddleware = require('./src/middleware/platformConfig');
+app.use(platformConfigMiddleware);
+
 const http = require('http');
 const socketService = require('./src/services/socketService');
 

@@ -4,17 +4,16 @@ import {
   User as UserIcon, 
   ChevronDown, 
   LogOut, 
-  Ticket, 
   History, 
-  MapPin, 
-  Table as TableIcon,
   LogIn,
-  UserPlus, 
   Settings,
   Star,
   ShoppingCart
 } from 'lucide-react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
+import { MaintenanceGuard } from './MaintenanceGuard';
+import { GlobalAnnouncement } from './GlobalAnnouncement';
+import { useConfig } from '@/context/ConfigContext';
 
 interface CustomerLayoutProps {
   children: React.ReactNode;
@@ -43,17 +42,19 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({
 }) => {
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const { restaurantSlug } = useParams<{ restaurantSlug: string }>();
-  const navigate = useNavigate();
+  const { config } = useConfig();
 
-  // Brand Sync: Inject theme color as a CSS variable
   useEffect(() => {
     document.documentElement.style.setProperty('--brand-500', themeColor);
-    // Also generate a "subtle" version for backgrounds
     document.documentElement.style.setProperty('--brand-50', `${themeColor}15`);
   }, [themeColor]);
 
+  const hasAnnouncement = config?.announcement?.enabled && (config?.announcement?.target === 'customers' || config?.announcement?.target === 'both');
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans selection:bg-brand-500/20 selection:text-brand-500">
+    <MaintenanceGuard>
+      <GlobalAnnouncement />
+      <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 font-sans ${hasAnnouncement ? 'pt-10' : ''}`}>
       {/* Dynamic Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div 
@@ -252,5 +253,6 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({
         .ring-brand-500 { --tw-ring-color: var(--brand-500); }
       `}} />
     </div>
+    </MaintenanceGuard>
   );
 };

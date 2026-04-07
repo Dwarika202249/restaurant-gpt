@@ -184,7 +184,7 @@ export const MarketingPage = () => {
       await axios.put(`${API_URL}/marketing/loyalty-settings`, loyaltySettings, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Loyalty rules updated');
+      toast.success(loyaltySettings.enabled ? 'Loyalty system activated' : 'Loyalty system deactivated');
     } catch (error) {
       toast.error('Failed to update loyalty settings');
     } finally {
@@ -377,6 +377,31 @@ export const MarketingPage = () => {
                   className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full appearance-none accent-emerald-500 cursor-pointer"
                   title="Redeem Rate Slider"
                 />
+              </div>
+
+              {/* Status Toggle */}
+              <div className="pt-4 border-t border-slate-100 dark:border-white/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${loyaltySettings.enabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 text-slate-400'}`}>
+                      <Zap size={16} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tight">System Status</p>
+                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{loyaltySettings.enabled ? 'Active & Rewarding' : 'Paused/Disabled'}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLoyaltySettings({ ...loyaltySettings, enabled: !loyaltySettings.enabled })}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${loyaltySettings.enabled ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'}`}
+                    title={loyaltySettings.enabled ? "Deactivate Loyalty System" : "Activate Loyalty System"}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${loyaltySettings.enabled ? 'translate-x-6' : 'translate-x-1'}`}
+                    />
+                  </button>
+                </div>
               </div>
 
               <button 

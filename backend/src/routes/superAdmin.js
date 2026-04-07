@@ -6,7 +6,8 @@ const {
   toggleRestaurantStatus,
   getSubscribers,
   getGlobalConfig,
-  updateGlobalConfig
+  updateGlobalConfig,
+  generateAIBroadcast
 } = require('./controllers/superAdminController');
 const { authenticateSuperAdmin } = require('../middleware/auth');
 
@@ -54,5 +55,12 @@ router.get('/config', getGlobalConfig);
  * @access  Private (Super Admin)
  */
 router.patch('/config', updateGlobalConfig);
+
+/**
+ * @route   POST /api/superadmin/generate-broadcast
+ * @desc    Generate AI broadcast message
+ * @access  Private (Super Admin)
+ */
+router.post('/generate-broadcast', generateAIBroadcast);
 
 module.exports = router;

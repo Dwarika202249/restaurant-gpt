@@ -25,6 +25,7 @@ export const SuperAdminSettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     fetchConfig();
@@ -54,6 +55,29 @@ export const SuperAdminSettingsPage = () => {
       setError(err.message || 'Failed to update global config');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGenerateAI = async () => {
+    try {
+      setIsGenerating(true);
+      setError(null);
+      const response = await superAdminApi.generateAIBroadcast({
+        context: config?.announcement?.message || '',
+        type: config?.announcement?.type || 'info',
+        target: config?.announcement?.target || 'both'
+      });
+      setConfig({ 
+        ...config, 
+        announcement: { 
+          ...config.announcement, 
+          message: response.data.data 
+        } 
+      });
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate AI message');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -117,7 +141,7 @@ export const SuperAdminSettingsPage = () => {
                     </div>
                 </div>
                 <button 
-                    onClick={() => handleUpdate({ maintenanceMode: { ...config?.maintenanceMode, enabled: !config?.maintenanceMode?.enabled } })}
+                    onClick={() => setConfig({ ...config, maintenanceMode: { ...config.maintenanceMode, enabled: !config?.maintenanceMode?.enabled } })}
                     title="Toggle Maintenance Mode"
                     className={`w-16 h-8 rounded-full relative transition-all duration-500 ${config?.maintenanceMode?.enabled ? 'bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)]' : 'bg-slate-800'}`}
                 >
@@ -138,9 +162,9 @@ export const SuperAdminSettingsPage = () => {
                 <button 
                     disabled={saving}
                     onClick={() => handleUpdate({ maintenanceMode: config.maintenanceMode })}
-                    className="w-full py-5 bg-white text-slate-950 font-black uppercase tracking-[0.2em] text-xs rounded-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-white/5"
+                    className="w-full py-5 bg-white text-slate-950 font-black uppercase tracking-[0.2em] text-xs rounded-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-white/5 disabled:opacity-50"
                 >
-                    {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> Update State</>}
+                    {saving ? <Loader2 className="animate-spin" size={18} /> : <><ShieldCheck size={18} /> Lock/Unlock Platform</>}
                 </button>
             </div>
         </div>
@@ -157,52 +181,95 @@ export const SuperAdminSettingsPage = () => {
                         <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Ecosystem-wide Announcements</p>
                     </div>
                 </div>
-                <button 
-                     onClick={() => handleUpdate({ announcement: { ...config?.announcement, enabled: !config?.announcement?.enabled } })}
-                    title="Toggle Broadcast System"
-                    className={`w-16 h-8 rounded-full relative transition-all duration-500 ${config?.announcement?.enabled ? 'bg-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.4)]' : 'bg-slate-800'}`}
-                >
-                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-500 ${config?.announcement?.enabled ? 'left-9' : 'left-1'}`} />
-                </button>
+                <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${config?.announcement?.enabled ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-slate-800 border-white/5 text-slate-500'}`}>
+                    {config?.announcement?.enabled ? 'Streaming Live' : 'Offline'}
+                </div>
             </div>
             <div className="p-10 space-y-6">
-                <div className="space-y-4">
-                    <div className="space-y-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Transmission Type</label>
-                        <div className="flex gap-4">
-                            {['info', 'warning', 'critical'].map(t => (
-                                <button
-                                    key={t}
-                                    onClick={() => setConfig({ ...config, announcement: { ...config.announcement, type: t } })}
-                                    className={`flex-1 py-3 rounded-xl border font-black uppercase tracking-widest text-[9px] transition-all ${
-                                        config?.announcement?.type === t 
-                                            ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 shadow-lg shadow-indigo-500/10' 
-                                            : 'bg-white/5 border-white/5 text-slate-600'
-                                    }`}
-                                >
-                                    {t}
-                                </button>
-                            ))}
+                <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Alert Type</label>
+                            <div className="flex gap-2">
+                                {['info', 'warning', 'critical'].map(t => (
+                                    <button
+                                        key={t}
+                                        onClick={() => setConfig({ ...config, announcement: { ...config.announcement, type: t } })}
+                                        className={`flex-1 py-3 rounded-xl border font-black uppercase tracking-widest text-[8px] transition-all ${
+                                            config?.announcement?.type === t 
+                                                ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 shadow-lg shadow-indigo-500/10' 
+                                                : 'bg-white/5 border-white/5 text-slate-600'
+                                        }`}
+                                    >
+                                        {t}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Audience Segment</label>
+                            <div className="flex gap-2">
+                                {[
+                                    { id: 'owners', label: 'Owners' },
+                                    { id: 'customers', label: 'Users' },
+                                    { id: 'both', label: 'All' }
+                                ].map(target => (
+                                    <button
+                                        key={target.id}
+                                        onClick={() => setConfig({ ...config, announcement: { ...config.announcement, target: target.id } })}
+                                        className={`flex-1 py-3 rounded-xl border font-black uppercase tracking-widest text-[8px] transition-all ${
+                                            config?.announcement?.target === target.id 
+                                                ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 shadow-lg shadow-indigo-500/10' 
+                                                : 'bg-white/5 border-white/5 text-slate-600'
+                                        }`}
+                                    >
+                                        {target.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Broadcast Content</label>
-                        <input 
-                            type="text"
-                            value={config?.announcement?.message}
-                            onChange={(e) => setConfig({ ...config, announcement: { ...config.announcement, message: e.target.value } })}
-                            className="w-full bg-white/5 border border-white/5 rounded-2xl p-5 text-white text-sm outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 transition-all font-bold"
-                            placeholder="Type transmission content..."
-                        />
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Broadcast Content</label>
+                            <button 
+                                onClick={handleGenerateAI}
+                                disabled={isGenerating}
+                                className="flex items-center gap-2 text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition-colors disabled:opacity-50"
+                            >
+                                {isGenerating ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} fill="currentColor" />}
+                                Magic Write
+                            </button>
+                        </div>
+                        <div className="relative">
+                            <input 
+                                type="text"
+                                value={config?.announcement?.message}
+                                onChange={(e) => setConfig({ ...config, announcement: { ...config.announcement, message: e.target.value } })}
+                                className="w-full bg-white/5 border border-white/5 rounded-2xl p-5 pr-12 text-white text-sm outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 transition-all font-bold placeholder:text-slate-700"
+                                placeholder="TRANSMIT MESSAGE TO SELECTED SEGMENTS..."
+                            />
+                        </div>
                     </div>
                 </div>
-                <button 
-                    disabled={saving}
-                    onClick={() => handleUpdate({ announcement: config.announcement })}
-                    className="w-full py-5 bg-indigo-500 text-white font-black uppercase tracking-[0.2em] text-xs rounded-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-indigo-500/20"
-                >
-                    {saving ? <Loader2 className="animate-spin" size={18} /> : <><Zap size={18} /> Push Transmission</>}
-                </button>
+                <div className="flex gap-4">
+                    <button 
+                        disabled={saving}
+                        onClick={() => handleUpdate({ announcement: { ...config.announcement, enabled: true } })}
+                        className="flex-1 py-5 bg-indigo-500 text-white font-black uppercase tracking-[0.2em] text-xs rounded-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-indigo-500/20 disabled:opacity-50"
+                    >
+                        {saving ? <Loader2 className="animate-spin" size={18} /> : <><Zap size={18} /> Push Transmission</>}
+                    </button>
+                    {config?.announcement?.enabled && (
+                        <button 
+                            disabled={saving}
+                            onClick={() => handleUpdate({ announcement: { ...config.announcement, enabled: false, message: '' } })}
+                            className="px-8 py-5 bg-slate-800 text-slate-400 font-black uppercase tracking-[0.2em] text-xs rounded-2xl flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 transition-all border border-white/5"
+                        >
+                            End
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
 
@@ -221,13 +288,12 @@ export const SuperAdminSettingsPage = () => {
 
                 <div className="space-y-6">
                     {[
-                        { label: 'Neural AI Chat Engine', key: 'aiChatEnabled' },
-                        { label: 'Platform Loyalty Protocol', key: 'loyaltySystemEnabled' }
+                        { label: 'Neural AI Chat Engine', key: 'aiChatEnabled' }
                     ].map(f => (
                         <div key={f.key} className="flex items-center justify-between p-6 bg-white/[0.03] border border-white/5 rounded-3xl">
                             <span className="text-white font-black uppercase text-[10px] tracking-widest">{f.label}</span>
                             <button 
-                                onClick={() => handleUpdate({ features: { ...config?.features, [f.key]: !config?.features?.[f.key] } })}
+                                onClick={() => setConfig({ ...config, features: { ...config?.features, [f.key]: !config?.features?.[f.key] } })}
                                 title={`Toggle ${f.label}`}
                                 className={`w-12 h-6 rounded-full relative transition-all duration-500 ${config?.features?.[f.key] ? 'bg-violet-500' : 'bg-slate-800'}`}
                             >
@@ -244,9 +310,15 @@ export const SuperAdminSettingsPage = () => {
                             className="w-20 bg-black outline-none border-b border-violet-500 text-center font-black text-violet-500"
                             value={config?.features?.globalMaxTables}
                             onChange={(e) => setConfig({ ...config, features: { ...config.features, globalMaxTables: parseInt(e.target.value) } })}
-                            onBlur={() => handleUpdate({ features: config.features })}
                         />
                     </div>
+                    <button 
+                        disabled={saving}
+                        onClick={() => handleUpdate({ features: config.features })}
+                        className="w-full py-4 bg-violet-600/10 border border-violet-500/20 text-violet-400 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl hover:bg-violet-600/20 transition-all disabled:opacity-50"
+                    >
+                        Sync Feature Mesh
+                    </button>
                 </div>
             </div>
 

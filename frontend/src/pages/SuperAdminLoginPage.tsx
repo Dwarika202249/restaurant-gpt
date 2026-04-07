@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ShieldCheck, Mail, Lock, ArrowRight, Loader2, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { useAppDispatch } from '@/hooks/useRedux';
 import { useTabTitle } from '@/hooks';
 import { superAdminLogin } from '@/store/slices/authSlice';
@@ -14,6 +14,7 @@ export const SuperAdminLoginPage = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,13 +93,21 @@ export const SuperAdminLoginPage = () => {
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-white font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500/50 transition-all outline-none"
+                className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-12 text-white font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500/50 transition-all outline-none"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400 p-1 rounded-lg transition-colors"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
@@ -118,8 +127,16 @@ export const SuperAdminLoginPage = () => {
           </button>
         </form>
 
-        <p className="text-center mt-8 text-[10px] font-black uppercase tracking-widest text-slate-600">
-          Authorized Personnel Only • DineOS Supreme Control
+        <div className="mt-8 flex items-center justify-center gap-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">Authorized personnel only</p>
+          <Link to="/supreme/init" className="text-[10px] font-black uppercase tracking-widest text-brand-500 hover:text-brand-400 transition-colors flex items-center gap-2">
+            <Sparkles size={12} />
+            Create Supreme Profile
+          </Link>
+        </div>
+
+        <p className="text-center mt-12 text-[10px] font-black uppercase tracking-widest text-slate-700">
+          DineOS Supreme Control • Vault Access v1.2
         </p>
       </motion.div>
     </div>

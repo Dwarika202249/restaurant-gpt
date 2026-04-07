@@ -5,17 +5,20 @@ import { Navbar } from './Navbar';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { fetchRestaurantProfile } from '@/store/slices/restaurantSlice';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
+import { MaintenanceGuard } from './MaintenanceGuard';
+import { GlobalAnnouncement } from './GlobalAnnouncement';
+import { useConfig } from '@/context/ConfigContext';
 
 /**
  * DashboardLayout
  * Provides the core shell for all Restaurant Admin pages.
- * Includes a persistent Sidebar and Navbar, with an Outlet for page content.
  */
 export const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const dispatch = useAppDispatch();
   const { currentRestaurant: restaurant } = useAppSelector((state) => state.restaurant);
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { config } = useConfig();
 
   // Centralized Data Fetching
   useEffect(() => {
@@ -29,24 +32,24 @@ export const DashboardLayout = () => {
     }
   }, [dispatch, isAuthenticated, user, restaurant]);
 
+  const hasAnnouncement = config?.announcement?.enabled && (config?.announcement?.target === 'owners' || config?.announcement?.target === 'both');
+
   return (
-    <div className="flex h-screen bg-white dark:bg-slate-950 transition-colors duration-300 overflow-x-hidden">
-      {/* Persistent Sidebar */}
-      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+    <MaintenanceGuard>
+      <GlobalAnnouncement />
+      <div className={`flex h-screen bg-white dark:bg-slate-950 transition-all duration-300 overflow-x-hidden ${hasAnnouncement ? 'pt-10' : ''}`}>
+        <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col relative">
-        {/* Decorative Global Background Blob */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-500/5 blur-[120px] rounded-full -mr-64 -mt-64 z-0 pointer-events-none" />
-        
-        {/* Persistent Navbar */}
-        <Navbar />
+        <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col relative">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-500/5 blur-[120px] rounded-full -mr-64 -mt-64 z-0 pointer-events-none" />
+          <Navbar />
 
-        {/* Dynamic Page Content */}
-        <main className="flex-1 relative">
-          <Outlet context={{ sidebarOpen, setSidebarOpen }} />
-        </main>
+          <main className="flex-1 relative">
+            <Outlet context={{ sidebarOpen, setSidebarOpen }} />
+          </main>
+        </div>
       </div>
-    </div>
+    </MaintenanceGuard>
   );
 };
 

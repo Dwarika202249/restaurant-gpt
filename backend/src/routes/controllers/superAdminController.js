@@ -1,5 +1,7 @@
 const { Restaurant, User, Order, GlobalConfig } = require('../../models');
 const mongoose = require('mongoose');
+const aiService = require('../../services/aiService');
+const socketService = require('../../services/socketService');
 
 /**
  * Get Global Platform Statistics
@@ -177,13 +179,16 @@ const updateGlobalConfig = async (req, res) => {
   try {
     const updateData = req.body;
     updateData.updatedAt = new Date();
-    updateData.updatedBy = req.user._id;
+    if (req.user) updateData.updatedBy = req.user._id;
 
     let config = await GlobalConfig.findOneAndUpdate(
       {},
       { $set: updateData },
       { new: true, upsert: true }
     );
+
+    // Emit real-time update to all connected clients
+    socketService.getIO().emit('PLATFORM_CONFIG_UPDATED', config);
 
     return res.status(200).json({
       success: true,
@@ -196,11 +201,30 @@ const updateGlobalConfig = async (req, res) => {
   }
 };
 
+/**
+ * Generate AI Broadcast Message
+ */
+const generateAIBroadcast = async (req, res) => {
+  try {
+    const { context, type, target } = req.body;
+    const message = await aiService.generateBroadcastMessage({ context, type, target });
+
+    return res.status(200).json({
+      success: true,
+      data: message
+    });
+  } catch (error) {
+    console.error('AI Broadcast Controller Error:', error);
+    return res.status(500).json({ message: 'Failed to generate AI broadcast' });
+  }
+};
+
 module.exports = {
   getGlobalStats,
   getAllRestaurants,
   toggleRestaurantStatus,
   getSubscribers,
   getGlobalConfig,
-  updateGlobalConfig
+  updateGlobalConfig,
+  generateAIBroadcast
 };

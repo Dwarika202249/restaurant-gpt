@@ -802,7 +802,7 @@ export const CustomerMenuPage = () => {
                       </div>
                     )}
 
-                    {!customerUser && (
+                    {loyaltyData?.settings?.enabled && !customerUser && (
                       <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-[2.5rem] p-8 text-center group transition-colors hover:bg-indigo-500/10" onClick={() => setIsAuthModalOpen(true)}>
                         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-500 mb-3">Loyalty Passport</p>
                         <p className="text-[9px] font-bold text-slate-500 uppercase leading-relaxed mb-6">Login to earn points & unlock exclusive tier rewards on this visit.</p>

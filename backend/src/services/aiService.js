@@ -293,11 +293,52 @@ const generatePerkDescription = async (data) => {
   }
 };
 
+/**
+ * Generate a professional broadcast announcement
+ * @param {Object} data - { context, type, target }
+ * @returns {Promise<string>} - The AI-generated broadcast text
+ */
+const generateBroadcastMessage = async (data) => {
+  try {
+    const prompt = `
+      You are the "Supreme System Administrator" for a high-end restaurant ecosystem.
+      Generate a professional, concise, and impactful broadcast message for the platform.
+      
+      Context from Admin: "${data.context || 'System Update'}"
+      Announcement Type: ${data.type || 'info'}
+      Target Audience: ${data.target || 'everyone'}
+      
+      Rules:
+      1. Be professional yet authoritative (e.g. "Attention Partners", "System Notice").
+      2. Keep it under 120 characters for quick reading on a dashboard navbar.
+      3. Focus on clarity and the importance of the update.
+      4. DO NOT use emojis.
+      5. Output ONLY the broadcast text.
+    `.trim();
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: 'system', content: 'You are an elite platform communications specialist.' },
+        { role: 'user', content: prompt }
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.7,
+      max_tokens: 120,
+    });
+
+    return completion.choices[0]?.message?.content || 'System maintenance in progress. Please stay tuned for updates.';
+  } catch (error) {
+    console.error('AI Broadcast Error:', error);
+    throw new Error('Failed to generate broadcast message');
+  }
+};
+
 module.exports = {
   generateItemDescription,
   analyzeBusinessInsights,
   getAiConciergeResponse,
   getCartSuggestions,
   generateCouponDescription,
-  generatePerkDescription
+  generatePerkDescription,
+  generateBroadcastMessage
 };

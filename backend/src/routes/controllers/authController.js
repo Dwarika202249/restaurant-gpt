@@ -392,11 +392,63 @@ const superAdminLogin = async (req, res) => {
   }
 };
 
+/**
+ * Supreme Admin Signup - Creates an admin user who can be promoted to superadmin
+ */
+const superAdminSignup = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        message: 'Name, email and password are required'
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        message: 'Email identifier already registered in the mesh'
+      });
+    }
+
+    // Create new admin user (to be promoted manually)
+    const user = new User({
+      name,
+      email,
+      password,
+      role: 'admin', // Starts as admin, promoted to superadmin manually
+      profileComplete: true
+    });
+
+    await user.save();
+
+    return res.status(201).json({
+      success: true,
+      message: 'Supreme profile created. Please promote this user to "superadmin" in the database to activate access.',
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('SuperAdmin signup error:', error);
+    return res.status(500).json({
+      message: 'Profile creation failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   sendOTP,
   verifyOTP,
   refreshAccessToken,
   logout,
   generateGuestSession,
-  superAdminLogin
+  superAdminLogin,
+  superAdminSignup
 };

@@ -9,7 +9,8 @@ const {
   refreshAccessToken,
   logout,
   generateGuestSession,
-  superAdminLogin
+  superAdminLogin,
+  superAdminSignup
 } = require('./controllers/authController');
 const { authenticateAdmin, authenticateAny, verifyRefresh } = require('../middleware/auth');
 
@@ -82,6 +83,13 @@ router.post('/admin/logout', authenticateAdmin, logout);
  * @access  Public
  */
 router.post('/superadmin/login', superAdminLogin);
+
+/**
+ * @route   POST /api/auth/superadmin/signup
+ * @desc    Create a new Supreme Admin profile (requires manual promotion)
+ * @access  Public
+ */
+router.post('/superadmin/signup', superAdminSignup);
 
 /**
  * @route   POST /api/auth/guest-session

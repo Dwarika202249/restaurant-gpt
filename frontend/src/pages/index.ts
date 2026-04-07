@@ -25,3 +25,4 @@ export { SuperAdminDashboardPage } from "./SuperAdminDashboardPage";
 export { SuperAdminRestaurantsPage } from "./SuperAdminRestaurantsPage";
 export { SuperAdminSubscribersPage } from "./SuperAdminSubscribersPage";
 export { SuperAdminSettingsPage } from "./SuperAdminSettingsPage";
+export { SuperAdminSignupPage } from "./SuperAdminSignupPage";

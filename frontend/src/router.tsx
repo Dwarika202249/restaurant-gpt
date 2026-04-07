@@ -26,7 +26,8 @@ import {
   SuperAdminDashboardPage,
   SuperAdminRestaurantsPage,
   SuperAdminSubscribersPage,
-  SuperAdminSettingsPage
+  SuperAdminSettingsPage,
+  SuperAdminSignupPage
 } from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
@@ -76,6 +77,10 @@ const routes: RouteObject[] = [
   {
     path: '/supremeadmin',
     element: <SuperAdminLoginPage />
+  },
+  {
+    path: '/supreme/init',
+    element: <SuperAdminSignupPage />
   },
 
   // Protected Super Admin Routes

@@ -171,15 +171,24 @@ export const API = {
     downloadAll: () => apiClient.get('/qr/download-all')
   },
 
+  // Public/Global endpoints
+  public: {
+    getConfig: () => apiClient.get('/public/config')
+  },
+
   // SuperAdmin endpoints
   superAdmin: {
+    login: (credentials: any) => apiClient.post('/auth/superadmin/login', credentials),
+    signup: (data: any) => apiClient.post('/auth/superadmin/signup', data),
     getStats: () => apiClient.get('/superadmin/stats'),
     getRestaurants: () => apiClient.get('/superadmin/restaurants'),
     toggleStatus: (restaurantId: string, status: 'active' | 'inactive') => 
       apiClient.patch(`/superadmin/restaurants/${restaurantId}/status`, { status }),
     getSubscribers: () => apiClient.get('/superadmin/subscribers'),
     getGlobalConfig: () => apiClient.get('/superadmin/config'),
-    updateGlobalConfig: (data: any) => apiClient.patch('/superadmin/config', data)
+    updateGlobalConfig: (data: any) => apiClient.patch('/superadmin/config', data),
+    generateAIBroadcast: (data: { context: string, type: string, target: string }) => 
+      apiClient.post('/superadmin/generate-broadcast', data)
   }
 };
 
