@@ -32,54 +32,65 @@ export const SuperAdminSidebar = ({ isOpen, setIsOpen }: SuperAdminSidebarProps)
 
   return (
     <div 
-      className={`fixed lg:relative z-50 flex flex-col h-full bg-slate-950 border-r border-white/5 transition-all duration-300 ease-in-out ${
-        isOpen ? 'w-72' : 'w-20'
+      className={`fixed lg:relative z-50 flex flex-col h-full bg-black/40 backdrop-blur-3xl border-r border-white/10 transition-all duration-500 ease-in-out ${
+        isOpen ? 'w-80' : 'w-24'
       }`}
     >
       {/* Sidebar Header */}
-      <div className="flex items-center justify-between h-20 px-6 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
-            <ShieldCheck className="text-white" size={24} />
+      <div className="flex items-center justify-between h-24 px-8 border-b border-white/5">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/40 relative group">
+            <ShieldCheck className="text-white" size={26} />
+            <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
           {isOpen && (
-            <motion.span 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-white font-black uppercase tracking-tighter text-xl"
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex flex-col"
             >
-              Supreme<span className="text-brand-500 text-xs align-top ml-1">OS</span>
-            </motion.span>
+              <span className="text-white font-black uppercase tracking-tighter text-2xl leading-none">
+                SUPREME
+              </span>
+              <span className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mt-1">
+                DineOS Core
+              </span>
+            </motion.div>
           )}
         </div>
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
+      <nav className="flex-1 px-4 py-8 space-y-3 overflow-y-auto custom-scrollbar">
         {menuItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             className={({ isActive }) => `
-              flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 group
+              flex items-center gap-5 px-5 py-4 rounded-[1.5rem] transition-all duration-500 group relative overflow-hidden
               ${isActive 
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20' 
+                ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-2xl shadow-indigo-500/30' 
                 : 'text-slate-500 hover:bg-white/5 hover:text-white'}
             `}
           >
             {({ isActive }) => (
               <>
-                <item.icon size={22} className={isActive ? 'text-white' : 'group-hover:text-brand-400 text-slate-500'} />
+                <div className={`relative z-10 transition-transform duration-500 group-hover:scale-110 ${isActive ? 'text-white' : 'group-hover:text-indigo-400'}`}>
+                  <item.icon size={24} strokeWidth={2.5} />
+                </div>
                 {isOpen && (
-                  <span className="font-bold whitespace-nowrap text-sm tracking-wide uppercase">
+                  <span className="font-black whitespace-nowrap text-[11px] tracking-[0.1em] uppercase relative z-10">
                     {item.name}
                   </span>
                 )}
                 {isActive && isOpen && (
                   <motion.div 
                     layoutId="activeIndicator"
-                    className="ml-auto w-1.5 h-1.5 rounded-full bg-white"
+                    className="ml-auto w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] relative z-10"
                   />
+                )}
+                {!isActive && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                 )}
               </>
             )}
@@ -90,19 +101,19 @@ export const SuperAdminSidebar = ({ isOpen, setIsOpen }: SuperAdminSidebarProps)
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute -right-3 top-24 w-6 h-6 bg-brand-500 rounded-full flex items-center justify-center text-white border-4 border-slate-950 hover:scale-110 mb-transition shadow-xl lg:flex hidden"
+        className="absolute -right-4 top-28 w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white border-4 border-[#020617] hover:scale-110 active:scale-90 transition-all shadow-2xl lg:flex hidden z-20"
       >
-        {isOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+        {isOpen ? <ChevronLeft size={16} strokeWidth={3} /> : <ChevronRight size={16} strokeWidth={3} />}
       </button>
 
       {/* Footer / Logout */}
-      <div className="p-4 border-t border-white/5 bg-black/20">
+      <div className="p-6 border-t border-white/5 bg-black/40">
         <button
           onClick={() => dispatch(logout() as any)}
-          className={`flex items-center gap-4 w-full px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-red-500/10 hover:text-red-500 transition-all duration-200 group`}
+          className={`flex items-center gap-5 w-full px-5 py-4 rounded-[1.5rem] text-slate-500 hover:bg-red-500/10 hover:text-red-500 transition-all duration-300 group`}
         >
-          <LogOut size={22} />
-          {isOpen && <span className="font-bold text-sm uppercase tracking-wide">Secure Logout</span>}
+          <LogOut size={24} strokeWidth={2.5} />
+          {isOpen && <span className="font-black text-[11px] uppercase tracking-[0.1em]">Terminate Session</span>}
         </button>
       </div>
     </div>

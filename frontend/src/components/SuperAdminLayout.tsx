@@ -37,20 +37,23 @@ export const SuperAdminLayout = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-950 text-white overflow-hidden font-inter">
+    <div className="flex h-screen bg-[#020617] text-white overflow-hidden font-inter relative">
+      {/* Moving Mesh Background Layers */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-40">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full animate-mesh" />
+        <div className="absolute bottom-[0%] right-[-10%] w-[60%] h-[60%] bg-violet-600/10 blur-[150px] rounded-full animate-mesh [animation-delay:2s]" />
+        <div className="absolute top-[40%] left-[30%] w-[30%] h-[30%] bg-blue-500/10 blur-[100px] rounded-full animate-mesh [animation-delay:5s]" />
+      </div>
+
       {/* Supreme Sidebar */}
       <SuperAdminSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Ambient Background Glows */}
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-brand-500/5 blur-[150px] rounded-full -mr-64 -mt-64 z-0 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/5 blur-[150px] rounded-full -ml-32 -mb-32 z-0 pointer-events-none" />
-        
-        {/* Supreme Navbar (Can use existing but maybe minimal) */}
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
+        {/* Supreme Navbar */}
         <Navbar />
 
         {/* Dynamic Content Area */}
-        <main className="flex-1 overflow-y-auto relative z-10 px-4 py-6 lg:px-10 lg:py-8">
+        <main className="flex-1 overflow-y-auto relative px-4 py-6 lg:px-10 lg:py-8 custom-scrollbar">
           <Outlet context={{ sidebarOpen, setSidebarOpen }} />
         </main>
       </div>
