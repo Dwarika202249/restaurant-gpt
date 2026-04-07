@@ -1,4 +1,4 @@
-const { Restaurant, User, Order } = require('../../models');
+const { Restaurant, User, Order, GlobalConfig } = require('../../models');
 const mongoose = require('mongoose');
 
 /**
@@ -118,8 +118,89 @@ const toggleRestaurantStatus = async (req, res) => {
   }
 };
 
+/**
+ * Get All Subscribers (Premium/Active Trial)
+ */
+const getSubscribers = async (req, res) => {
+  try {
+    const subscribers = await Restaurant.find({
+      $or: [
+        { isPremium: true },
+        { subscriptionExpiresAt: { $gt: new Date() } }
+      ]
+    }).lean();
+
+    const enhancedSubscribers = await Promise.all(subscribers.map(async (restro) => {
+      const owner = await User.findOne({ restaurantId: restro._id, role: 'admin' }).select('name email');
+      return {
+        ...restro,
+        owner
+      };
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: enhancedSubscribers
+    });
+  } catch (error) {
+    console.error('Get Subscribers Error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * Get Global Platform Configuration
+ */
+const getGlobalConfig = async (req, res) => {
+  try {
+    let config = await GlobalConfig.findOne();
+    
+    // If no config exists, create the initial one
+    if (!config) {
+      config = await GlobalConfig.create({});
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: config
+    });
+  } catch (error) {
+    console.error('Get Global Config Error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * Update Global Platform Configuration
+ */
+const updateGlobalConfig = async (req, res) => {
+  try {
+    const updateData = req.body;
+    updateData.updatedAt = new Date();
+    updateData.updatedBy = req.user._id;
+
+    let config = await GlobalConfig.findOneAndUpdate(
+      {},
+      { $set: updateData },
+      { new: true, upsert: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Platform configuration updated',
+      data: config
+    });
+  } catch (error) {
+    console.error('Update Global Config Error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getGlobalStats,
   getAllRestaurants,
-  toggleRestaurantStatus
+  toggleRestaurantStatus,
+  getSubscribers,
+  getGlobalConfig,
+  updateGlobalConfig
 };

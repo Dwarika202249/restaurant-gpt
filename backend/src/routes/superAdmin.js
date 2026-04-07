@@ -3,7 +3,10 @@ const router = express.Router();
 const { 
   getGlobalStats, 
   getAllRestaurants, 
-  toggleRestaurantStatus 
+  toggleRestaurantStatus,
+  getSubscribers,
+  getGlobalConfig,
+  updateGlobalConfig
 } = require('./controllers/superAdminController');
 const { authenticateSuperAdmin } = require('../middleware/auth');
 
@@ -30,5 +33,26 @@ router.get('/restaurants', getAllRestaurants);
  * @access  Private (Super Admin)
  */
 router.patch('/restaurants/:restaurantId/status', toggleRestaurantStatus);
+
+/**
+ * @route   GET /api/superadmin/subscribers
+ * @desc    Get all premium subscribers
+ * @access  Private (Super Admin)
+ */
+router.get('/subscribers', getSubscribers);
+
+/**
+ * @route   GET /api/superadmin/config
+ * @desc    Get global platform configuration
+ * @access  Private (Super Admin)
+ */
+router.get('/config', getGlobalConfig);
+
+/**
+ * @route   PATCH /api/superadmin/config
+ * @desc    Update global platform configuration
+ * @access  Private (Super Admin)
+ */
+router.patch('/config', updateGlobalConfig);
 
 module.exports = router;

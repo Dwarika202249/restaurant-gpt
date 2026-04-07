@@ -176,8 +176,12 @@ export const API = {
     getStats: () => apiClient.get('/superadmin/stats'),
     getRestaurants: () => apiClient.get('/superadmin/restaurants'),
     toggleStatus: (restaurantId: string, status: 'active' | 'inactive') => 
-      apiClient.patch(`/superadmin/restaurants/${restaurantId}/status`, { status })
+      apiClient.patch(`/superadmin/restaurants/${restaurantId}/status`, { status }),
+    getSubscribers: () => apiClient.get('/superadmin/subscribers'),
+    getGlobalConfig: () => apiClient.get('/superadmin/config'),
+    updateGlobalConfig: (data: any) => apiClient.patch('/superadmin/config', data)
   }
 };
 
+export const superAdminApi = API.superAdmin;
 export default apiClient;

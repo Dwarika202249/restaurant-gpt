@@ -23,3 +23,5 @@ export { TermsPage } from "./TermsPage";
 export { SuperAdminLoginPage } from "./SuperAdminLoginPage";
 export { SuperAdminDashboardPage } from "./SuperAdminDashboardPage";
 export { SuperAdminRestaurantsPage } from "./SuperAdminRestaurantsPage";
+export { SuperAdminSubscribersPage } from "./SuperAdminSubscribersPage";
+export { SuperAdminSettingsPage } from "./SuperAdminSettingsPage";

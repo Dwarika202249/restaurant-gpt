@@ -7,6 +7,7 @@ const AIConversation = require('./AIConversation');
 const Category = require('./Category');
 const Table = require('./Table');
 const Coupon = require('./Coupon');
+const GlobalConfig = require('./GlobalConfig');
 
 module.exports = {
   Restaurant,
@@ -17,5 +18,6 @@ module.exports = {
   AIConversation,
   Category,
   Table,
-  Coupon
+  Coupon,
+  GlobalConfig
 };
