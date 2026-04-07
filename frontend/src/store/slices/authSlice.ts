@@ -12,7 +12,7 @@ export interface User {
   name?: string;
   email?: string;
   phone: string;
-  role: "admin" | "customer";
+  role: "admin" | "customer" | "superadmin";
   restaurantId?: string;
   loyaltyPoints?: number;
   profileComplete?: boolean;
@@ -95,6 +95,34 @@ export const refreshAccessToken = createAsyncThunk<
     const axiosError = error as AxiosError<AuthError>;
     return rejectWithValue(
       axiosError.response?.data || { message: "Failed to refresh token" }
+    );
+  }
+});
+
+/**
+ * Async thunk for SuperAdmin login
+ */
+export const superAdminLogin = createAsyncThunk<
+  { accessToken: string; refreshToken: string; user: User },
+  { email: string; password: string },
+  { rejectValue: AuthError }
+>("auth/superAdminLogin", async ({ email, password }, { rejectWithValue }) => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/superadmin/login`, {
+      email,
+      password,
+    });
+    const { accessToken, refreshToken, user } = response.data.data;
+
+    // Store tokens in localStorage
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+
+    return { accessToken, refreshToken, user };
+  } catch (error) {
+    const axiosError = error as AxiosError<AuthError>;
+    return rejectWithValue(
+      axiosError.response?.data || { message: "SuperAdmin login failed" }
     );
   }
 });
@@ -313,6 +341,24 @@ const authSlice = createSlice({
         state.accessToken = null;
         state.refreshToken = null;
         state.isAuthenticated = false;
+      });
+
+    // SuperAdmin Login
+    builder
+      .addCase(superAdminLogin.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(superAdminLogin.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.accessToken = action.payload.accessToken;
+        state.refreshToken = action.payload.refreshToken;
+        state.isAuthenticated = true;
+      })
+      .addCase(superAdminLogin.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "SuperAdmin login failed";
       });
   },
 });

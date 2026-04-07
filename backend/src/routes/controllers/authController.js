@@ -328,10 +328,75 @@ const generateGuestSession = async (req, res) => {
   }
 };
 
+/**
+ * Supreme Admin login with email and password
+ */
+const superAdminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        message: 'Email and password are required'
+      });
+    }
+
+    // Find user with password selected
+    const user = await User.findOne({ email, role: 'superadmin' }).select('+password');
+
+    if (!user) {
+      return res.status(401).json({
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Verify password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(user._id, null);
+
+    // Store refresh token
+    user.refreshTokens.push({
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    });
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Supreme Admin login successful',
+      data: {
+        accessToken,
+        refreshToken,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          profileComplete: user.profileComplete
+        }
+      }
+    });
+  } catch (error) {
+    console.error('SuperAdmin login error:', error);
+    return res.status(500).json({
+      message: 'Login failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   sendOTP,
   verifyOTP,
   refreshAccessToken,
   logout,
-  generateGuestSession
+  generateGuestSession,
+  superAdminLogin
 };

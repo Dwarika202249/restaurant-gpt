@@ -8,7 +8,8 @@ const {
   verifyOTP,
   refreshAccessToken,
   logout,
-  generateGuestSession
+  generateGuestSession,
+  superAdminLogin
 } = require('./controllers/authController');
 const { authenticateAdmin, authenticateAny, verifyRefresh } = require('../middleware/auth');
 
@@ -74,6 +75,13 @@ router.post('/admin/refresh', verifyRefresh, refreshAccessToken);
  * @access  Private (requires valid access token)
  */
 router.post('/admin/logout', authenticateAdmin, logout);
+
+/**
+ * @route   POST /api/auth/superadmin/login
+ * @desc    Supreme Admin login with email and password
+ * @access  Public
+ */
+router.post('/superadmin/login', superAdminLogin);
 
 /**
  * @route   POST /api/auth/guest-session

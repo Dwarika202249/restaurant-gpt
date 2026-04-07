@@ -20,3 +20,6 @@ export { AboutPage } from "./AboutPage";
 export { ContactPage } from "./ContactPage";
 export { TermsPage } from "./TermsPage";
 
+export { SuperAdminLoginPage } from "./SuperAdminLoginPage";
+export { SuperAdminDashboardPage } from "./SuperAdminDashboardPage";
+export { SuperAdminRestaurantsPage } from "./SuperAdminRestaurantsPage";

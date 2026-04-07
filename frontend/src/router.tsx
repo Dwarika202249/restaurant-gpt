@@ -21,10 +21,14 @@ import {
   ContactPage,
   TermsPage,
   PrivacyPage,
-  HelpPage
+  HelpPage,
+  SuperAdminLoginPage,
+  SuperAdminDashboardPage,
+  SuperAdminRestaurantsPage
 } from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
+import { SuperAdminLayout } from './components/SuperAdminLayout';
 
 const routes: RouteObject[] = [
   // Public Marketing Routes
@@ -66,6 +70,28 @@ const routes: RouteObject[] = [
   {
     path: '/login',
     element: <LoginPage />
+  },
+  {
+    path: '/supremeadmin',
+    element: <SuperAdminLoginPage />
+  },
+
+  // Protected Super Admin Routes
+  {
+    path: '/superadmin',
+    element: (
+      <SuperAdminLayout />
+    ),
+    children: [
+      {
+        path: 'dashboard',
+        element: <SuperAdminDashboardPage />
+      },
+      {
+        path: 'restaurants',
+        element: <SuperAdminRestaurantsPage />
+      }
+    ]
   },
 
   // Protected Admin Routes (Grouped under DashboardLayout)

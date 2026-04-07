@@ -48,6 +48,7 @@ const aiRoutes = require('./src/routes/ai');
 const subscriptionRoutes = require('./src/routes/subscription');
 const marketingRoutes = require('./src/routes/marketing');
 const notificationRoutes = require('./src/routes/notifications');
+const superAdminRoutes = require('./src/routes/superAdmin');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/restaurant', restaurantRoutes);
@@ -60,6 +61,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/marketing', marketingRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/superadmin', superAdminRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

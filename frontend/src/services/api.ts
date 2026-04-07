@@ -169,6 +169,14 @@ export const API = {
     downloadByTable: (tableNo: number) =>
       apiClient.get(`/qr/download/${tableNo}`),
     downloadAll: () => apiClient.get('/qr/download-all')
+  },
+
+  // SuperAdmin endpoints
+  superAdmin: {
+    getStats: () => apiClient.get('/superadmin/stats'),
+    getRestaurants: () => apiClient.get('/superadmin/restaurants'),
+    toggleStatus: (restaurantId: string, status: 'active' | 'inactive') => 
+      apiClient.patch(`/superadmin/restaurants/${restaurantId}/status`, { status })
   }
 };
 

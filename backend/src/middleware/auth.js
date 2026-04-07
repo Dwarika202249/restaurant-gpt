@@ -193,9 +193,52 @@ const authenticateAny = async (req, res, next) => {
   }
 };
 
+/**
+ * Middleware to authenticate superadmin users
+ */
+const authenticateSuperAdmin = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        message: 'Missing or invalid authorization header'
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyAccessToken(token);
+
+    // Fetch user from database
+    const user = await User.findById(decoded.userId);
+    
+    if (!user || user.role !== 'superadmin') {
+      return res.status(403).json({
+        message: 'Unauthorized: Supreme Admin access required'
+      });
+    }
+
+    // Attach user to request
+    req.user = user;
+    
+    next();
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        message: 'Access token expired'
+      });
+    }
+    
+    return res.status(401).json({
+      message: error.message || 'Authentication failed'
+    });
+  }
+};
+
 module.exports = {
   authenticateAdmin,
   verifyRefresh,
   authenticateGuest,
-  authenticateAny
+  authenticateAny,
+  authenticateSuperAdmin
 };
