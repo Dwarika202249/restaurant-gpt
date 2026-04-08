@@ -1,4 +1,5 @@
 import { fetchAdminUser } from "./fetchAdminUser";
+import { fetchStaffUser } from "./fetchStaffUser";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import type { AxiosError } from "axios";
 import axios from "axios";
@@ -13,10 +14,13 @@ export interface User {
   name?: string;
   email?: string;
   phone: string;
-  role: "admin" | "customer" | "superadmin";
+  role: "admin" | "customer" | "superadmin" | "waiter" | "chef";
   restaurantId?: string;
   loyaltyPoints?: number;
   profileComplete?: boolean;
+  onDuty?: boolean;
+  assignedTables?: number[];
+  staffColor?: string;
   createdAt?: string;
 }
 
@@ -42,6 +46,27 @@ export const sendOTP = createAsyncThunk<
     const axiosError = error as AxiosError<AuthError>;
     return rejectWithValue(
       axiosError.response?.data || { message: "Failed to send OTP" }
+    );
+  }
+});
+
+/**
+ * Async thunk for sending Staff OTP (Restricted)
+ */
+export const sendStaffOTP = createAsyncThunk<
+  { message: string; otp?: string },
+  string,
+  { rejectValue: AuthError }
+>("auth/sendStaffOTP", async (phone, { rejectWithValue }) => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/staff/send-otp`, {
+      phone,
+    });
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<AuthError>;
+    return rejectWithValue(
+      axiosError.response?.data || { message: "Failed to initiate staff authenticaton" }
     );
   }
 });
@@ -182,6 +207,32 @@ export const changeSuperAdminPassword = createAsyncThunk<
 });
 
 /**
+ * Async thunk for toggling staff duty status
+ */
+export const toggleDutyStatus = createAsyncThunk<
+  { onDuty: boolean },
+  void,
+  { rejectValue: AuthError }
+>("auth/toggleDutyStatus", async (_, { rejectWithValue }) => {
+  try {
+    const accessToken = localStorage.getItem("accessToken");
+    const response = await axios.patch(
+      `${API_URL}/restaurant/staff/on-duty`,
+      {},
+      accessToken
+        ? { headers: { Authorization: `Bearer ${accessToken}` } }
+        : undefined
+    );
+    return response.data.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<AuthError>;
+    return rejectWithValue(
+      axiosError.response?.data || { message: "Failed to update duty status" }
+    );
+  }
+});
+
+/**
  * Async thunk for logout
  */
 export const logout = createAsyncThunk<null, void, { rejectValue: AuthError }>(
@@ -287,6 +338,25 @@ const authSlice = createSlice({
         state.error = action.payload?.message || "Failed to send OTP";
       });
 
+    // Send Staff OTP
+    builder
+      .addCase(sendStaffOTP.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(sendStaffOTP.fulfilled, (state, action) => {
+        state.loading = false;
+        state.otpSent = true;
+        state.otpPhone = action.meta.arg;
+        if (action.payload.otp) {
+          state.demoOTP = action.payload.otp;
+        }
+      })
+      .addCase(sendStaffOTP.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Access denied: Staff record not found";
+      });
+
     // Verify OTP
     builder
       .addCase(verifyOTP.pending, (state) => {
@@ -334,6 +404,21 @@ const authSlice = createSlice({
       .addCase(fetchAdminUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || "Failed to fetch user";
+      });
+
+    // Fetch Staff User (rehydration)
+    builder
+      .addCase(fetchStaffUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchStaffUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+      })
+      .addCase(fetchStaffUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to fetch staff user";
       });
 
     // Update Admin Profile
@@ -387,6 +472,23 @@ const authSlice = createSlice({
       .addCase(superAdminLogin.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || "SuperAdmin login failed";
+      });
+
+    // Toggle Duty Status
+    builder
+      .addCase(toggleDutyStatus.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(toggleDutyStatus.fulfilled, (state, action) => {
+        state.loading = false;
+        if (state.user) {
+          state.user.onDuty = action.payload.onDuty;
+        }
+      })
+      .addCase(toggleDutyStatus.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to update service status";
       });
   },
 });

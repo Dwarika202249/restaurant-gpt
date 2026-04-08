@@ -38,6 +38,10 @@ const restaurantSchema = new mongoose.Schema({
     type: Number,
     default: 10
   },
+  autoPilot: {
+    type: Boolean,
+    default: true
+  },
   isPremium: {
     type: Boolean,
     default: false

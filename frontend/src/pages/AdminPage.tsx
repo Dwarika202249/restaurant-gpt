@@ -22,7 +22,14 @@ import {
   Palette,
   Image as ImageIcon,
   Store,
-  CheckCircle2
+  CheckCircle2,
+  ChefHat,
+  Trash2,
+  Zap,
+  LayoutGrid,
+  Activity,
+  Pencil,
+  XCircle
 } from 'lucide-react';
 import { Error, Success } from '@/components';
 import axios from 'axios';
@@ -48,13 +55,19 @@ const AdminPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'profile' | 'customers' | 'coupons' | 'branding'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'customers' | 'coupons' | 'branding' | 'staff'>('profile');
 
   // CRM & Branding Data
   const [customers, setCustomers] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
+  const [staff, setStaff] = useState<any[]>([]);
   const [restaurantProfile, setRestaurantProfile] = useState<any>(null);
   const [isLoadingCrm, setIsLoadingCrm] = useState(false);
+  const [autoPilot, setAutoPilot] = useState(true);
+
+  // Assignment Modal State
+  const [assigningStaff, setAssigningStaff] = useState<any>(null);
+  const [newAssignments, setNewAssignments] = useState<number[]>([]);
 
   // Branding Form
   const [brandingForm, setBrandingForm] = useState({
@@ -65,6 +78,14 @@ const AdminPage: React.FC = () => {
     tablesCount: 10
   });
 
+  // Staff Form
+  const [staffForm, setStaffForm] = useState({
+    name: '',
+    phone: '',
+    role: 'waiter' as 'waiter' | 'chef'
+  });
+  const [editingStaff, setEditingStaff] = useState<any>(null);
+
   const API_URL = VITE_API_URL;
 
   useEffect(() => {
@@ -74,6 +95,8 @@ const AdminPage: React.FC = () => {
       fetchCoupons();
     } else if (activeTab === 'branding') {
       fetchRestaurantProfile();
+    } else if (activeTab === 'staff') {
+      fetchStaff();
     }
   }, [activeTab]);
 
@@ -86,6 +109,7 @@ const AdminPage: React.FC = () => {
       });
       const data = response.data.data;
       setRestaurantProfile(data);
+      setAutoPilot(data.autoPilot ?? true);
       setBrandingForm({
         name: data.name || '',
         logoUrl: data.logoUrl || '',
@@ -117,6 +141,21 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const handleToggleAutoPilot = async () => {
+    setLoading(true);
+    try {
+      const { updateRestaurantProfile } = await import('@/store/slices/restaurantSlice');
+      const response = await dispatch(updateRestaurantProfile({ autoPilot: !autoPilot }) as any).unwrap();
+      setAutoPilot(response.autoPilot);
+      setSuccess(`Load Balancing: ${response.autoPilot ? 'AUTO-PILOT' : 'MANUAL'}`);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError('Failed to sync Auto-Pilot preference');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchCustomers = async () => {
     setIsLoadingCrm(true);
     try {
@@ -129,6 +168,98 @@ const AdminPage: React.FC = () => {
       console.error('Failed to fetch customers');
     } finally {
       setIsLoadingCrm(false);
+    }
+  };
+
+  const fetchStaff = async () => {
+    setIsLoadingCrm(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.get(`${API_URL}/restaurant/staff`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setStaff(response.data.data);
+    } catch (err) {
+      console.error('Failed to fetch staff');
+    } finally {
+      setIsLoadingCrm(false);
+    }
+  };
+
+  const handleCreateStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (editingStaff) {
+        await axios.put(`${API_URL}/restaurant/staff/${editingStaff._id}`, staffForm, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setSuccess('Staff details updated successfully');
+      } else {
+        await axios.post(`${API_URL}/restaurant/staff`, staffForm, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setSuccess('Staff member registered successfully');
+      }
+
+      setStaffForm({ name: '', phone: '', role: 'waiter' });
+      setEditingStaff(null);
+      fetchStaff();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to sync staff identity');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditClick = (member: any) => {
+    setEditingStaff(member);
+    setStaffForm({
+      name: member.name,
+      phone: member.phone,
+      role: member.role
+    });
+    // Scroll to form on mobile
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteStaff = async (id: string) => {
+    if (!window.confirm('Are you sure you want to remove this staff member?')) return;
+    try {
+      const token = localStorage.getItem('accessToken');
+      await axios.delete(`${API_URL}/restaurant/staff/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchStaff();
+      setSuccess('Staff member removed.');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError('Failed to remove staff');
+    }
+  };
+
+  const handleUpdateAssignments = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assigningStaff) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      await axios.put(`${API_URL}/restaurant/staff/${assigningStaff._id}/assignments`, {
+        assignedTables: newAssignments
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuccess(`Assignments updated for ${assigningStaff.name}`);
+      setAssigningStaff(null);
+      fetchStaff();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError('Failed to update assignments');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -213,6 +344,7 @@ const AdminPage: React.FC = () => {
         <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl overflow-x-auto no-scrollbar">
           <button onClick={() => setActiveTab('profile')} className={tabClass('profile')}>Profile</button>
           <button onClick={() => setActiveTab('branding')} className={tabClass('branding')}>Branding</button>
+          <button onClick={() => setActiveTab('staff')} className={tabClass('staff')}>Staff</button>
           <button onClick={() => setActiveTab('customers')} className={tabClass('customers')}>CRM</button>
           <button onClick={() => setActiveTab('coupons')} className={tabClass('coupons')}>Coupons</button>
         </div>
@@ -595,6 +727,270 @@ const AdminPage: React.FC = () => {
           </div>
         </div>
       )}
+      {activeTab === 'staff' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="lg:col-span-1">
+            <div className="glass dark:glass-dark p-8 rounded-[2.5rem]">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 bg-brand-500/10 rounded-xl flex items-center justify-center text-brand-500">
+                  <Plus size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Recruit Staff</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Add Waiters & Chefs</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleCreateStaff} className="space-y-6">
+                <div className="space-y-2">
+                  <label htmlFor="staff-name" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                  <input
+                    id="staff-name"
+                    value={staffForm.name}
+                    onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })}
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
+                    placeholder="e.g. Rahul Kumar"
+                    title="Enter Staff Full Name"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="staff-phone" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mobile Number</label>
+                  <input
+                    id="staff-phone"
+                    value={staffForm.phone}
+                    onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })}
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
+                    placeholder="10-digit number"
+                    title="Enter Staff Mobile Number"
+                    maxLength={10}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="staff-role" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned Role</label>
+                  <select
+                    id="staff-role"
+                    value={staffForm.role}
+                    onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value as any })}
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold focus:ring-2 focus:ring-brand-500 transition-all dark:text-white border-none"
+                    title="Select Staff Role"
+                  >
+                    <option value="waiter">Waiter (Floor Staff)</option>
+                    <option value="chef">Chef (Kitchen Staff)</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 py-4 bg-brand-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-brand-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  >
+                    {loading ? (editingStaff ? 'Updating...' : 'Adding...') : (editingStaff ? 'Save Changes' : 'Register Staff Member')}
+                  </button>
+                  {editingStaff && (
+                    <button
+                      title='Cancel Editing'
+                      type="button"
+                      onClick={() => {
+                        setEditingStaff(null);
+                        setStaffForm({ name: '', phone: '', role: 'waiter' });
+                      }}
+                      className="px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200"
+                    >
+                      <XCircle size={20} />
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-2">
+            <div className="glass dark:glass-dark rounded-[2.5rem] overflow-hidden">
+              <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Active Team</h3>
+                  <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    {staff.length} Members
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleToggleAutoPilot}
+                    disabled={loading}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${autoPilot ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}
+                  >
+                    <Zap size={14} className={autoPilot ? 'animate-pulse' : ''} />
+                    {autoPilot ? 'Auto-Pilot On' : 'Manual Mode'}
+                  </button>
+                  <button
+                    onClick={fetchStaff}
+                    className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl hover:bg-slate-200 transition-all"
+                    title="Refresh Team Status"
+                  >
+                    <Activity size={16} />
+                  </button>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <tr>
+                      <th className="px-8 py-4">Staff Member</th>
+                      <th className="px-8 py-4 text-center">Status & Zone</th>
+                      <th className="px-8 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {isLoadingCrm ? (
+                      <tr><td colSpan={3} className="p-20 text-center text-slate-400 font-bold uppercase tracking-widest">Syncing Team...</td></tr>
+                    ) : staff.length === 0 ? (
+                      <tr><td colSpan={3} className="p-20 text-center text-slate-400 font-bold uppercase tracking-widest text-sm">No staff registered yet. Add your first waiter or chef.</td></tr>
+                    ) : (
+                      staff.map((member) => (
+                        <tr key={member._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                          <td className="px-8 py-6">
+                            <div className="flex items-center gap-4">
+                              <div
+                                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black shadow-lg"
+                                style={{ backgroundColor: member.staffColor || '#3B82F6' }}
+                              >
+                                {member.name?.charAt(0) || 'S'}
+                              </div>
+                              <div>
+                                <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight">{member.name}</p>
+                                <p className="text-[10px] font-bold text-slate-500">{member.phone}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-8 py-6 text-center">
+                            <div className="flex flex-col items-center gap-2">
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${member.role === 'chef' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                {member.role === 'chef' ? <ChefHat size={10} /> : <Users size={10} />}
+                                {member.role === 'chef' ? 'Chef' : 'Waiter'}
+                              </span>
+                              {member.onDuty && (
+                                <span className="flex items-center gap-1 text-[8px] font-black text-emerald-500 uppercase tracking-widest">
+                                  <div className="w-1 h-1 bg-emerald-500 rounded-full animate-ping" />
+                                  Live at Station
+                                </span>
+                              )}
+                              {member.assignedTables?.length > 0 && (
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                                  Zone: {member.assignedTables.join(', ')}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-8 py-6 text-right">
+                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleEditClick(member)}
+                                className="p-2 text-slate-400 hover:text-brand-500 transition-colors"
+                                title="Edit Staff Member"
+                              >
+                                <Pencil size={18} />
+                              </button>
+                              {member.role === 'waiter' && (
+                                <button
+                                  onClick={() => {
+                                    setAssigningStaff(member);
+                                    setNewAssignments(member.assignedTables || []);
+                                  }}
+                                  className="p-2 text-slate-400 hover:text-brand-500 transition-colors"
+                                  title="Assign Tables"
+                                >
+                                  <LayoutGrid size={18} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeleteStaff(member._id)}
+                                className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                                title="Delete Staff member"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Assignment Modal */}
+      <AnimatePresence>
+        {assigningStaff && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="glass dark:glass-dark w-full max-w-lg p-8 rounded-[2.5rem] shadow-2xl"
+            >
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Assign Station Zone</h3>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Dedicated Tables for {assigningStaff.name}</p>
+                </div>
+                <button
+                  onClick={() => setAssigningStaff(null)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                  title="Close modal"
+                >
+                  <Trash2 size={20} className="text-slate-400 rotate-45" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-5 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                  {Array.from({ length: brandingForm.tablesCount || 10 }, (_, i) => i + 1).map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => {
+                        if (newAssignments.includes(num)) {
+                          setNewAssignments(newAssignments.filter(n => n !== num));
+                        } else {
+                          setNewAssignments([...newAssignments, num].sort((a, b) => a - b));
+                        }
+                      }}
+                      className={`aspect-square rounded-2xl flex items-center justify-center text-sm font-black transition-all ${newAssignments.includes(num) ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200'}`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center gap-4">
+                  <button
+                    onClick={handleUpdateAssignments}
+                    disabled={loading}
+                    className="flex-1 py-4 bg-brand-500 text-white rounded-2xl font-black uppercase text-xs shadow-xl shadow-brand-500/20 hover:scale-[1.02] transition-all"
+                  >
+                    {loading ? 'Syncing...' : 'Confirm Zone'}
+                  </button>
+                  <button
+                    onClick={() => setAssigningStaff(null)}
+                    className="px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black uppercase text-xs hover:bg-slate-200 transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

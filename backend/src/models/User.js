@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'customer', 'superadmin'],
+    enum: ['admin', 'customer', 'superadmin', 'waiter', 'chef'],
     default: 'customer'
   },
   password: {
@@ -49,6 +49,17 @@ const userSchema = new mongoose.Schema({
   profileComplete: {
     type: Boolean,
     default: false
+  },
+  onDuty: {
+    type: Boolean,
+    default: false
+  },
+  assignedTables: [{
+    type: Number
+  }],
+  staffColor: {
+    type: String,
+    default: '#3B82F6'
   },
   lastLoginAt: {
     type: Date,

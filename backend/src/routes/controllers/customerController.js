@@ -112,6 +112,14 @@ const createGuestSession = async (req, res) => {
 
     await newSession.save();
 
+    // Auto-Pilot: Assign staff to this new session
+    try {
+      const { assignStaffToSession } = require('./staffController');
+      await assignStaffToSession(restaurantId, parseInt(tableNo, 10), newSession._id);
+    } catch (assignErr) {
+      console.error('[Auto-Pilot] Initial assignment failed during session creation:', assignErr);
+    }
+
     // Generate guest JWT token
     const guestToken = generateGuestToken(
       newSession._id.toString(),

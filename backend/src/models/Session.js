@@ -30,6 +30,10 @@ const sessionSchema = new mongoose.Schema({
       value: String
     }]
   }],
+  assignedStaff: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   expiresAt: {
     type: Date,
     required: true,

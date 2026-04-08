@@ -4,7 +4,7 @@ import { useAppSelector } from '@/hooks/useRedux';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole?: 'admin' | 'customer';
+  requiredRole?: 'admin' | 'customer' | 'chef' | 'waiter';
 }
 
 /**
@@ -49,7 +49,7 @@ export const ProtectedRoute = ({
  */
 export const withProtection = <P extends object>(
   Component: React.ComponentType<P>,
-  requiredRole?: 'admin' | 'customer'
+  requiredRole?: 'admin' | 'customer' | 'chef' | 'waiter'
 ) => {
   return (props: P) => (
     <ProtectedRoute requiredRole={requiredRole}>

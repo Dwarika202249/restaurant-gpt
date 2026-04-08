@@ -19,7 +19,15 @@ const {
   resolveScan
 } = require('./controllers/tableController');
 const { getRestaurantCustomers } = require('./controllers/crmController');
-const { authenticateAdmin } = require('../middleware/auth');
+const {
+  addStaff,
+  getStaffList,
+  deleteStaff,
+  updateStaff,
+  updateStaffAssignments,
+  toggleStaffServiceStatus
+} = require('./controllers/staffController');
+const { authenticateAdmin, authenticateAny } = require('../middleware/auth');
 const { attachRestaurantContext, verifyRestaurantAccess } = require('../middleware/tenantContext');
 
 /**
@@ -191,6 +199,86 @@ router.get(
   attachRestaurantContext,
   verifyRestaurantAccess,
   getRestaurantCustomers
+);
+
+/**
+ * Staff Management Routes
+ */
+
+/**
+ * @route   GET /api/restaurant/staff
+ * @desc    Get all staff for the restaurant
+ * @access  Private (Admin)
+ */
+router.get(
+  '/staff',
+  authenticateAdmin,
+  attachRestaurantContext,
+  verifyRestaurantAccess,
+  getStaffList
+);
+
+/**
+ * @route   POST /api/restaurant/staff
+ * @desc    Add a new staff member (waiter/chef)
+ * @access  Private (Admin)
+ */
+router.post(
+  '/staff',
+  authenticateAdmin,
+  attachRestaurantContext,
+  verifyRestaurantAccess,
+  addStaff
+);
+
+/**
+ * @route   PUT /api/restaurant/staff/:id
+ * @desc    Update a staff member
+ * @access  Private (Admin)
+ */
+router.put(
+  '/staff/:id',
+  authenticateAdmin,
+  attachRestaurantContext,
+  verifyRestaurantAccess,
+  updateStaff
+);
+
+/**
+ * @route   DELETE /api/restaurant/staff/:id
+ * @desc    Remove a staff member
+ * @access  Private (Admin)
+ */
+router.delete(
+  '/staff/:id',
+  authenticateAdmin,
+  attachRestaurantContext,
+  verifyRestaurantAccess,
+  deleteStaff
+);
+
+/**
+ * @route   PUT /api/restaurant/staff/:id/assignments
+ * @desc    Update table assignments for staff
+ * @access  Private (Admin)
+ */
+router.put(
+  '/staff/:id/assignments',
+  authenticateAdmin,
+  attachRestaurantContext,
+  verifyRestaurantAccess,
+  updateStaffAssignments
+);
+
+/**
+ * @route   PATCH /api/restaurant/staff/on-duty
+ * @desc    Toggle on-duty status for staff
+ * @access  Private (Staff/Admin)
+ */
+router.patch(
+  '/staff/on-duty',
+  authenticateAny,
+  toggleStaffServiceStatus
 );
 
 module.exports = router;

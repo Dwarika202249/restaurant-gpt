@@ -1,10 +1,12 @@
 const { getAdminMe } = require('./controllers/getAdminMe');
+const { getStaffMe } = require('./controllers/getStaffMe');
 const express = require('express');
 const router = express.Router();
 const { updateAdminProfile } = require('./controllers/updateAdminProfile');
 const { updateCustomerProfile } = require('./controllers/updateCustomerProfile');
 const {
   sendOTP,
+  sendStaffOTP,
   verifyOTP,
   refreshAccessToken,
   logout,
@@ -13,7 +15,7 @@ const {
   superAdminSignup,
   changeSuperAdminPassword
 } = require('./controllers/authController');
-const { authenticateAdmin, authenticateAny, verifyRefresh, authenticateSuperAdmin } = require('../middleware/auth');
+const { authenticateAdmin, authenticateStaff, authenticateAny, verifyRefresh, authenticateSuperAdmin } = require('../middleware/auth');
 
 /**
  * @route   GET /api/auth/admin/me
@@ -42,6 +44,20 @@ router.post('/admin/send-otp', sendOTP);
  * @access  Public
  */
 router.post('/admin/verify-otp', verifyOTP);
+
+/**
+ * @route   POST /api/auth/staff/send-otp
+ * @desc    Send OTP to staff phone (Waiter/Chef only)
+ * @access  Public (Registration checked)
+ */
+router.post('/staff/send-otp', sendStaffOTP);
+
+/**
+ * @route   GET /api/auth/staff/me
+ * @desc    Get current staff user profile
+ * @access  Private (waiter/chef only)
+ */
+router.get('/staff/me', authenticateStaff, getStaffMe);
 
 /**
  * @route   POST /api/auth/customer/send-otp

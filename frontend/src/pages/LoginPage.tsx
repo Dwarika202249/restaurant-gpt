@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Lock, Copy, Check, ChevronLeft, ArrowRight, Sparkles, Utensils, ShieldCheck } from 'lucide-react';
+import { Phone, Lock, Copy, Check, ChevronLeft, ArrowRight, Sparkles, Utensils, ShieldCheck, ChefHat } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { useTabTitle } from '@/hooks';
 import { sendOTP, verifyOTP, clearError, resetOTPSent } from '@/store/slices/authSlice';
@@ -224,7 +224,7 @@ export const LoginPage = () => {
                   <button 
                     type="submit"
                     disabled={loading || phone.length < 10}
-                    className="w-full orange-gradient p-4 rounded-[1.25rem] text-white font-black uppercase tracking-widest text-xs flex items-center justify-center space-x-3 shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:hover:scale-100"
+                    className="w-full orange-gradient p-4 rounded-[1.25rem] text-white font-black uppercase tracking-widest text-xs flex items-center justify-center space-x-3 shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:hover:scale-100 outline-none"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -235,23 +235,18 @@ export const LoginPage = () => {
                       </>
                     )}
                   </button>
-
-                  {/* Demo Access Info */}
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.8 }}
-                    className="mt-8 p-4 rounded-2xl bg-brand-500/5 border border-brand-500/10 flex items-start space-x-3"
-                  >
-                    <div className="mt-1 p-1 bg-brand-500/10 rounded-lg">
-                      <Sparkles className="text-brand-500" size={14} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-brand-600 dark:text-brand-400 mb-1">Demo Access Available</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Use <span className="font-bold text-slate-900 dark:text-white">99999 99999</span> with OTP <span className="font-bold text-slate-900 dark:text-white">123456</span> to explore all premium features instantly.</p>
-                    </div>
-                  </motion.div>
                 </form>
+
+                <div className="pt-8 border-t border-slate-50 dark:border-slate-900">
+                  <button 
+                    type="button"
+                    onClick={() => navigate('/staff/login')}
+                    className="w-full py-4 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-brand-500 transition-all flex items-center justify-center gap-2 outline-none"
+                  >
+                    <ChefHat size={14} className="text-brand-500" />
+                    Switch to Staff Hub
+                  </button>
+                </div>
               </motion.div>
             ) : (
               <motion.div

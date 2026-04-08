@@ -27,3 +27,6 @@ export { SuperAdminSubscribersPage } from "./SuperAdminSubscribersPage";
 export { SuperAdminSettingsPage } from "./SuperAdminSettingsPage";
 export { SuperAdminSignupPage } from "./SuperAdminSignupPage";
 export { SuperAdminProfilePage } from "./SuperAdminProfilePage";
+export { StaffLoginPage } from "./StaffLoginPage";
+export { ChefDashboard } from "./ChefDashboard";
+export { WaiterDashboard } from "./WaiterDashboard";

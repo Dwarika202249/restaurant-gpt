@@ -17,6 +17,7 @@ export interface Restaurant {
   themeColor?: string;
   currency?: string;
   tablesCount?: number;
+  autoPilot?: boolean;
   isActive?: boolean;
   isPremium?: boolean;
   subscriptionExpiresAt?: string;

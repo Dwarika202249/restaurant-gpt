@@ -64,6 +64,65 @@ const sendOTP = async (req, res) => {
 };
 
 /**
+ * Send OTP to staff phone number (Waiters/Chefs)
+ * Strictly verifies registration before sending OTP
+ */
+const sendStaffOTP = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    const cleanedPhone = phone ? phone.replace(/\D/g, '') : '';
+
+    if (!cleanedPhone || cleanedPhone.length !== 10) {
+      return res.status(400).json({
+        message: 'Valid 10-digit mobile number is required'
+      });
+    }
+
+    // STRICT CHECK: Verify if phone is registered as staff (Waiter/Chef)
+    const staffUser = await User.findOne({ 
+      phone: cleanedPhone, 
+      role: { $in: ['waiter', 'chef'] } 
+    });
+
+    if (!staffUser) {
+      return res.status(403).json({
+        message: 'Access Denied: This mobile number is not registered in our staff registry. Please contact your administrator.'
+      });
+    }
+
+    // Check for Demo Phone Number
+    const DEMO_PHONE = '9999999999';
+    const isDemo = cleanedPhone === DEMO_PHONE;
+
+    // Generate 6-digit OTP
+    const otp = isDemo ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    if (!global.otpStore) {
+      global.otpStore = {};
+    }
+    global.otpStore[cleanedPhone] = {
+      otp,
+      expiresAt: otpExpiry,
+      attempts: 0
+    };
+
+    console.log(`[STAFF-AUTH] OTP for ${cleanedPhone} (${staffUser.role}): ${otp}`);
+
+    return res.status(200).json({
+      message: 'Authentication key sent to your mobile',
+      ...((isDemo || process.env.NODE_ENV === 'development') && { otp })
+    });
+  } catch (error) {
+    console.error('Send Staff OTP error:', error);
+    return res.status(500).json({
+      message: 'Authentication service busy',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
  * Verify OTP and return JWT tokens
  */
 const verifyOTP = async (req, res) => {
@@ -119,22 +178,31 @@ const verifyOTP = async (req, res) => {
       delete global.otpStore[phone];
     }
 
-    // Find or create user
-    const userRole = req.path.includes('customer') ? 'customer' : 'admin';
-    let user = await User.findOne({ phone, role: userRole });
+    // Find user - handle multiple roles for staff (Admin, Waiter, Chef)
+    const isCustomerPath = req.path.includes('customer');
+    let user = await User.findOne({ phone });
 
     if (!user) {
+      const userRole = isCustomerPath ? 'customer' : 'admin';
       // New user - create account
       user = new User({
         phone,
         role: userRole
       });
       await user.save();
+    } else {
+      // If user exists, verify they are using the correct login path
+      if (isCustomerPath && user.role !== 'customer') {
+        return res.status(403).json({ message: 'This phone is registered as staff. Use staff login.' });
+      }
+      if (!isCustomerPath && user.role === 'customer') {
+        return res.status(403).json({ message: 'This phone is registered as customer. Use customer menu.' });
+      }
     }
 
     // Migration Logic: If customer login and guestSessionId provided, link orders
     const { guestSessionId, restaurantId: sessionRestaurantId } = req.body;
-    if (userRole === 'customer' && guestSessionId && sessionRestaurantId) {
+    if (user.role === 'customer' && guestSessionId && sessionRestaurantId) {
       const { Order } = require('../../models');
       await Order.updateMany(
         { 
@@ -491,6 +559,7 @@ const changeSuperAdminPassword = async (req, res) => {
 
 module.exports = {
   sendOTP,
+  sendStaffOTP,
   verifyOTP,
   refreshAccessToken,
   logout,

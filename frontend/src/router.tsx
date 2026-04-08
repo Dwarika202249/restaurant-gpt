@@ -28,7 +28,10 @@ import {
   SuperAdminSubscribersPage,
   SuperAdminSettingsPage,
   SuperAdminSignupPage,
-  SuperAdminProfilePage
+  SuperAdminProfilePage,
+  StaffLoginPage,
+  ChefDashboard,
+  WaiterDashboard
 } from './pages';
 import CreateAdminProfilePage from './pages/CreateAdminProfilePage';
 import AdminPage from './pages/AdminPage';
@@ -76,8 +79,11 @@ const routes: RouteObject[] = [
     element: <LoginPage />
   },
   {
-    path: '/supremeadmin',
     element: <SuperAdminLoginPage />
+  },
+  {
+    path: '/staff/login',
+    element: <StaffLoginPage />
   },
   {
     path: '/supreme/init',
@@ -155,6 +161,26 @@ const routes: RouteObject[] = [
         element: <MarketingPage />
       }
     ]
+  },
+
+  // Protected Chef Routes
+  {
+    path: '/chef/dashboard',
+    element: (
+      <ProtectedRoute requiredRole="chef">
+        <ChefDashboard />
+      </ProtectedRoute>
+    )
+  },
+
+  // Protected Waiter Routes
+  {
+    path: '/waiter/dashboard',
+    element: (
+      <ProtectedRoute requiredRole="waiter">
+        <WaiterDashboard />
+      </ProtectedRoute>
+    )
   },
   
   // Profile Setup Route (Protected, No Layout)
