@@ -5,6 +5,7 @@ import { useTabTitle } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { toggleDutyStatus } from '@/store/slices/authSlice';
 import { fetchStaffUser } from '@/store/slices/fetchStaffUser';
+import { socketService } from '@/services/socket';
 
 interface OrderItem {
   name: string;
@@ -47,7 +48,21 @@ export const ChefDashboard: React.FC = () => {
     if (!user && localStorage.getItem('accessToken')) {
       dispatch(fetchStaffUser());
     }
+  }, [user, dispatch]);
 
+  useEffect(() => {
+    if (user && user.restaurantId && user.id) {
+      socketService.connect();
+      socketService.joinStaffChannel(user.restaurantId, user.id, user.role);
+
+      const socket = socketService.getSocket();
+      if (socket) {
+        // Handle incoming new orders globally here later
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
     // Mock data for initial UI build
     const mockOrders: KitchenOrder[] = [
       {

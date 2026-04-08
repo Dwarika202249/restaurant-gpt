@@ -23,6 +23,10 @@ import { fetchRestaurantProfile } from '@/store/slices/restaurantSlice';
 import { fetchOrders, fetchOrderStats, Order } from '@/store/slices/orderSlice';
 import { formatDistanceToNow } from 'date-fns';
 import { useEffect, useState } from 'react';
+import axios from 'axios';
+import { VITE_API_URL } from '@/config/env';
+import { socketService } from '@/services/socket';
+import { UserCheck } from 'lucide-react';
 
 /**
  * DashboardPage
@@ -43,6 +47,9 @@ export const DashboardPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [customStartDate, setCustomStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [customEndDate, setCustomEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  
+  // Fleet Board (Staff) State
+  const [staffList, setStaffList] = useState<any[]>([]);
 
   useEffect(() => {
     const params: { dateRange?: string; startDate?: string; endDate?: string } = { dateRange: dateFilter };
@@ -66,7 +73,46 @@ export const DashboardPage = () => {
     if (!restaurant) {
       dispatch(fetchRestaurantProfile());
     }
+
+    // Fetch Staff List
+    const fetchStaff = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await axios.get(`${VITE_API_URL}/restaurant/staff`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setStaffList(response.data.data);
+      } catch (err) {
+        console.error('Failed to fetch staff in dashboard');
+      }
+    };
+    fetchStaff();
   }, [dispatch, restaurant, dateFilter, customStartDate, customEndDate, statusFilter]);
+
+  // Handle Live Staff Duty Updates via Socket
+  useEffect(() => {
+    if (user && user.restaurantId) {
+      socketService.connect();
+      socketService.joinRestaurantChannel(user.restaurantId);
+
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.on('staff-duty-changed', ({ userId, onDuty }) => {
+          setStaffList((prevStaff) => 
+            prevStaff.map((member) => 
+              member._id === userId ? { ...member, onDuty } : member
+            )
+          );
+        });
+      }
+
+      return () => {
+        if (socket) {
+          socket.off('staff-duty-changed');
+        }
+      };
+    }
+  }, [user]);
 
   const stats = [
     {
@@ -216,6 +262,46 @@ export const DashboardPage = () => {
             </div>
           </motion.div>
         ))}
+      </motion.div>
+
+      {/* Fleet Board */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="mb-10 glass dark:glass-dark rounded-[2.5rem] overflow-hidden p-8"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center">
+              <UserCheck className="mr-3 text-brand-500" /> Live Fleet Board
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">Real-time status of your Waiters & Chefs</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {staffList.length > 0 ? staffList.map((member) => (
+            <div key={member._id} className="relative bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 flex flex-col items-center justify-center border border-slate-100 dark:border-slate-800 transition-all hover:bg-slate-100 dark:hover:bg-slate-800">
+              <div className="relative mb-3">
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center font-black text-xl text-white ${member.role === 'chef' ? 'bg-amber-500' : 'bg-brand-500'}`}>
+                  {member.name.charAt(0).toUpperCase()}
+                </div>
+                {/* Status Indicator */}
+                <span className={`absolute bottom-0 right-0 w-4 h-4 border-[3px] border-white dark:border-slate-800 rounded-full ${member.onDuty ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]' : 'bg-slate-400'}`}></span>
+              </div>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white capitalize whitespace-nowrap overflow-hidden text-ellipsis w-full text-center">{member.name}</h4>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">{member.role}</p>
+              <div className={`mt-2 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-full ${member.onDuty ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 border border-slate-300 dark:border-slate-600'}`}>
+                {member.onDuty ? 'ON DUTY' : 'OFF DUTY'}
+              </div>
+            </div>
+          )) : (
+             <div className="col-span-full py-8 text-center text-slate-400 font-bold text-sm uppercase tracking-widest">
+               No staff available. Add some in settings!
+             </div>
+          )}
+        </div>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

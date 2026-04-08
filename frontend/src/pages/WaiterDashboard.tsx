@@ -5,6 +5,7 @@ import { useTabTitle } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { toggleDutyStatus } from '@/store/slices/authSlice';
 import { fetchStaffUser } from '@/store/slices/fetchStaffUser';
+import { socketService } from '@/services/socket';
 
 interface TableStatus {
   no: string;
@@ -33,7 +34,30 @@ export const WaiterDashboard: React.FC = () => {
     if (!user && localStorage.getItem('accessToken')) {
       dispatch(fetchStaffUser());
     }
+  }, [user, dispatch]);
 
+  useEffect(() => {
+    // Connect to WebSockets once user is loaded
+    if (user && user.restaurantId && user.id) {
+      socketService.connect();
+      socketService.joinStaffChannel(user.restaurantId, user.id, user.role);
+
+      const socket = socketService.getSocket();
+      if (socket) {
+        // Here we'll listen to wait-specific events later (e.g., 'table-alert')
+        // const handleAlert = (data) => { ... }
+        // socket.on('table-alert', handleAlert);
+      }
+
+      return () => {
+        // Cleanup on unmount, or just let the global service handle it
+        // If we disconnect here, navigating between tabs drops socket. 
+        // We probably shouldn't disconnect global socket on unmount of dashboard.
+      };
+    }
+  }, [user]);
+
+  useEffect(() => {
     // Initial mock state
     const mockTables: TableStatus[] = [
       { no: '01', status: 'occupied', orderStatus: 'preparing', alerts: ['water'], lastActivity: '2m ago' },

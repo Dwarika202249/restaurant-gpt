@@ -227,6 +227,14 @@ const toggleStaffServiceStatus = async (req, res) => {
       return res.status(404).json({ message: 'Staff identity not verified' });
     }
 
+    // Emit live update to admin dashboard
+    const socketService = require('../../services/socketService');
+    socketService.emitToRestaurant(restaurantId, 'staff-duty-changed', {
+      userId: staffId,
+      onDuty: staff.onDuty,
+      role: staff.role
+    });
+
     return res.status(200).json({
       message: `Station status updated: ${newStatus ? 'ON DUTY' : 'OFF DUTY'}`,
       data: {

@@ -5,6 +5,7 @@ import { VITE_API_URL } from '@/config/env';
 import { useTabTitle } from '@/hooks';
 import { updateAdminProfile } from '@/store/slices/authSlice';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
+import { socketService } from '@/services/socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -46,6 +47,30 @@ const AdminPage: React.FC = () => {
       dispatch(fetchAdminUser());
     }
   }, [user, isAuthenticated, dispatch]);
+
+  useEffect(() => {
+    if (user && user.restaurantId) {
+      socketService.connect();
+      socketService.joinRestaurantChannel(user.restaurantId);
+
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.on('staff-duty-changed', ({ userId, onDuty }) => {
+          setStaff((prevStaff) => 
+            prevStaff.map((member) => 
+              member._id === userId ? { ...member, onDuty } : member
+            )
+          );
+        });
+      }
+
+      return () => {
+        if (socket) {
+          socket.off('staff-duty-changed');
+        }
+      };
+    }
+  }, [user]);
 
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({
