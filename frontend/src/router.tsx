@@ -79,6 +79,7 @@ const routes: RouteObject[] = [
     element: <LoginPage />
   },
   {
+    path: '/supremeadmin',
     element: <SuperAdminLoginPage />
   },
   {

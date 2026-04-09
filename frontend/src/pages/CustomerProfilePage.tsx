@@ -8,7 +8,8 @@ import { useTabTitle } from '@/hooks';
 import axios from 'axios';
 
 interface GuestSession {
-  sessionId: string;
+  currency: string;
+  assignedStaff?: any;
   restaurantId: string;
   restaurantSlug: string;
   tableNo: number;

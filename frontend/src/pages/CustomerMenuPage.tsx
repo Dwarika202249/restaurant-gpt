@@ -11,6 +11,7 @@ import { useLocation } from 'react-router-dom';
 import { Shield, CreditCard, Loader2, CheckIcon, PartyPopper } from 'lucide-react';
 import { CategoryIcon } from '@/utils/categoryIcons';
 import { toast } from 'react-hot-toast';
+import { socketService } from "@/services/socket";
 
 interface MenuItem {
   _id: string;
@@ -50,6 +51,7 @@ interface GuestSession {
   restaurantLogo?: string;
   themeColor: string;
   currency: string;
+  assignedStaff?: any;
 }
 
 export const CustomerMenuPage = () => {
@@ -301,12 +303,36 @@ export const CustomerMenuPage = () => {
   useEffect(() => {
     if (!guestSession) return;
     
-    // Check for customer token periodically to handle seamless account switching
+    // Initial fetch
     const getBestToken = () => localStorage.getItem('customerToken') || guestSession.sessionToken;
-    
     fetchActiveOrders(getBestToken());
-    const interval = setInterval(() => fetchActiveOrders(getBestToken()), 10000);
-    return () => clearInterval(interval);
+
+    // Listen for real-time updates to avoid polling
+    const restaurantId = guestSession.restaurantId;
+    if (restaurantId) {
+      socketService.connect();
+      socketService.joinRestaurantChannel(restaurantId);
+      
+      const socket = socketService.getSocket();
+      if (socket) {
+        // When any order info changes, refresh the local list
+        socket.on('order:update', () => {
+          fetchActiveOrders(getBestToken());
+        });
+        
+        // Also refresh on new orders (e.g. if they place another order from another device)
+        socket.on('order:new', () => {
+          fetchActiveOrders(getBestToken());
+        });
+      }
+
+      return () => {
+        if (socket) {
+          socket.off('order:update');
+          socket.off('order:new');
+        }
+      };
+    }
   }, [guestSession, customerUser, API_URL]);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -535,10 +561,26 @@ export const CustomerMenuPage = () => {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-10 text-center"
+          className="mb-10 text-center flex flex-col items-center"
         >
           <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mb-2">Taste Perfection</h2>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Crafted with passion for Table {tableNo}</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-4">Crafted with passion for Table {tableNo}</p>
+          
+          {guestSession?.assignedStaff && (
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm"
+            >
+              <div className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center text-[10px] font-black">
+                {guestSession.assignedStaff.name.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">
+                Assisted by <span className="text-slate-900 dark:text-white font-black">{guestSession.assignedStaff.name}</span>
+              </span>
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Advanced Search Bar */}
@@ -960,9 +1002,7 @@ export const CustomerMenuPage = () => {
           )}
         </AnimatePresence>
 
-        <div ref={statusRef}>
-          <OrderStatusWidget orders={activeOrders} onRefresh={() => guestSession && fetchActiveOrders(guestSession.sessionToken)} />
-        </div>
+
         <CustomerAuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
@@ -972,11 +1012,7 @@ export const CustomerMenuPage = () => {
         />
       </div>
 
-      <AiConcierge
-        restaurantSlug={guestSession?.restaurantSlug || ''}
-        restaurantName={guestSession?.restaurantName || 'Restaurant'}
-        themeColor={guestSession?.themeColor}
-      />
+
 
       <style dangerouslySetInnerHTML={{
         __html: `

@@ -20,7 +20,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTabTitle } from '@/hooks';
 import { fetchRestaurantProfile } from '@/store/slices/restaurantSlice';
-import { fetchOrders, fetchOrderStats, Order } from '@/store/slices/orderSlice';
+import { fetchOrders, fetchOrderStats, Order, addNewOrder, updateExistingOrder } from '@/store/slices/orderSlice';
 import { formatDistanceToNow } from 'date-fns';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
@@ -104,11 +104,35 @@ export const DashboardPage = () => {
             )
           );
         });
+
+        socket.on('order:new', (payload: any) => {
+          // Update global state
+          dispatch(addNewOrder(payload.order));
+          
+          // Show toast
+          import('react-hot-toast').then(({ toast }) => {
+            toast.success(`NEW ORDER: Table ${payload.order.tableNo}`, {
+              icon: '💰',
+              style: {
+                borderRadius: '12px',
+                background: '#0f172a',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }
+            });
+          });
+        });
+
+        socket.on('order:update', (payload: any) => {
+          dispatch(updateExistingOrder(payload));
+        });
       }
 
       return () => {
         if (socket) {
           socket.off('staff-duty-changed');
+          socket.off('order:new');
+          socket.off('order:update');
         }
       };
     }

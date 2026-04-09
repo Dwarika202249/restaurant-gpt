@@ -134,6 +134,25 @@ const orderSlice = createSlice({
     clearOrderError: (state) => {
       state.error = null;
     },
+    addNewOrder: (state, action) => {
+      // Check if order already exists to prevent duplicates
+      const exists = state.orders.find(o => o._id === action.payload._id);
+      if (!exists) {
+        state.orders = [action.payload, ...state.orders];
+        
+        // Update basic stats if they exist
+        if (state.stats) {
+          state.stats.summary.totalOrders += 1;
+          state.stats.summary.totalRevenue += action.payload.total;
+        }
+      }
+    },
+    updateExistingOrder: (state, action) => {
+      const index = state.orders.findIndex((o) => o._id === action.payload._id);
+      if (index !== -1) {
+        state.orders[index] = { ...state.orders[index], ...action.payload };
+      }
+    }
   },
   extraReducers: (builder) => {
     // Fetch Orders
@@ -175,5 +194,5 @@ const orderSlice = createSlice({
   },
 });
 
-export const { clearOrderError } = orderSlice.actions;
+export const { clearOrderError, addNewOrder, updateExistingOrder } = orderSlice.actions;
 export default orderSlice.reducer;

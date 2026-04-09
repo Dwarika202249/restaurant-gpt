@@ -9,11 +9,7 @@ const { Restaurant, Session } = require('../models');
  */
 const attachRestaurantContext = async (req, res, next) => {
   try {
-    // Case 1: Admin user - use their assigned restaurantId
-    if (req.user && req.user.role === 'admin') {
-      req.restaurantId = req.user.restaurantId;
-      return next();
-    }
+
 
     // Case 2: Guest user - extract from URL slug or session
     if (req.guestSession && req.guestSession.restaurantId) {
@@ -46,6 +42,12 @@ const attachRestaurantContext = async (req, res, next) => {
     // Case 5: Extract from query params
     if (req.query.restaurantId) {
       req.restaurantId = req.query.restaurantId;
+      return next();
+    }
+
+    // Case 6: User Fallback (For staff members in their own restaurant)
+    if (req.user && req.user.restaurantId) {
+      req.restaurantId = req.user.restaurantId;
       return next();
     }
 

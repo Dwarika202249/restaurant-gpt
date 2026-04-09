@@ -16,36 +16,34 @@ module.exports = {
       socket.on('join-restaurant', (restaurantId) => {
         if (restaurantId) {
           socket.join(restaurantId.toString());
-          console.log(`Socket ${socket.id} joined restaurant room: ${restaurantId}`);
+          console.log(`[Socket] Admin ${socket.id} joined restaurant room: ${restaurantId}`);
         }
       });
 
       // Staff joining their personal channel and role-specific channels
       socket.on('join-staff', ({ restaurantId, userId, role }) => {
         if (restaurantId && userId) {
-          // Join personal channel
-          const personalRoom = `user_${userId}`;
-          socket.join(personalRoom);
-          console.log(`Socket ${socket.id} joined personal room: ${personalRoom}`);
-
-          // If chef, join the kitchen broadcast channel
-          if (role === 'chef') {
-            const kitchenRoom = `kitchen_${restaurantId}`;
-            socket.join(kitchenRoom);
-            console.log(`Socket ${socket.id} joined kitchen room: ${kitchenRoom}`);
-          }
+          const restaurantRoom = restaurantId.toString();
+          const userRoom = `user_${userId.toString()}`;
           
-          // Optionally, everyone gets attached to the main restaurant room too
-          socket.join(restaurantId.toString());
+          socket.join(restaurantRoom);
+          socket.join(userRoom);
+          console.log(`[Socket] Staff ${userId} (${role}) joined rooms: [${restaurantRoom}, ${userRoom}]`);
+
+          if (role === 'chef') {
+            const kitchenRoom = `kitchen_${restaurantRoom}`;
+            socket.join(kitchenRoom);
+            console.log(`[Socket] Staff ${userId} joined kitchen room: ${kitchenRoom}`);
+          }
         }
       });
 
       // Customer joining a specific table channel
       socket.on('join-table', ({ restaurantId, tableNo }) => {
         if (restaurantId && tableNo) {
-          const tableRoom = `table_${restaurantId}_${tableNo}`;
+          const tableRoom = `table_${restaurantId.toString()}_${tableNo.toString()}`;
           socket.join(tableRoom);
-          console.log(`Socket ${socket.id} joined table room: ${tableRoom}`);
+          console.log(`[Socket] Guest joined table room: ${tableRoom}`);
         }
       });
 

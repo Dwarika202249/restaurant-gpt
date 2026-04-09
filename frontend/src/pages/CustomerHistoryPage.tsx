@@ -27,6 +27,7 @@ interface GuestSession {
   restaurantName: string;
   restaurantLogo?: string;
   themeColor: string;
+  assignedStaff?: any;
 }
 
 interface OrderItem {

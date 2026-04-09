@@ -9,7 +9,7 @@ const {
   updatePaymentStatus,
   getOrderStats
 } = require('./controllers/orderController');
-const { authenticateAdmin, authenticateAny } = require('../middleware/auth');
+const { authenticateAdmin, authenticateStaff, authenticateAny } = require('../middleware/auth');
 const { attachRestaurantContext } = require('../middleware/tenantContext');
 
 /**
@@ -58,7 +58,7 @@ router.get(
  */
 router.get(
   '/',
-  authenticateAdmin,
+  authenticateStaff,
   attachRestaurantContext,
   getOrders
 );
@@ -70,7 +70,7 @@ router.get(
  */
 router.get(
   '/:orderId',
-  authenticateAdmin,
+  authenticateStaff,
   attachRestaurantContext,
   getOrderById
 );
@@ -83,7 +83,7 @@ router.get(
  */
 router.patch(
   '/:orderId/status',
-  authenticateAdmin,
+  authenticateStaff,
   attachRestaurantContext,
   updateOrderStatus
 );

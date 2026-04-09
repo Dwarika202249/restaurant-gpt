@@ -160,7 +160,8 @@ const authenticateStaff = async (req, res, next) => {
     // Fetch user from database
     const user = await User.findById(decoded.userId);
 
-    if (!user || (user.role !== "waiter" && user.role !== "chef")) {
+    const staffRoles = ["admin", "superadmin", "waiter", "chef"];
+    if (!user || !staffRoles.includes(user.role)) {
       return res.status(403).json({
         message: "Unauthorized: Staff access required",
       });

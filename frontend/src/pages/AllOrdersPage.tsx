@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { useTabTitle } from '@/hooks';
-import { fetchOrders, Order } from '@/store/slices/orderSlice';
+import { fetchOrders, Order, addNewOrder, updateOrderStatus } from '@/store/slices/orderSlice';
+import { socketService } from '@/services/socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
@@ -65,9 +66,32 @@ export const AllOrdersPage = () => {
 
   useTabTitle('Order History');
 
+  const { user } = useAppSelector(state => state.auth);
+
   useEffect(() => {
     loadOrders();
-  }, [datePreset, statusFilter, paymentFilter, startDate, endDate]);
+
+    // Real-time updates for history
+    if (user && user.restaurantId) {
+      socketService.connect();
+      socketService.joinRestaurantChannel(user.restaurantId);
+      
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.on('order:new', (payload: any) => {
+          if (datePreset === 'today') {
+            dispatch(addNewOrder(payload.order));
+          }
+        });
+      }
+
+      return () => {
+        if (socket) {
+          socket.off('order:new');
+        }
+      };
+    }
+  }, [datePreset, statusFilter, paymentFilter, startDate, endDate, user]);
 
   const loadOrders = () => {
     const filters: any = {
@@ -82,6 +106,14 @@ export const AllOrdersPage = () => {
     }
 
     dispatch(fetchOrders(filters));
+  };
+
+  const handleStatusUpdate = (orderId: string, nextStatus: string) => {
+    dispatch(updateOrderStatus({ orderId, status: nextStatus }));
+    // If the modal is open, update the local selectedOrder state to reflect the change
+    if (selectedOrder && selectedOrder._id === orderId) {
+      setSelectedOrder({ ...selectedOrder, status: nextStatus as any });
+    }
   };
 
   // Local filtering for real-time search without API calls
@@ -473,6 +505,28 @@ export const AllOrdersPage = () => {
                    </div>
                  ))}
               </div>
+
+              {/* Status Update Actions */}
+              {selectedOrder.status !== 'completed' && (
+                <div className="px-10 pb-6">
+                   <div className="p-1 bg-slate-100 dark:bg-white/5 rounded-2xl flex gap-1">
+                      {['preparing', 'ready', 'completed'].map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => handleStatusUpdate(selectedOrder._id, status)}
+                          disabled={selectedOrder.status === status}
+                          className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                            selectedOrder.status === status 
+                              ? 'bg-white dark:bg-slate-800 text-brand-500 shadow-sm' 
+                              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                          }`}
+                        >
+                          Mark {status}
+                        </button>
+                      ))}
+                   </div>
+                </div>
+              )}
 
               {/* Final Settlement */}
               <div className="p-10 bg-slate-900 text-white rounded-b-[3rem]">

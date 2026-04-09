@@ -154,8 +154,20 @@ const createOrder = async (req, res) => {
           amount: order.total
         }
       });
-      // Emit via Socket.io
+      // Emit via Socket.io to global restaurant (Admin)
       socketService.emitToRestaurant(restaurantId, 'new-notification', notification);
+      
+      // Phase C: Broadcast new order to Kitchen Display System (KDS) and Dashboard Live Orders
+      const orderPayload = {
+        order,
+        orderNumber: order.orderNumber,
+        total: order.total
+      };
+      // To Admin Dashboard Recent Orders
+      socketService.emitToRestaurant(restaurantId, 'order:new', orderPayload);
+      // To Chef Dashboard KDS
+      socketService.emitToKitchen(restaurantId, 'order:new', orderPayload);
+
     } catch (notifErr) {
       console.error('Failed to create order notification:', notifErr);
     }
@@ -260,6 +272,7 @@ const getOrders = async (req, res) => {
     // Fetch orders
     const orders = await Order.find(filter)
       .populate('customerId', 'name phone')
+      .populate('guestSessionId', 'assignedStaff')
       .sort({ orderedAt: -1 })
       .skip(skip)
       .limit(pageSize)
@@ -380,6 +393,14 @@ const updateOrderStatus = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // --- Order Update Notification ---
+    socketService.emitToRestaurant(restaurantId, 'order:update', order);
+    
+    // Also notify Kitchen if necessary (e.g. if status is 'preparing')
+    if (status === 'preparing' || status === 'ready') {
+      socketService.emitToKitchen(restaurantId, 'order:update', order);
     }
 
     // --- Loyalty Points Earning Logic ---

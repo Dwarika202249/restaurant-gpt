@@ -113,9 +113,10 @@ const createGuestSession = async (req, res) => {
     await newSession.save();
 
     // Auto-Pilot: Assign staff to this new session
+    let assignedStaff = null;
     try {
       const { assignStaffToSession } = require('./staffController');
-      await assignStaffToSession(restaurantId, parseInt(tableNo, 10), newSession._id);
+      assignedStaff = await assignStaffToSession(restaurantId, parseInt(tableNo, 10), newSession._id);
     } catch (assignErr) {
       console.error('[Auto-Pilot] Initial assignment failed during session creation:', assignErr);
     }
@@ -135,7 +136,11 @@ const createGuestSession = async (req, res) => {
         tableNo,
         sessionToken: guestToken,
         expiresAt,
-        resumed: false
+        resumed: false,
+        assignedStaff: assignedStaff ? {
+          name: assignedStaff.name,
+          phone: assignedStaff.phone
+        } : null
       }
     });
   } catch (error) {
@@ -225,6 +230,9 @@ const validateGuestSession = async (req, res) => {
       });
     }
 
+    // Optionally, we could populate assigned staff here as well
+    await session.populate('assignedStaff', 'name phone');
+
     return res.status(200).json({
       message: 'Session is valid',
       data: {
@@ -232,7 +240,11 @@ const validateGuestSession = async (req, res) => {
         restaurantId: session.restaurantId,
         tableNo: session.tableNo,
         cartItems: session.cart.length,
-        expiresAt: session.expiresAt
+        expiresAt: session.expiresAt,
+        assignedStaff: session.assignedStaff ? {
+          name: session.assignedStaff.name,
+          phone: session.assignedStaff.phone
+        } : null
       }
     });
   } catch (error) {

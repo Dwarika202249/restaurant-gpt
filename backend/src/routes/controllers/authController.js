@@ -192,9 +192,8 @@ const verifyOTP = async (req, res) => {
       await user.save();
     } else {
       // If user exists, verify they are using the correct login path
-      if (isCustomerPath && user.role !== 'customer') {
-        return res.status(403).json({ message: 'This phone is registered as staff. Use staff login.' });
-      }
+      // Relaxation: We allow staff (admin, waiter, chef) to login as customers.
+      // We only block customers from trying to login to the staff/admin dashboard.
       if (!isCustomerPath && user.role === 'customer') {
         return res.status(403).json({ message: 'This phone is registered as customer. Use customer menu.' });
       }
@@ -202,7 +201,7 @@ const verifyOTP = async (req, res) => {
 
     // Migration Logic: If customer login and guestSessionId provided, link orders
     const { guestSessionId, restaurantId: sessionRestaurantId } = req.body;
-    if (user.role === 'customer' && guestSessionId && sessionRestaurantId) {
+    if (isCustomerPath && guestSessionId && sessionRestaurantId) {
       const { Order } = require('../../models');
       await Order.updateMany(
         { 
