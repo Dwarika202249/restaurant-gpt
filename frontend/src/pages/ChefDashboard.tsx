@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { VITE_API_URL } from '@/config/env';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChefHat, Clock, AlertTriangle, CheckCircle2, RotateCcw, Flame, Phone, LayoutGrid } from 'lucide-react';
+import { ChefHat, Clock, AlertTriangle, CheckCircle2, RotateCcw, Flame, Phone, LayoutGrid, X } from 'lucide-react';
 import { useTabTitle } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { toggleDutyStatus } from '@/store/slices/authSlice';
@@ -30,6 +30,7 @@ export const ChefDashboard: React.FC = () => {
   const { user, loading } = useAppSelector(state => state.auth);
 
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<KitchenOrder | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'new' | 'preparing'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -153,9 +154,13 @@ export const ChefDashboard: React.FC = () => {
     }
   };
 
-  const filteredOrders = orders.filter(o =>
-    activeFilter === 'all' ? (o.status !== 'completed' && o.status !== 'ready') : o.status === activeFilter
+  const activeOrders = orders.filter(o =>
+    activeFilter === 'all' 
+      ? (o.status !== 'completed') 
+      : o.status === activeFilter
   );
+
+  const completedToday = orders.filter(o => o.status === 'completed');
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8 font-inter">
@@ -206,7 +211,7 @@ export const ChefDashboard: React.FC = () => {
       <main className="max-w-[1600px] mx-auto pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           <AnimatePresence mode="popLayout">
-            {filteredOrders.length === 0 ? (
+            {activeOrders.length === 0 ? (
               <motion.div
                 key="empty"
                 initial={{ opacity: 0 }}
@@ -219,7 +224,7 @@ export const ChefDashboard: React.FC = () => {
                 <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest italic">No orders in queue</h3>
               </motion.div>
             ) : (
-              filteredOrders.map(order => (
+              activeOrders.map((order: KitchenOrder) => (
                 <motion.div
                   key={order.id}
                   layout
@@ -248,7 +253,7 @@ export const ChefDashboard: React.FC = () => {
                   </div>
 
                   <div className="space-y-4 mb-10 min-h-[140px]">
-                    {order.items.map((item, idx) => (
+                    {order.items.map((item: OrderItem, idx: number) => (
                       <div key={idx} className="flex justify-between items-start group">
                         <div className="flex gap-4">
                           <span className="text-2xl font-black opacity-40">x{item.quantity}</span>
@@ -290,6 +295,116 @@ export const ChefDashboard: React.FC = () => {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Recently Completed Section */}
+        {completedToday.length > 0 && (
+          <section className="mt-20 border-t border-slate-200 dark:border-white/5 pt-12">
+            <div className="flex items-center gap-3 mb-8">
+               <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500">
+                  <CheckCircle2 size={24} />
+               </div>
+               <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Today's Completed Queue</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+               {completedToday.map((order: KitchenOrder) => (
+                 <motion.div
+                   key={order.id}
+                   whileHover={{ scale: 1.02, x: 5 }}
+                   whileTap={{ scale: 0.98 }}
+                   onClick={() => setSelectedOrder(order)}
+                   className="p-5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[2rem] flex items-center justify-between group cursor-pointer hover:border-orange-500/30 transition-all border-l-4 border-l-emerald-500 shadow-sm hover:shadow-md"
+                 >
+                   <div className="flex items-center gap-4">
+                      <div className="text-2xl font-black italic">#{order.tableNo}</div>
+                      <div>
+                         <div className="flex items-center gap-2">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Complete</p>
+                           <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                         </div>
+                         <p className="text-[10px] font-black uppercase text-emerald-600 mt-1">
+                            {new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                         </p>
+                      </div>
+                   </div>
+                   <div className="text-right">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{order.items.length} Items</p>
+                      <CheckCircle2 className="text-emerald-500 ml-auto mt-1" size={16} />
+                   </div>
+                 </motion.div>
+               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Completed Order Detail Modal */}
+        <AnimatePresence>
+          {selectedOrder && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
+                className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl" 
+                onClick={() => setSelectedOrder(null)} 
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 40 }} 
+                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                exit={{ opacity: 0, scale: 0.9, y: 40 }} 
+                className="relative bg-white dark:bg-slate-900 w-full max-w-lg rounded-[3.5rem] border border-white/5 shadow-2xl overflow-hidden"
+              >
+                <div className="p-10 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 to-transparent">
+                  <div className="flex items-center gap-5">
+                    <div className="w-14 h-14 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                      <CheckCircle2 size={32} />
+                    </div>
+                    <div>
+                      <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Table #{selectedOrder.tableNo}</h3>
+                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Successfully Served • {new Date(selectedOrder.timestamp).toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                    <button 
+                      onClick={() => setSelectedOrder(null)} 
+                      className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors"
+                      aria-label="Close"
+                      title="Close"
+                    >
+                      <X />
+                    </button>
+                </div>
+
+                <div className="p-10 space-y-6 max-h-[450px] overflow-y-auto custom-scrollbar">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Dish Checklist</p>
+                  {selectedOrder.items.map((item: OrderItem, idx: number) => (
+                    <div key={idx} className="flex justify-between items-start group p-4 rounded-2xl bg-slate-50 dark:bg-white/5">
+                      <div className="flex gap-4">
+                        <span className="text-2xl font-black text-emerald-500 italic">x{item.quantity}</span>
+                        <div>
+                          <p className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">{item.name}</p>
+                          {item.notes && (
+                            <p className="text-[10px] font-bold text-orange-500 italic mt-1 bg-orange-500/10 px-2 py-0.5 rounded-md inline-block">
+                              Note: {item.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-10 bg-slate-900 text-white">
+                   <button 
+                     onClick={() => setSelectedOrder(null)}
+                     className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[2rem] text-xs font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-emerald-500/20"
+                   >
+                     Back to Live Queue
+                   </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

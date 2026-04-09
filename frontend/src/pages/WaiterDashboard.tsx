@@ -2,21 +2,28 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { VITE_API_URL } from '@/config/env';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutGrid, Bell, CheckCircle2, Coffee, Receipt, Clock, MapPin, Phone, User, RotateCcw } from 'lucide-react';
+import { LayoutGrid, Bell, CheckCircle2, Coffee, Receipt, Clock, MapPin, Phone, User, RotateCcw, X, ShoppingBag } from 'lucide-react';
 import { useTabTitle } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
 import { toggleDutyStatus } from '@/store/slices/authSlice';
 import { fetchStaffUser } from '@/store/slices/fetchStaffUser';
 import { socketService } from '@/services/socket';
 
+interface OrderItem {
+  name: string;
+  quantity: number;
+  notes?: string;
+}
+
 interface TableStatus {
   no: string;
+  orderId?: string;
   status: 'available' | 'occupied' | 'preparing' | 'ready';
   orderStatus?: 'none' | 'new' | 'preparing' | 'ready' | 'completed';
-  alerts?: ('water' | 'bill' | 'call')[];
+  items?: OrderItem[];
+  totalAmount?: number;
   lastActivity?: string;
   assignedToMe: boolean;
-  assignedStaffName?: string;
 }
 
 export const WaiterDashboard: React.FC = () => {
@@ -25,6 +32,8 @@ export const WaiterDashboard: React.FC = () => {
   const { user, loading: authLoading } = useAppSelector(state => state.auth);
   
   const [tables, setTables] = useState<TableStatus[]>([]);
+  const [completedOrders, setCompletedOrders] = useState<any[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'orders' | 'alerts'>('all');
   const [isSyncing, setIsSyncing] = useState(true);
   const onDuty = user?.onDuty;
@@ -50,7 +59,18 @@ export const WaiterDashboard: React.FC = () => {
           const tableNoStr = String(payload.order.tableNo).padStart(2, '0');
           setTables(prev => prev.map(t => 
             t.no === tableNoStr 
-              ? { ...t, status: 'occupied', orderStatus: 'new', lastActivity: 'Just now' } 
+              ? { 
+                  ...t, 
+                  status: 'occupied', 
+                  orderId: payload.order._id,
+                  orderStatus: 'new', 
+                  items: payload.order.items.map((i: any) => ({
+                    name: i.nameSnapshot,
+                    quantity: i.quantity,
+                    notes: i.customizations?.join(', ')
+                  })),
+                  lastActivity: 'Just now' 
+                } 
               : t
           ));
         });
@@ -58,11 +78,29 @@ export const WaiterDashboard: React.FC = () => {
         socket.on('order:update', (order: any) => {
           console.log('[Socket] Order Updated:', order);
           const tableNoStr = String(order.tableNo).padStart(2, '0');
+          
           setTables(prev => prev.map(t => 
             t.no === tableNoStr 
-              ? { ...t, status: order.status === 'completed' ? 'available' : 'occupied', orderStatus: order.status } 
+              ? { 
+                  ...t, 
+                  status: order.status === 'completed' ? 'available' : 'occupied', 
+                  orderStatus: order.status,
+                  orderId: order.status === 'completed' ? undefined : order._id,
+                  items: order.status === 'completed' ? undefined : order.items.map((i: any) => ({
+                    name: i.nameSnapshot,
+                    quantity: i.quantity
+                  }))
+                } 
               : t
           ));
+
+          if (order.status === 'completed') {
+            setCompletedOrders(prev => {
+              // Avoid duplicates
+              if (prev.find(o => o._id === order._id)) return prev;
+              return [order, ...prev];
+            });
+          }
 
           if (order.status === 'ready') {
             import('react-hot-toast').then(({ toast }) => {
@@ -83,6 +121,28 @@ export const WaiterDashboard: React.FC = () => {
       };
     }
   }, [user]);
+
+  const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      await axios.patch(`${VITE_API_URL}/orders/${orderId}/status`, 
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      import('react-hot-toast').then(({ toast }) => {
+        toast.success(`Order marked as ${newStatus}!`, {
+          icon: '✅',
+          style: { borderRadius: '10px', background: '#10b981', color: '#fff' }
+        });
+      });
+
+      // Local update is handled by socket, but we can refresh floor status for safety
+      fetchFloorStatus();
+    } catch (err) {
+      console.error('Failed to update order status');
+    }
+  };
 
   const { currentRestaurant } = useAppSelector(state => state.restaurant);
 
@@ -105,19 +165,28 @@ export const WaiterDashboard: React.FC = () => {
         assignedToMe: false
       }));
 
-      orders.forEach(order => {
-        if (['pending', 'new', 'preparing', 'ready'].includes(order.status)) {
-          // Robust comparison using Number conversion for both values
-          const tIdx = initialTables.findIndex(t => Number(t.no) === Number(order.tableNo));
-          if (tIdx !== -1) {
-            initialTables[tIdx].status = 'occupied';
-            initialTables[tIdx].orderStatus = order.status;
-            initialTables[tIdx].lastActivity = 'Active';
-          }
+      const activeOrders = orders.filter(order => ['pending', 'new', 'preparing', 'ready'].includes(order.status));
+      const finishedOrders = orders.filter(order => order.status === 'completed');
+
+      activeOrders.forEach(order => {
+        // Robust comparison using Number conversion for both values
+        const tIdx = initialTables.findIndex(t => Number(t.no) === Number(order.tableNo));
+        if (tIdx !== -1) {
+          initialTables[tIdx].status = 'occupied';
+          initialTables[tIdx].orderStatus = order.status;
+          initialTables[tIdx].orderId = order._id;
+          initialTables[tIdx].totalAmount = order.total;
+          initialTables[tIdx].items = order.items.map((i: any) => ({
+            name: i.nameSnapshot,
+            quantity: i.quantity,
+            notes: i.customizations?.join(', ')
+          }));
+          initialTables[tIdx].lastActivity = 'Active';
         }
       });
 
       setTables(initialTables);
+      setCompletedOrders(finishedOrders);
     } catch (err) {
       console.error('Failed to fetch floor status');
     } finally {
@@ -214,9 +283,33 @@ export const WaiterDashboard: React.FC = () => {
 
                     <div className="space-y-3">
                         {table.orderStatus && table.orderStatus !== 'none' && (
-                            <div className="flex items-center justify-between p-3 rounded-2xl bg-black/10 backdrop-blur-md border border-white/5">
-                                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Status</span>
-                                <span className="text-[9px] font-black uppercase tracking-widest">{table.orderStatus}</span>
+                            <div className="space-y-4">
+                               <div className="flex items-center justify-between p-3 rounded-2xl bg-black/10 backdrop-blur-md border border-white/5">
+                                   <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Status</span>
+                                   <span className="text-[9px] font-black uppercase tracking-widest">{table.orderStatus}</span>
+                               </div>
+
+                               <div className="space-y-2 max-h-[120px] overflow-y-auto custom-scrollbar pr-2">
+                                  {table.items?.map((item, idx) => (
+                                      <div key={idx} className="flex justify-between items-center bg-white/5 p-2 rounded-xl">
+                                          <span className="text-[10px] font-bold text-white/90 truncate mr-2">{item.name}</span>
+                                          <span className="text-[10px] font-black text-white/60">x{item.quantity}</span>
+                                      </div>
+                                  ))}
+                               </div>
+
+                               {table.orderStatus === 'ready' && table.orderId && (
+                                   <motion.button
+                                      whileTap={{ scale: 0.95 }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleUpdateStatus(table.orderId!, 'completed');
+                                      }}
+                                      className="w-full py-4 bg-white text-emerald-600 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-slate-100 transition-all border-2 border-emerald-400/20"
+                                   >
+                                      Mark as Served
+                                   </motion.button>
+                               )}
                             </div>
                         )}
                         
@@ -231,6 +324,117 @@ export const WaiterDashboard: React.FC = () => {
             })}
           </AnimatePresence>
         </div>
+
+        {/* Today's Completed Orders Section */}
+        <section className="mt-20 border-t border-slate-200 dark:border-white/5 pt-12">
+           <div className="flex items-center gap-3 mb-8">
+              <CheckCircle2 className="text-emerald-500" size={24} />
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Today's Served Orders</h3>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {completedOrders.length === 0 ? (
+                 <div className="p-10 text-center col-span-full opacity-40">
+                    <p className="text-[10px] font-black uppercase tracking-widest">No orders served yet today</p>
+                 </div>
+              ) : (
+                completedOrders.map((order) => (
+                  <motion.div 
+                    key={order._id}
+                    whileHover={{ scale: 1.02, y: -4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setSelectedOrder(order)}
+                    className="p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[2rem] flex items-center justify-between group cursor-pointer hover:border-brand-500/30 hover:shadow-xl transition-all border-l-4 border-l-emerald-500"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 font-black italic">
+                        #{order.tableNo}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Order Served</p>
+                           <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                        </div>
+                        <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 mt-1 uppercase tracking-tighter line-clamp-1">{order.orderNumber}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                       <p className="text-xs font-black text-slate-900 dark:text-white">₹{order.total}</p>
+                       <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mt-0.5">{order.items?.length} Items</p>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+           </div>
+        </section>
+
+        {/* Completed Order Detail Modal */}
+        <AnimatePresence>
+          {selectedOrder && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
+                className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" 
+                onClick={() => setSelectedOrder(null)} 
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 30 }} 
+                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                exit={{ opacity: 0, scale: 0.95, y: 30 }} 
+                className="relative bg-white dark:bg-slate-900 w-full max-w-lg rounded-[3rem] border border-white/5 shadow-2xl overflow-hidden"
+              >
+                <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500">
+                      <CheckCircle2 size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Table #{selectedOrder.tableNo}</h3>
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{selectedOrder.orderNumber}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedOrder(null)} 
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                    aria-label="Close"
+                    title="Close"
+                  >
+                    <X />
+                  </button>
+                </div>
+
+                <div className="p-8 space-y-6 max-h-[400px] overflow-y-auto custom-scrollbar">
+                  {selectedOrder.items?.map((item: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-slate-50 dark:bg-white/5 rounded-xl flex items-center justify-center text-xs font-black text-slate-500">
+                          {item.quantity}x
+                        </div>
+                        <p className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">{item.nameSnapshot || item.name}</p>
+                      </div>
+                      <span className="text-sm font-black text-slate-900 dark:text-white">₹{item.itemTotal || (item.priceSnapshot * item.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-8 bg-slate-50 dark:bg-white/5 mt-auto">
+                   <div className="flex justify-between items-center mb-6">
+                      <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Grand Total</span>
+                      <span className="text-3xl font-black italic text-brand-500">₹{selectedOrder.total}</span>
+                   </div>
+                   <button 
+                     onClick={() => setSelectedOrder(null)}
+                     className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest"
+                   >
+                     Close Intelligence
+                   </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );
