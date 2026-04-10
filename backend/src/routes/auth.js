@@ -13,7 +13,8 @@ const {
   generateGuestSession,
   superAdminLogin,
   superAdminSignup,
-  changeSuperAdminPassword
+  changeSuperAdminPassword,
+  verifyFirebaseToken
 } = require('./controllers/authController');
 const { authenticateAdmin, authenticateStaff, authenticateAny, verifyRefresh, authenticateSuperAdmin } = require('../middleware/auth');
 
@@ -44,6 +45,10 @@ router.post('/admin/send-otp', sendOTP);
  * @access  Public
  */
 router.post('/admin/verify-otp', verifyOTP);
+
+// NEW: Firebase Verification Routes
+router.post('/firebase-verify', verifyFirebaseToken);
+router.post('/firebase-verify/customer', verifyFirebaseToken);
 
 /**
  * @route   POST /api/auth/staff/send-otp

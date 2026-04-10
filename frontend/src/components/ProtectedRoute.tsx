@@ -34,6 +34,11 @@ export const ProtectedRoute = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Check if admin profile is incomplete
+  if (user && user.role === 'admin' && user.profileComplete === false && location.pathname !== '/admin-profile') {
+    return <Navigate to="/admin-profile" replace />;
+  }
+
   // Check role if specified
   if (requiredRole && user && user.role !== requiredRole) {
     return <Navigate to="/" replace />;

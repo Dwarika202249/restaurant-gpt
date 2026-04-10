@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { X, Phone, Lock, ArrowRight, CheckCircle } from 'lucide-react';
 import { VITE_API_URL } from '../config/env';
+import { auth } from '@/config/firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
+import { toast } from 'react-hot-toast';
 
 const API_URL = VITE_API_URL;
 
@@ -14,12 +17,12 @@ interface CustomerAuthModalProps {
   onLoginSuccess: (user: any) => void;
 }
 
-const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ 
-  isOpen, 
-  onClose, 
+const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
+  isOpen,
+  onClose,
   restaurantId,
   guestSessionId,
-  onLoginSuccess 
+  onLoginSuccess
 }) => {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
@@ -28,6 +31,8 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timer, setTimer] = useState(0);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -39,6 +44,14 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
     return () => clearInterval(interval);
   }, [timer]);
 
+  const setupRecaptcha = () => {
+    if (!recaptchaVerifierRef.current) {
+      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'customer-recaptcha-container', {
+        size: 'invisible'
+      });
+    }
+  };
+
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phone.length < 10) {
@@ -48,22 +61,20 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
 
     setIsLoading(true);
     setError(null);
-    setReceivedOtp(null);
 
     try {
-      const response = await axios.post(`${API_URL}/auth/customer/send-otp`, { 
-        phone: phone.replace(/\D/g, '') 
-      });
-      
-      // Capture OTP for development/testing
-      if (response.data.otp) {
-        setReceivedOtp(response.data.otp);
-      }
-      
+      setupRecaptcha();
+      const appVerifier = recaptchaVerifierRef.current!;
+      const formatPhone = `+91${phone}`;
+
+      const result = await signInWithPhoneNumber(auth, formatPhone, appVerifier);
+      setConfirmationResult(result);
       setStep('otp');
       setTimer(60);
+      toast.success('Check your mobile for verification code');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to send OTP');
+      console.error('Firebase Customer Auth Error:', err);
+      setError(err.message || 'Failed to send security code');
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +83,12 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otp.length < 6) {
-      setError('Please enter the 6-digit OTP');
+      setError('Please enter the 6-digit code');
+      return;
+    }
+
+    if (!confirmationResult) {
+      setError('Session expired. Please try again.');
       return;
     }
 
@@ -80,23 +96,27 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
     setError(null);
 
     try {
-      const response = await axios.post(`${API_URL}/auth/customer/verify-otp`, {
-        phone: phone.replace(/\D/g, ''),
-        otp,
+      // 1. Firebase confirm
+      const result = await confirmationResult.confirm(otp);
+      const idToken = await result.user.getIdToken();
+
+      // 2. Exchange for our local token
+      const response = await axios.post(`${API_URL}/auth/firebase-verify/customer`, {
+        idToken,
         guestSessionId,
         restaurantId
       });
 
       const { user, accessToken } = response.data.data;
-      
-      // Store customer token separately or use existing auth logic
+
       localStorage.setItem('customerToken', accessToken);
       localStorage.setItem('customerUser', JSON.stringify(user));
-      
+
       onLoginSuccess(user);
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid OTP');
+      console.error('Customer identity exchange error:', err);
+      setError(err.response?.data?.message || 'Identity verification failed');
     } finally {
       setIsLoading(false);
     }
@@ -106,13 +126,13 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden border border-white/20"
       >
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
           title="Close"
@@ -134,8 +154,8 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
               {step === 'phone' ? 'Welcome Back!' : 'Enter Verification Code'}
             </h2>
             <p className="mt-2 text-gray-500 dark:text-gray-400">
-              {step === 'phone' 
-                ? 'Login to track your loyalty points and access dynamic coupons.' 
+              {step === 'phone'
+                ? 'Login to track your loyalty points and access dynamic coupons.'
                 : `We've sent a 6-digit code to ${phone}`}
             </p>
             {receivedOtp && (
@@ -152,19 +172,19 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
                   <span className="text-sm font-medium">+91</span>
                 </div>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    className="block w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl text-lg font-medium focus:ring-2 focus:ring-orange-500 transition-all"
-                    placeholder="Enter phone number"
-                    disabled={isLoading}
-                  />
-                  <p className="mt-4 text-[10px] text-center text-gray-400 dark:text-gray-500 font-medium">
-                    Testing? Use <span className="font-bold text-gray-600 dark:text-gray-300">9999999999</span> with OTP <span className="font-bold text-gray-600 dark:text-gray-300">123456</span>
-                  </p>
-                </div>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                  className="block w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl text-lg font-medium focus:ring-2 focus:ring-orange-500 transition-all"
+                  placeholder="Enter phone number"
+                  disabled={isLoading}
+                />
+                <p className="mt-4 text-[10px] text-center text-gray-400 dark:text-gray-500 font-medium">
+                  Testing? Use <span className="font-bold text-gray-600 dark:text-gray-300">9999999999</span> with OTP <span className="font-bold text-gray-600 dark:text-gray-300">123456</span>
+                </p>
+              </div>
             ) : (
               <div className="relative">
                 <input
@@ -181,7 +201,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
             )}
 
             {error && (
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center text-sm font-medium text-red-500"
@@ -212,7 +232,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
 
           {step === 'otp' && (
             <div className="mt-6 text-center">
-              <button 
+              <button
                 type="button"
                 disabled={timer > 0 || isLoading}
                 onClick={handleSendOtp}
@@ -228,6 +248,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
             <span>Secure Phone Verification</span>
           </div>
         </div>
+        <div id="customer-recaptcha-container"></div>
       </motion.div>
     </div>
   );

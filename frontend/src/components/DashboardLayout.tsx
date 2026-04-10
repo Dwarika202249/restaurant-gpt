@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
+import type { RootState } from '@/store/store';
 import { fetchRestaurantProfile } from '@/store/slices/restaurantSlice';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { MaintenanceGuard } from './MaintenanceGuard';
@@ -16,21 +17,25 @@ import { useConfig } from '@/context/ConfigContext';
 export const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const dispatch = useAppDispatch();
-  const { currentRestaurant: restaurant } = useAppSelector((state) => state.restaurant);
-  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  
+  // Use explicit selectors to help TypeScript inference
+  const restaurant = useAppSelector((state: RootState) => state.restaurant.currentRestaurant);
+  const { user, isAuthenticated } = useAppSelector((state: RootState) => state.auth);
   const { config } = useConfig();
 
   // Centralized Data Fetching
   useEffect(() => {
-    if (isAuthenticated) {
-      if (!user) {
+    if (isAuthenticated && user) {
+      if (!user.name || user.profileComplete === undefined) {
         dispatch(fetchAdminUser());
       }
-      if (!restaurant) {
+      
+      // Fetch restaurant if missing OR if it belongs to a different restaurant/owner
+      if (!restaurant || (user.restaurantId && restaurant._id !== user.restaurantId)) {
         dispatch(fetchRestaurantProfile());
       }
     }
-  }, [dispatch, isAuthenticated, user, restaurant]);
+  }, [dispatch, isAuthenticated, user?.id, user?.restaurantId, restaurant?._id]);
 
   const hasAnnouncement = config?.announcement?.enabled && (config?.announcement?.target === 'owners' || config?.announcement?.target === 'both');
 

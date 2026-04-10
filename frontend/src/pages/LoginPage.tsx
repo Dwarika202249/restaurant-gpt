@@ -7,6 +7,10 @@ import { sendOTP, verifyOTP, clearError, resetOTPSent } from '@/store/slices/aut
 import { Error as ErrorComp, Success } from '@/components';
 import { fetchAdminUser } from '@/store/slices/fetchAdminUser';
 import { motion, AnimatePresence } from 'framer-motion';
+import { auth } from '@/config/firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
+import { verifyFirebaseToken } from '@/store/slices/authSlice';
+import { toast } from 'react-hot-toast';
 
 type AuthStep = 'phone' | 'otp';
 
@@ -29,6 +33,8 @@ export const LoginPage = () => {
   const [otpError, setOtpError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [copied, setCopied] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -59,6 +65,17 @@ export const LoginPage = () => {
     }
   }, [step]);
 
+  const setupRecaptcha = () => {
+    if (!recaptchaVerifierRef.current) {
+      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: () => {
+          console.log('Recaptcha verified');
+        }
+      });
+    }
+  };
+
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleaned = phone.replace(/\D/g, '');
@@ -66,8 +83,22 @@ export const LoginPage = () => {
       setPhoneError('Please enter a valid 10-digit number');
       return;
     }
-    dispatch(clearError());
-    await dispatch(sendOTP(cleaned));
+    
+    try {
+      dispatch(clearError());
+      setupRecaptcha();
+      const appVerifier = recaptchaVerifierRef.current!;
+      const formatPhone = `+91${cleaned}`;
+      
+      const result = await signInWithPhoneNumber(auth, formatPhone, appVerifier);
+      setConfirmationResult(result);
+      setStep('otp');
+      setSuccessMessage('Code logic shifted to Firebase. OTP is on its way.');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error: any) {
+      console.error('Firebase Auth Error:', error);
+      toast.error(error.message || 'Failed to send verification code');
+    }
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
@@ -77,8 +108,25 @@ export const LoginPage = () => {
       setOtpError('Please enter the complete 6-digit OTP');
       return;
     }
-    dispatch(clearError());
-    await dispatch(verifyOTP({ phone: phone.replace(/\D/g, ''), otp }));
+
+    if (!confirmationResult) {
+      setOtpError('Session expired. Please request a new code.');
+      return;
+    }
+
+    try {
+      dispatch(clearError());
+      // 1. Verify with Firebase
+      const result = await confirmationResult.confirm(otp);
+      const idToken = await result.user.getIdToken();
+
+      // 2. Exchange for local JWT tokens
+      await dispatch(verifyFirebaseToken({ idToken }) as any);
+      
+    } catch (error: any) {
+      console.error('OTP Verification Error:', error);
+      setOtpError(error.message || 'Invalid verification code');
+    }
   };
 
   const handleOtpChange = (value: string, index: number) => {
@@ -350,6 +398,9 @@ export const LoginPage = () => {
           </div>
         </div>
 
+        {/* Invisible Recaptcha Container */}
+        <div id="recaptcha-container"></div>
+        
         {/* Subtle Decorative elements for form side */}
         <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-brand-500/[0.02] blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
       </div>

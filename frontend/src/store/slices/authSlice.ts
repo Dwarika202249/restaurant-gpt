@@ -100,6 +100,35 @@ export const verifyOTP = createAsyncThunk<
 });
 
 /**
+ * Async thunk for verifying Firebase Token
+ */
+export const verifyFirebaseToken = createAsyncThunk<
+  { accessToken: string; refreshToken: string; user: User },
+  { idToken: string; guestSessionId?: string; restaurantId?: string },
+  { rejectValue: AuthError }
+>("auth/verifyFirebaseToken", async ({ idToken, guestSessionId, restaurantId }, { rejectWithValue }) => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/firebase-verify`, {
+      idToken,
+      guestSessionId,
+      restaurantId
+    });
+    const { accessToken, refreshToken, user } = response.data.data;
+
+    // Store tokens in localStorage
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+
+    return { accessToken, refreshToken, user };
+  } catch (error) {
+    const axiosError = error as AxiosError<AuthError>;
+    return rejectWithValue(
+      axiosError.response?.data || { message: "Failed to verify identity with server" }
+    );
+  }
+});
+
+/**
  * Async thunk for refreshing access token
  */
 export const refreshAccessToken = createAsyncThunk<
@@ -375,6 +404,26 @@ const authSlice = createSlice({
       .addCase(verifyOTP.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || "Failed to verify OTP";
+      });
+
+    // Verify Firebase Token
+    builder
+      .addCase(verifyFirebaseToken.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(verifyFirebaseToken.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.accessToken = action.payload.accessToken;
+        state.refreshToken = action.payload.refreshToken;
+        state.isAuthenticated = true;
+        state.otpSent = false;
+        state.otpPhone = null;
+      })
+      .addCase(verifyFirebaseToken.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to verify Firebase identity";
       });
 
     // Refresh Access Token

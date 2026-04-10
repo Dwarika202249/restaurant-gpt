@@ -1,8 +1,9 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { AxiosError } from 'axios';
-import axios from 'axios';
-import type { RootState } from '../store';
-import { VITE_API_URL } from '@/config/env';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import type { AxiosError } from "axios";
+import axios from "axios";
+import type { RootState } from "../store";
+import { logout, verifyFirebaseToken, verifyOTP } from "./authSlice";
+import { VITE_API_URL } from "@/config/env";
 
 const API_URL = VITE_API_URL;
 
@@ -45,24 +46,25 @@ export const fetchRestaurantProfile = createAsyncThunk<
   Restaurant,
   void,
   { rejectValue: RestaurantError; state: RootState }
->(
-  'restaurant/fetchProfile',
-  async (_, { rejectWithValue, getState }) => {
-    try {
-      const state = getState();
-      const accessToken = (state as any).auth.accessToken;
-      const response = await axios.get(`${API_URL}/restaurant/profile`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      });
-      return response.data.data;
-    } catch (error) {
-      const axiosError = error as AxiosError<RestaurantError>;
-      return rejectWithValue(axiosError.response?.data || { message: 'Failed to fetch restaurant profile' });
-    }
+>("restaurant/fetchProfile", async (_, { rejectWithValue, getState }) => {
+  try {
+    const state = getState();
+    const accessToken = (state as any).auth.accessToken;
+    const response = await axios.get(`${API_URL}/restaurant/profile`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<RestaurantError>;
+    return rejectWithValue(
+      axiosError.response?.data || {
+        message: "Failed to fetch restaurant profile",
+      },
+    );
   }
-);
+});
 
 /**
  * Async thunk for updating restaurant profile
@@ -72,7 +74,7 @@ export const updateRestaurantProfile = createAsyncThunk<
   Partial<Restaurant> & { loyaltyEnabled?: boolean },
   { rejectValue: RestaurantError; state: RootState }
 >(
-  'restaurant/updateProfile',
+  "restaurant/updateProfile",
   async (updates, { rejectWithValue, getState }) => {
     try {
       const state = getState();
@@ -82,16 +84,20 @@ export const updateRestaurantProfile = createAsyncThunk<
         updates,
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        }
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
       );
       return response.data.data;
     } catch (error) {
       const axiosError = error as AxiosError<RestaurantError>;
-      return rejectWithValue(axiosError.response?.data || { message: 'Failed to update restaurant profile' });
+      return rejectWithValue(
+        axiosError.response?.data || {
+          message: "Failed to update restaurant profile",
+        },
+      );
     }
-  }
+  },
 );
 
 /**
@@ -99,30 +105,35 @@ export const updateRestaurantProfile = createAsyncThunk<
  */
 export const setupRestaurant = createAsyncThunk<
   Restaurant,
-  { name: string; slug: string; tablesCount?: number; currency?: string; themeColor?: string },
+  {
+    name: string;
+    slug: string;
+    tablesCount?: number;
+    currency?: string;
+    themeColor?: string;
+  },
   { rejectValue: RestaurantError; state: RootState }
->(
-  'restaurant/setup',
-  async (restaurantData, { rejectWithValue, getState }) => {
-    try {
-      const state = getState();
-      const accessToken = (state as any).auth.accessToken;
-      const response = await axios.post(
-        `${API_URL}/restaurant/setup`,
-        restaurantData,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        }
-      );
-      return response.data.data;
-    } catch (error) {
-      const axiosError = error as AxiosError<RestaurantError>;
-      return rejectWithValue(axiosError.response?.data || { message: 'Failed to setup restaurant' });
-    }
+>("restaurant/setup", async (restaurantData, { rejectWithValue, getState }) => {
+  try {
+    const state = getState();
+    const accessToken = (state as any).auth.accessToken;
+    const response = await axios.post(
+      `${API_URL}/restaurant/setup`,
+      restaurantData,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+    return response.data.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<RestaurantError>;
+    return rejectWithValue(
+      axiosError.response?.data || { message: "Failed to setup restaurant" },
+    );
   }
-);
+});
 
 /**
  * Async thunk for deleting restaurant
@@ -131,27 +142,23 @@ export const deleteRestaurant = createAsyncThunk<
   null,
   string,
   { rejectValue: RestaurantError; state: RootState }
->(
-  'restaurant/delete',
-  async (restaurantId, { rejectWithValue, getState }) => {
-    try {
-      const state = getState();
-      const accessToken = (state as any).auth.accessToken;
-      await axios.delete(
-        `${API_URL}/restaurant/${restaurantId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        }
-      );
-      return null;
-    } catch (error) {
-      const axiosError = error as AxiosError<RestaurantError>;
-      return rejectWithValue(axiosError.response?.data || { message: 'Failed to delete restaurant' });
-    }
+>("restaurant/delete", async (restaurantId, { rejectWithValue, getState }) => {
+  try {
+    const state = getState();
+    const accessToken = (state as any).auth.accessToken;
+    await axios.delete(`${API_URL}/restaurant/${restaurantId}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return null;
+  } catch (error) {
+    const axiosError = error as AxiosError<RestaurantError>;
+    return rejectWithValue(
+      axiosError.response?.data || { message: "Failed to delete restaurant" },
+    );
   }
-);
+});
 
 /**
  * Async thunk for upgrading to premium (mock payment)
@@ -160,28 +167,27 @@ export const upgradeToPremium = createAsyncThunk<
   Restaurant,
   void,
   { rejectValue: RestaurantError; state: RootState }
->(
-  'restaurant/upgradePremium',
-  async (_, { rejectWithValue, getState }) => {
-    try {
-      const state = getState();
-      const accessToken = (state as any).auth.accessToken;
-      const response = await axios.post(
-        `${API_URL}/subscription/upgrade`,
-        { plan: 'premium' },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        }
-      );
-      return response.data.data;
-    } catch (error) {
-      const axiosError = error as AxiosError<RestaurantError>;
-      return rejectWithValue(axiosError.response?.data || { message: 'Failed to upgrade to premium' });
-    }
+>("restaurant/upgradePremium", async (_, { rejectWithValue, getState }) => {
+  try {
+    const state = getState();
+    const accessToken = (state as any).auth.accessToken;
+    const response = await axios.post(
+      `${API_URL}/subscription/upgrade`,
+      { plan: "premium" },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+    return response.data.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<RestaurantError>;
+    return rejectWithValue(
+      axiosError.response?.data || { message: "Failed to upgrade to premium" },
+    );
   }
-);
+});
 
 /**
  * Async thunk for fetching restaurant by slug (public)
@@ -190,18 +196,17 @@ export const fetchRestaurantBySlug = createAsyncThunk<
   Restaurant,
   string,
   { rejectValue: RestaurantError }
->(
-  'restaurant/fetchBySlug',
-  async (slug, { rejectWithValue }) => {
-    try {
-      const response = await axios.get(`${API_URL}/restaurant/public/${slug}`);
-      return response.data.data;
-    } catch (error) {
-      const axiosError = error as AxiosError<RestaurantError>;
-      return rejectWithValue(axiosError.response?.data || { message: 'Restaurant not found' });
-    }
+>("restaurant/fetchBySlug", async (slug, { rejectWithValue }) => {
+  try {
+    const response = await axios.get(`${API_URL}/restaurant/public/${slug}`);
+    return response.data.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<RestaurantError>;
+    return rejectWithValue(
+      axiosError.response?.data || { message: "Restaurant not found" },
+    );
   }
-);
+});
 
 interface RestaurantState {
   currentRestaurant: Restaurant | null;
@@ -216,11 +221,11 @@ const initialState: RestaurantState = {
   publicRestaurant: null, // Public restaurant data (for customer)
   loading: false,
   error: null,
-  lastFetched: null
+  lastFetched: null,
 };
 
 const restaurantSlice = createSlice({
-  name: 'restaurant',
+  name: "restaurant",
   initialState,
   reducers: {
     clearError: (state) => {
@@ -230,7 +235,7 @@ const restaurantSlice = createSlice({
       state.currentRestaurant = null;
       state.publicRestaurant = null;
       state.error = null;
-    }
+    },
   },
   extraReducers: (builder) => {
     // Fetch Restaurant Profile
@@ -246,7 +251,8 @@ const restaurantSlice = createSlice({
       })
       .addCase(fetchRestaurantProfile.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to fetch restaurant profile';
+        state.error =
+          action.payload?.message || "Failed to fetch restaurant profile";
       });
 
     // Update Restaurant Profile
@@ -261,7 +267,8 @@ const restaurantSlice = createSlice({
       })
       .addCase(updateRestaurantProfile.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to update restaurant profile';
+        state.error =
+          action.payload?.message || "Failed to update restaurant profile";
       });
 
     // Setup Restaurant
@@ -276,7 +283,7 @@ const restaurantSlice = createSlice({
       })
       .addCase(setupRestaurant.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to setup restaurant';
+        state.error = action.payload?.message || "Failed to setup restaurant";
       });
 
     // Delete Restaurant
@@ -291,7 +298,7 @@ const restaurantSlice = createSlice({
       })
       .addCase(deleteRestaurant.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to delete restaurant';
+        state.error = action.payload?.message || "Failed to delete restaurant";
       });
 
     // Upgrade to Premium
@@ -306,7 +313,7 @@ const restaurantSlice = createSlice({
       })
       .addCase(upgradeToPremium.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to upgrade to premium';
+        state.error = action.payload?.message || "Failed to upgrade to premium";
       });
 
     // Fetch Restaurant by Slug
@@ -321,9 +328,25 @@ const restaurantSlice = createSlice({
       })
       .addCase(fetchRestaurantBySlug.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Restaurant not found';
+        state.error = action.payload?.message || "Restaurant not found";
       });
-  }
+
+    // Reset on Logout or New Login Exchange
+    builder.addMatcher(
+      (action) =>
+        [
+          logout.fulfilled.type,
+          logout.rejected.type,
+          verifyOTP.pending.type,
+          verifyFirebaseToken.pending.type,
+        ].includes(action.type),
+      (state) => {
+        state.currentRestaurant = null;
+        state.error = null;
+        state.lastFetched = null;
+      },
+    );
+  },
 });
 
 export const { clearError, resetRestaurant } = restaurantSlice.actions;

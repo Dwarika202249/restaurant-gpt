@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { logout, verifyFirebaseToken, verifyOTP } from './authSlice';
 
 // Types for cart items
 export interface CartItem {
@@ -193,6 +194,22 @@ export const cartSlice = createSlice({
     restoreCart: (state, action: PayloadAction<CartState>) => {
       return action.payload;
     },
+  },
+  extraReducers: (builder) => {
+    // Clear cart on logout/new session
+    builder.addMatcher(
+      (action) => [logout.fulfilled.type, logout.rejected.type, verifyOTP.pending.type, verifyFirebaseToken.pending.type].includes(action.type),
+      (state) => {
+        state.items = [];
+        state.subtotal = 0;
+        state.taxAmount = 0;
+        state.total = 0;
+        state.tableNo = undefined;
+        state.sessionId = undefined;
+        state.lastUpdated = Date.now();
+        localStorage.removeItem('dineOS_cart');
+      }
+    );
   },
 });
 

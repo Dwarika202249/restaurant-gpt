@@ -1,6 +1,7 @@
- const { User, Restaurant } = require('../../models');
- const { generateTokens, generateGuestToken } = require('../../utils/tokenGenerator');
- const mongoose = require('mongoose');
+const { User, Restaurant } = require('../../models');
+const { generateTokens, generateGuestToken } = require('../../utils/tokenGenerator');
+const mongoose = require('mongoose');
+const firebaseAdmin = require('../../utils/firebaseAdmin');
 
 /**
  * Send OTP to admin phone number
@@ -245,6 +246,102 @@ const verifyOTP = async (req, res) => {
     return res.status(500).json({
       message: 'OTP verification failed',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
+ * Verify Firebase ID Token and return local JWT tokens
+ */
+const verifyFirebaseToken = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ message: 'Firebase ID Token is required' });
+    }
+
+    // 1. Verify token with Firebase Admin
+    const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+    let phone = decodedToken.phone_number;
+
+    if (!phone) {
+      return res.status(400).json({ message: 'Phone number missing in verified token' });
+    }
+
+    // Normalize phone (remove + for internal consistency if needed, 
+    // but our current registration uses phone string directly)
+    // Most users provide 10 digits, Firebase provides E.164 (+91...)
+    // Let's strip the '+' and country code if it matches our assumed 10-digit format
+    phone = phone.replace('+', '');
+    if (phone.startsWith('91') && phone.length > 10) {
+      phone = phone.substring(2);
+    }
+
+    // 2. Find or Create User
+    const isCustomerPath = req.path.includes('customer');
+    let user = await User.findOne({ phone });
+
+    if (!user) {
+      const userRole = isCustomerPath ? 'customer' : 'admin';
+      user = new User({
+        phone,
+        role: userRole,
+        // Firebase users have already verified their phone
+        profileComplete: false 
+      });
+      await user.save();
+    } else {
+      if (!isCustomerPath && user.role === 'customer') {
+        return res.status(403).json({ message: 'This phone is registered as customer. Use customer menu.' });
+      }
+    }
+
+    // 3. Handle Migration if Guest Session provided
+    const { guestSessionId, restaurantId: sessionRestaurantId } = req.body;
+    if (isCustomerPath && guestSessionId && sessionRestaurantId) {
+      const { Order } = require('../../models');
+      await Order.updateMany(
+        { 
+          guestSessionId: new mongoose.Types.ObjectId(guestSessionId), 
+          restaurantId: new mongoose.Types.ObjectId(sessionRestaurantId),
+          customerId: null 
+        },
+        { $set: { customerId: user._id } }
+      );
+    }
+
+    // 4. Generate local tokens
+    const { accessToken, refreshToken } = generateTokens(user._id, user.restaurantId || sessionRestaurantId);
+
+    user.refreshTokens.push({
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    });
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Login successful via Firebase',
+      data: {
+        accessToken,
+        refreshToken,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          restaurantId: user.restaurantId,
+          profileComplete: user.profileComplete
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Firebase token verification error:', error);
+    return res.status(401).json({
+      message: 'Authentication failed',
+      error: error.message
     });
   }
 };
@@ -565,5 +662,6 @@ module.exports = {
   generateGuestSession,
   superAdminLogin,
   superAdminSignup,
-  changeSuperAdminPassword
+  changeSuperAdminPassword,
+  verifyFirebaseToken
 };
