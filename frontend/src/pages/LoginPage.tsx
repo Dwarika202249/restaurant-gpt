@@ -66,13 +66,37 @@ export const LoginPage = () => {
   }, [step]);
 
   const setupRecaptcha = () => {
-    if (!recaptchaVerifierRef.current) {
+    // 1. Clear existing ref if it exists
+    if (recaptchaVerifierRef.current) {
+      try {
+        recaptchaVerifierRef.current.clear();
+      } catch (e) {
+        console.warn('Recaptcha clear error:', e);
+      }
+      recaptchaVerifierRef.current = null;
+    }
+
+    // 2. FORCED DOM CLEANUP (Fixes: "reCAPTCHA has already been rendered in this element")
+    const container = document.getElementById('recaptcha-container');
+    if (container) {
+      container.innerHTML = '';
+    }
+
+    try {
       recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
         callback: () => {
           console.log('Recaptcha verified');
+        },
+        'expired-callback': () => {
+          if (recaptchaVerifierRef.current) {
+            recaptchaVerifierRef.current.clear();
+            recaptchaVerifierRef.current = null;
+          }
         }
       });
+    } catch (error) {
+      console.error('Recaptcha setup error:', error);
     }
   };
 

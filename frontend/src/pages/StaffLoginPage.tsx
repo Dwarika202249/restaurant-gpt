@@ -51,13 +51,37 @@ export const StaffLoginPage = () => {
   }, [otpSent, step]);
 
   const setupRecaptcha = () => {
-    if (!recaptchaVerifierRef.current) {
+    // 1. Clear existing ref if it exists
+    if (recaptchaVerifierRef.current) {
+      try {
+        recaptchaVerifierRef.current.clear();
+      } catch (e) {
+        console.warn('Staff Recaptcha clear error:', e);
+      }
+      recaptchaVerifierRef.current = null;
+    }
+
+    // 2. FORCED DOM CLEANUP (Fixes: "reCAPTCHA has already been rendered in this element")
+    const container = document.getElementById('recaptcha-staff-container');
+    if (container) {
+      container.innerHTML = '';
+    }
+
+    try {
       recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-staff-container', {
         size: 'invisible',
         callback: () => {
           console.log('Staff Recaptcha verified');
+        },
+        'expired-callback': () => {
+          if (recaptchaVerifierRef.current) {
+            recaptchaVerifierRef.current.clear();
+            recaptchaVerifierRef.current = null;
+          }
         }
       });
+    } catch (error) {
+      console.error('Staff Recaptcha setup error:', error);
     }
   };
 
