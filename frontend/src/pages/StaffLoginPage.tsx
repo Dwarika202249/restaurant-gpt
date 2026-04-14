@@ -210,6 +210,7 @@ export const StaffLoginPage = () => {
                         required
                       />
                     </div>
+                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-600 block pl-1 mt-2">Guest Staff Creds: chef: 2222222222/3333333333 otp: 123456 and waiter: 5555555555/6666666666 otp: 123456</span>
                   </div>
 
                   <button

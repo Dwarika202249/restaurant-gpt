@@ -107,13 +107,13 @@ export const LoginPage = () => {
       setPhoneError('Please enter a valid 10-digit number');
       return;
     }
-    
+
     try {
       dispatch(clearError());
       setupRecaptcha();
       const appVerifier = recaptchaVerifierRef.current!;
       const formatPhone = `+91${cleaned}`;
-      
+
       const result = await signInWithPhoneNumber(auth, formatPhone, appVerifier);
       setConfirmationResult(result);
       setStep('otp');
@@ -146,7 +146,7 @@ export const LoginPage = () => {
 
       // 2. Exchange for local JWT tokens
       await dispatch(verifyFirebaseToken({ idToken }) as any);
-      
+
     } catch (error: any) {
       console.error('OTP Verification Error:', error);
       setOtpError(error.message || 'Invalid verification code');
@@ -156,13 +156,13 @@ export const LoginPage = () => {
   const handleOtpChange = (value: string, index: number) => {
     // Only allow numbers or empty string (for backspace)
     if (value !== '' && !/^[0-9]$/.test(value.slice(-1))) return;
-    
+
     const newOtpArray = [...otpArray];
     const val = value.slice(-1);
     newOtpArray[index] = val;
     setOtpArray(newOtpArray);
     setOtpError('');
-    
+
     // Auto-focus next box
     if (val && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
@@ -187,7 +187,7 @@ export const LoginPage = () => {
         </div>
 
         <div className="relative z-20 p-16 flex flex-col justify-between w-full">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center space-x-3 cursor-pointer hover:scale-105 transition-transform origin-left"
@@ -200,7 +200,7 @@ export const LoginPage = () => {
           </motion.div>
 
           <div className="space-y-6">
-            <motion.h2 
+            <motion.h2
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
@@ -209,7 +209,7 @@ export const LoginPage = () => {
               FUTURE OF <br />
               <span className="text-brand-500">DINING</span> IS HERE.
             </motion.h2>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
@@ -219,7 +219,7 @@ export const LoginPage = () => {
             </motion.p>
           </div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
@@ -237,7 +237,7 @@ export const LoginPage = () => {
             ))}
           </motion.div>
         </div>
-        
+
         {/* Decorative Circles */}
         <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-brand-500/10 blur-[120px] rounded-full" />
         <div className="absolute top-1/2 right-0 w-64 h-64 bg-brand-500/5 blur-[100px] rounded-full translate-x-1/2" />
@@ -255,7 +255,7 @@ export const LoginPage = () => {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               >
-                <div 
+                <div
                   className="mb-10 lg:hidden flex items-center space-x-3 cursor-pointer hover:scale-105 transition-transform origin-left w-fit"
                   onClick={() => navigate('/')}
                 >
@@ -279,7 +279,7 @@ export const LoginPage = () => {
                     </label>
                     <div className="relative group">
                       <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-500 transition-colors" size={20} />
-                      <input 
+                      <input
                         type="tel"
                         value={phone}
                         onChange={(e) => {
@@ -289,11 +289,12 @@ export const LoginPage = () => {
                         placeholder="+91 00000 00000"
                         className={`w-full bg-slate-50 dark:bg-slate-900 border ${phoneError ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-[1.25rem] py-4 pl-12 pr-4 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all`}
                       />
+                      <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-600 block pl-1 mt-2">Guest Admin Creds: mob: 9999999999 otp: 123456</span>
                     </div>
                     {phoneError && <p className="text-red-500 text-[10px] font-bold uppercase tracking-widest pl-1">{phoneError}</p>}
                   </div>
 
-                  <button 
+                  <button
                     type="submit"
                     disabled={loading || phone.length < 10}
                     className="w-full orange-gradient p-4 rounded-[1.25rem] text-white font-black uppercase tracking-widest text-xs flex items-center justify-center space-x-3 shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:hover:scale-100 outline-none"
@@ -310,7 +311,7 @@ export const LoginPage = () => {
                 </form>
 
                 <div className="pt-8 border-t border-slate-50 dark:border-slate-900">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => navigate('/staff/login')}
                     className="w-full py-4 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-brand-500 transition-all flex items-center justify-center gap-2 outline-none"
@@ -328,7 +329,7 @@ export const LoginPage = () => {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               >
-                <button 
+                <button
                   onClick={() => {
                     dispatch(resetOTPSent());
                     setStep('phone');
@@ -355,7 +356,7 @@ export const LoginPage = () => {
                         OTP Code
                       </label>
                       {demoOTP && (
-                        <button 
+                        <button
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(demoOTP);
@@ -369,7 +370,7 @@ export const LoginPage = () => {
                         </button>
                       )}
                     </div>
-                    
+
                     <div className="flex justify-between gap-3">
                       {otpArray.map((digit, i) => (
                         <input
@@ -393,7 +394,7 @@ export const LoginPage = () => {
                     {otpError && <p className="text-red-500 text-[10px] font-bold uppercase tracking-widest pl-1">{otpError}</p>}
                   </div>
 
-                  <button 
+                  <button
                     type="submit"
                     disabled={loading || currentOtp.length < 6}
                     className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-4 rounded-[1.25rem] font-black uppercase tracking-widest text-xs flex items-center justify-center space-x-3 shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100"
@@ -415,16 +416,16 @@ export const LoginPage = () => {
           <div className="mt-12 pt-8 border-t border-slate-50 dark:border-slate-900 flex justify-between items-center">
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">© 2026 DineOS</p>
             <div className="flex space-x-4">
-               <button onClick={() => navigate('/help')} className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest outline-none">Help</button>
-               <button onClick={() => navigate('/privacy')} className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest outline-none">Privacy</button>
-               <button onClick={() => navigate('/terms')} className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest outline-none">Terms</button>
+              <button onClick={() => navigate('/help')} className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest outline-none">Help</button>
+              <button onClick={() => navigate('/privacy')} className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest outline-none">Privacy</button>
+              <button onClick={() => navigate('/terms')} className="text-[10px] text-slate-400 hover:text-brand-500 transition-colors font-bold uppercase tracking-widest outline-none">Terms</button>
             </div>
           </div>
         </div>
 
         {/* Invisible Recaptcha Container */}
         <div id="recaptcha-container"></div>
-        
+
         {/* Subtle Decorative elements for form side */}
         <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-brand-500/[0.02] blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
       </div>
